@@ -10,6 +10,18 @@ Descreva aqui o propósito do projeto, endpoints, exemplos de uso e outras infor
 
 Este projeto utiliza o padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/), validado automaticamente pelo [commitlint](https://github.com/conventional-changelog/commitlint).
 
+antes de começar execute
+```
+pnpm prepare
+```
+para ativar a configuração do husky
+
+obs.: caso queira passo a passo detalhado de como fazer um commit dentro do padrão, basta executar:
+```
+pnpm commit
+```
+e seguir o guia (irá fazer um commit automatico no fim)
+
 ### Estrutura do commit
 
 ```
