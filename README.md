@@ -16,7 +16,7 @@ pnpm prepare
 ```
 para ativar a configuração do husky
 
-obs.: caso queira passo a passo detalhado de como fazer um commit dentro do padrão, basta executar:
+obs.: caso queira um passo a passo detalhado de como fazer um commit dentro do padrão, basta executar:
 ```
 pnpm commit
 ```
