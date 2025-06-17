@@ -1,0 +1,224 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// =========== ENUMS ===========
+
+enum perfilTipo {
+  COLABORADOR_COMUM
+  GESTOR
+  RH
+  MEMBRO_COMITE
+  ADMIN
+}
+
+enum cicloStatus {
+  EM_ANDAMENTO
+  FECHADO
+}
+
+enum avaliacaoTipo {
+  AUTOAVALIACAO
+  GESTOR_LIDERADO
+  LIDERADO_GESTOR
+  AVALIACAO_PARES
+}
+
+enum preenchimentoStatus {
+  PENDENTE
+  CONCLUIDA
+}
+
+enum pilarCriterio {
+  Comportamento
+  Execucao
+  Gestao_e_Lideranca
+}
+
+enum referenciaTipo {
+  TECNICA
+  CULTURAL
+}
+
+enum projetoStatus {
+  PLANEJADO
+  EM_ANDAMENTO
+  CONCLUIDO
+  CANCELADO
+}
+
+/// =========== MODELS ===========
+
+model Colaborador {
+  idColaborador      String                     @id @default(uuid()) @db.Uuid
+  nomeCompleto       String                     @db.VarChar(255)
+  email              String                     @unique @db.VarChar(255)
+  cargo              String?                    @db.VarChar(100)
+  trilhaCarreira     String?                    @db.VarChar(100)
+  unidade            String?                    @db.VarChar(100)
+  dataCriacao        DateTime                   @default(now())
+  perfis             ColaboradorPerfil[]
+  avaliacoesFeitas   Avaliacao[]                @relation("AvaliacoesFeitas")
+  avaliacoesRecebidas Avaliacao[]               @relation("AvaliacoesRecebidas")
+  equalizacoes       Equalizacao[]              @relation("EqualizacoesAlvo")
+  comites            Equalizacao[]              @relation("EqualizacoesMembro")
+  indicacoesFeitas   IndicacaoReferencia[]      @relation("Indicador")
+  indicacoesRecebidas IndicacaoReferencia[]     @relation("Indicado")
+  alocacoesProjeto   AlocacaoColaboradorProjeto[]
+  liderancasProjeto  AlocacaoLiderProjeto[]     @relation("LiderDeProjetos")
+  mentorandos        GestorColaborador[]        @relation("Mentorando")
+  gestorDe           GestorColaborador[]        @relation("ComoGestor")
+}
+
+model ColaboradorPerfil {
+  idColaborador  String      @db.Uuid
+  tipoPerfil     perfilTipo
+
+  colaborador    Colaborador @relation(fields: [idColaborador], references: [idColaborador], onDelete: Cascade)
+
+  @@id([idColaborador, tipoPerfil])
+}
+
+model CicloAvaliacao {
+  idCiclo              String                   @id @default(uuid()) @db.Uuid
+  nomeCiclo            String                   @db.VarChar(255)
+  dataInicio           DateTime                 @db.Date
+  dataFim              DateTime                 @db.Date
+  status               cicloStatus              @default(EM_ANDAMENTO)
+  avaliacoes           Avaliacao[]
+  associacoesCriterio  AssociacaoCriterioCiclo[]
+  indicacoesReferencia IndicacaoReferencia[]
+  gestorColaboradores  GestorColaborador[]
+}
+
+model CriterioAvaliativo {
+  idCriterio               String                      @id @default(uuid()) @db.Uuid
+  nomeCriterio             String                      @db.VarChar(255)
+  pilar                    pilarCriterio?
+  descricao                String?                     @db.Text
+  peso                     Decimal                     @default(1.0)
+  obrigatorio              Boolean                     @default(true)
+  dataCriacao              DateTime                    @default(now())
+  dataUltimaModificacao    DateTime?
+  detalhesAvaliacao        DetalheAvaliacao[]
+  associacoesCriterio      AssociacaoCriterioCiclo[]
+}
+
+model AssociacaoCriterioCiclo {
+  idAssociacao    String     @id @default(uuid()) @db.Uuid
+  idCiclo         String     @db.Uuid
+  idCriterio      String     @db.Uuid
+  cargo           String?    @db.VarChar(100)
+  trilhaCarreira  String?    @db.VarChar(100)
+  unidade         String?    @db.VarChar(100)
+
+  ciclo           CicloAvaliacao    @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
+  criterio        CriterioAvaliativo @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
+
+  @@unique([idCiclo, idCriterio, cargo, trilhaCarreira, unidade])
+}
+
+model Avaliacao {
+  idAvaliacao        String               @id @default(uuid()) @db.Uuid
+  idCiclo            String               @db.Uuid
+  idAvaliador        String               @db.Uuid
+  idAvaliado         String               @db.Uuid
+  tipo               avaliacaoTipo
+  status             preenchimentoStatus  @default(PENDENTE)
+  dataPreenchimento  DateTime?
+
+  ciclo              CicloAvaliacao      @relation(fields: [idCiclo], references: [idCiclo], onDelete: Restrict)
+  avaliador          Colaborador          @relation("AvaliacoesFeitas", fields: [idAvaliador], references: [idColaborador], onDelete: Restrict)
+  avaliado           Colaborador          @relation("AvaliacoesRecebidas", fields: [idAvaliado], references: [idColaborador], onDelete: Restrict)
+  detalhes           DetalheAvaliacao[]
+}
+
+model DetalheAvaliacao {
+  idDetalheAvaliacao String       @id @default(uuid()) @db.Uuid
+  idAvaliacao        String       @db.Uuid
+  idCriterio         String       @db.Uuid
+  nota               Int          /// note: 'CHECK: nota >= 1 AND nota <= 5'
+  justificativa      String       @db.Text
+
+  avaliacao          Avaliacao    @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
+  criterio           CriterioAvaliativo @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
+}
+
+model Equalizacao {
+  idEqualizacao     String               @id @default(uuid()) @db.Uuid
+  idAvaliado        String               @db.Uuid
+  idMembroComite    String               @db.Uuid
+  notaAjustada      Int                  /// note: 'CHECK: notaAjustada >= 1 AND notaAjustada <= 5'
+  justificativa     String               @db.Text
+  status            preenchimentoStatus  @default(PENDENTE)
+  dataEqualizacao   DateTime             @default(now())
+
+  alvo              Colaborador          @relation("EqualizacoesAlvo", fields: [idAvaliado], references: [idColaborador], onDelete: Restrict)
+  membroComite      Colaborador          @relation("EqualizacoesMembro", fields: [idMembroComite], references: [idColaborador], onDelete: Restrict)
+}
+
+model IndicacaoReferencia {
+  idIndicacao    String            @id @default(uuid()) @db.Uuid
+  idCiclo        String            @db.Uuid
+  idIndicador    String            @db.Uuid
+  idIndicado     String            @db.Uuid
+  tipo           referenciaTipo
+  justificativa  String?           @db.Text
+
+  ciclo          CicloAvaliacao    @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
+  indicador      Colaborador       @relation("Indicador", fields: [idIndicador], references: [idColaborador], onDelete: Cascade)
+  indicado       Colaborador       @relation("Indicado", fields: [idIndicado], references: [idColaborador], onDelete: Cascade)
+}
+
+model Projeto {
+  idProjeto     String                        @id @default(uuid()) @db.Uuid
+  nomeProjeto   String                        @db.VarChar(255)
+  cliente       String?                       @db.VarChar(255)
+  dataInicio    DateTime?                     @db.Date
+  dataFim       DateTime?                     @db.Date
+  status        projetoStatus                 @default(PLANEJADO)
+  alocacoes     AlocacaoColaboradorProjeto[]
+  liderancas    AlocacaoLiderProjeto[]
+}
+
+model AlocacaoColaboradorProjeto {
+  idAlocacao    String     @id @default(uuid()) @db.Uuid
+  idColaborador String     @db.Uuid
+  idProjeto     String     @db.Uuid
+  dataEntrada   DateTime   @db.Date
+  dataSaida     DateTime?  @db.Date
+
+  colaborador   Colaborador @relation(fields: [idColaborador], references: [idColaborador], onDelete: Cascade)
+  projeto       Projeto     @relation(fields: [idProjeto], references: [idProjeto], onDelete: Cascade)
+}
+
+model AlocacaoLiderProjeto {
+  idAlocacaoLider String     @id @default(uuid()) @db.Uuid
+  idLider         String     @db.Uuid
+  idProjeto       String     @db.Uuid
+  dataEntrada     DateTime   @db.Date
+  dataSaida       DateTime?  @db.Date
+
+  lider           Colaborador @relation("LiderDeProjetos", fields: [idLider], references: [idColaborador], onDelete: Cascade)
+  projeto         Projeto     @relation(fields: [idProjeto], references: [idProjeto], onDelete: Cascade)
+}
+
+model GestorColaborador {
+  idGestorMentorado String   @id @default(uuid()) @db.Uuid
+  idGestor          String   @db.Uuid
+  idColaborador     String   @db.Uuid
+  idCiclo           String   @db.Uuid
+
+  gestor            Colaborador     @relation("ComoGestor", fields: [idGestor], references: [idColaborador], onDelete: Cascade)
+  mentorando        Colaborador     @relation("Mentorando", fields: [idColaborador], references: [idColaborador], onDelete: Cascade)
+  ciclo             CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
+
+  @@unique([idGestor, idColaborador, idCiclo])
+}
