@@ -60,6 +60,7 @@ model Colaborador {
   idColaborador      String                     @id @default(uuid()) @db.Uuid
   nomeCompleto       String                     @db.VarChar(255)
   email              String                     @unique @db.VarChar(255)
+  senha              String                     @db.VarChar(255)
   cargo              String?                    @db.VarChar(100)
   trilhaCarreira     String?                    @db.VarChar(100)
   unidade            String?                    @db.VarChar(100)
