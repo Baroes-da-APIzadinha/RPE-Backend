@@ -26,3 +26,33 @@ Content-Type: application/json
     "email": "marcos.vinicius@example.com"
     
 }
+
+
+
+### Criar ciclo
+POST http://localhost:3000/ciclo/criar
+Content-Type: application/json
+
+{
+    "nome": "Ciclo TESTE",
+    "dataInicio": "2025-06-28T00:00:00.000Z",
+    "dataFim": "2025-06-28T23:50:00.000Z",
+    "status": 1
+}
+
+### Remover ciclo
+DELETE http://localhost:3000/ciclo/remover/b55004c9-4656-42ab-8b61-ebcd701fd2d6
+
+### Get ciclo
+GET http://localhost:3000/ciclo/get/b55004c9-4656-42ab-8b61-ebcd701fd2d6
+
+### Get all ciclos
+GET http://localhost:3000/ciclo/get-all
+
+### Atualizar ciclo
+PUT http://localhost:3000/ciclo/atualizar/66bd64dc-19c7-4e33-951e-91b8f1f70df5
+Content-Type: application/json
+
+{
+    "status": 1
+}
