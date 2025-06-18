@@ -63,3 +63,84 @@ BREAKING CHANGE: O campo 'id' agora é obrigatório.
 ```
 
 Commits fora desse padrão serão rejeitados.
+
+## Endpoints do Módulo Colaborador
+
+### Criar colaborador
+```http
+POST /colaborador/criar
+Content-Type: application/json
+
+{
+  "nomeCompleto": "João da Silva",
+  "email": "joao.silva@example.com",
+  "senha": "senha123",
+  "cargo": "Desenvolvedor",
+  "trilhaCarreira": "Desenvolvimento",
+  "unidade": "São Paulo"
+}
+```
+
+### Remover colaborador
+```http
+DELETE /colaborador/remover/{id}
+```
+
+### Buscar colaborador por ID
+```http
+GET /colaborador/get/{id}
+```
+
+### Atualizar colaborador
+```http
+PUT /colaborador/atualizar/{id}
+Content-Type: application/json
+
+{
+  "nomeCompleto": "João Silva Santos",
+  "cargo": "Desenvolvedor Senior"
+}
+```
+
+## Endpoints do Módulo Ciclo
+
+### Criar ciclo
+```http
+POST /ciclo/criar
+Content-Type: application/json
+
+{
+  "nome": "Ciclo TESTE",
+  "dataInicio": "2025-06-28T00:00:00.000Z",
+  "dataFim": "2025-06-28T23:50:00.000Z",
+  "status": "EM_ANDAMENTO"
+}
+```
+
+### Remover ciclo
+```http
+DELETE /ciclo/remover/{id}
+```
+
+### Buscar ciclo por ID
+```http
+GET /ciclo/get/{id}
+```
+
+### Buscar todos os ciclos
+```http
+GET /ciclo/get-all
+```
+
+### Atualizar ciclo
+```http
+PUT /ciclo/atualizar/{id}
+Content-Type: application/json
+
+{
+  "nome": "Novo Nome",
+  "dataInicio": "2025-07-01T00:00:00.000Z",
+  "dataFim": "2025-07-31T23:59:59.000Z",
+  "status": "FECHADO"
+}
+```
