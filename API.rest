@@ -3,28 +3,26 @@ POST http://localhost:3000/colaborador/criar
 Content-Type: application/json
 
 {
-    "nomeCompleto": 1,
-    "email": "joao.silva@example.com",
+    "nomeCompleto": "Marcos Vinicius",
+    "email": "marcos.vinicius@example.com",
     "senha": "senha123",
     "cargo": "Desenvolvedor",
     "trilhaCarreira": "Desenvolvimento",
-    "unidade": "São Paulo"
+    "unidade": "Recife"
 }
 
 ### Remover colaborador
-DELETE http://localhost:3000/colaborador/remover/1706ca0f-724c-40c0-af4a-fdc2b5b5e475
-
+DELETE http://localhost:3000/colaborador/remover/9aa7e53a-0518-4c53-b03b-2cee1b8cbc87
 ### Get colaborador
 
 GET http://localhost:3000/colaborador/get/9aa7e53a-0518-4c53-b03b-2cee1b8cbc87
 
 ### Atualizar colaborador
-PUT http://localhost:3000/colaborador/atualizar/9aa7e53a-0518-4c53-b03b-2cee1b8cbc87
+PUT http://localhost:3000/colaborador/atualizar/c3ff70b4-1096-41aa-bba4-0cec649580da
 Content-Type: application/json
 
 {
     
-    "email": "jorge.silva@example.com",
-    "trilhaCarreira": 2
+    "email": "marcos.vinicius@example.com"
     
 }

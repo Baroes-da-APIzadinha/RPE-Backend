@@ -1,6 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { ColaboradorService } from './colaborador.service';
-import { Colaborador } from '@prisma/client';
 import { CreateColaboradorDto, UpdateColaboradorDto } from './colaborador.dto';
 
 @Controller('colaborador')
