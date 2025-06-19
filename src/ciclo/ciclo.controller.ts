@@ -30,4 +30,14 @@ export class CicloController {
     async getCiclos() {
         return this.cicloService.getCiclos();
     }
+
+    @Get('get-ativos')
+    async getCiclosAtivos() {
+        return this.cicloService.getCiclosAtivos();
+    }
+
+    @Get('get-historico')
+    async getHistoricoCiclos() {
+        return this.cicloService.getHistoricoCiclos();
+    }
 }
