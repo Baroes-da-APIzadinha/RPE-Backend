@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsNotEmpty, IsString, IsNumber } from "class-validator";
 import { cicloStatus } from "@prisma/client";
 
 export class CreateCicloDto {
@@ -7,29 +7,56 @@ export class CreateCicloDto {
     nome: string;
 
     @IsNotEmpty()
-    @IsString()
-    dataInicio: string;
+    @IsNumber()
+    dataInicioAno: number;
+
+    @IsNotEmpty()
+    @IsNumber()
+    dataInicioMes: number;
+
+    @IsNotEmpty()
+    @IsNumber()
+    dataInicioDia: number;
+
+    @IsNotEmpty()
+    @IsNumber()
+    dataFimAno: number;
+
+    @IsNotEmpty()
+    @IsNumber()
+    dataFimMes: number;
+
+    @IsNotEmpty()
+    @IsNumber()
+    dataFimDia: number;
 
     @IsNotEmpty()
     @IsString()
-    dataFim: string;
-
-    @IsNotEmpty()
-    @IsString()
-    status: cicloStatus;
+    status?: cicloStatus;
 }
 
 export class UpdateCicloDto {
-
-    @IsOptional()
     @IsString()
-    dataInicio: string;
+    nome?: string;
 
-    @IsOptional()
-    @IsString()
-    dataFim: string;
+    @IsNumber()
+    dataInicioAno?: number;
 
-    @IsOptional()
+    @IsNumber()
+    dataInicioMes?: number;
+
+    @IsNumber()
+    dataInicioDia?: number;
+
+    @IsNumber()
+    dataFimAno?: number;
+
+    @IsNumber()
+    dataFimMes?: number;
+
+    @IsNumber()
+    dataFimDia?: number;
+
     @IsString()
-    status: cicloStatus;
+    status?: cicloStatus;
 }

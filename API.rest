@@ -34,14 +34,18 @@ POST http://localhost:3000/ciclo/criar
 Content-Type: application/json
 
 {
-    "nome": "Ciclo TESTE",
-    "dataInicio": "2025-06-30T00:00:00.000Z",
-    "dataFim": "2025-07-26T23:59:00.000Z",
-    "status": "EM_ANDAMENTO"
+    "nome": "2025.11",
+    "dataInicioAno": 2025,
+    "dataInicioMes": 3,
+    "dataInicioDia": 19,
+    "dataFimAno": 2025,
+    "dataFimMes": 7,
+    "dataFimDia": 19,
+    "status": "AGENDADO"
 }
 
 ### Remover ciclo
-DELETE http://localhost:3000/ciclo/remover/6b18a80e-9ad6-4ab3-a02d-bdc07254c0fb
+DELETE http://localhost:3000/ciclo/remover/d7087ccd-575e-4586-aeb7-c8454d4f2ea3
 
 ### Get ciclo
 GET http://localhost:3000/ciclo/get/b55004c9-4656-42ab-8b61-ebcd701fd2d6
@@ -56,9 +60,16 @@ GET http://localhost:3000/ciclo/get-ativos
 GET http://localhost:3000/ciclo/get-historico
 
 ### Atualizar ciclo
-PUT http://localhost:3000/ciclo/atualizar/66bd64dc-19c7-4e33-951e-91b8f1f70df5
+PUT http://localhost:3000/ciclo/atualizar/00806990-211f-4dc0-9925-fa800ee6aa61
 Content-Type: application/json
 
 {
-    "status": 1
+    "nome": "2025.1",
+    "dataInicioAno": 2025,
+    "dataInicioMes": 6,
+    "dataInicioDia": 20,
+    "dataFimAno": 2025,
+    "dataFimMes": 7,
+    "dataFimDia": 26,
+    "status": "AGENDADO"
 }
