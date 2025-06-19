@@ -12,16 +12,15 @@ export class CriteriosController {
         return this.criteriosService.getCriterios();
     }
 
-    @Get(':id')
-    async getCriterio(@Param('id') id: string) {
-        return this.criteriosService.getCriterio(id);
-    }
-
     @Get('pilar/:pilar')
     async getCriterioPorPilar(@Param('pilar') pilar: pilarCriterio) {
         return this.criteriosService.getCriterioPorPilar(pilar);
     }
 
+    @Get(':id')
+    async getCriterio(@Param('id') id: string) {
+        return this.criteriosService.getCriterio(id);
+    }
     @Post()
     async createCriterio(@Body() data: CreateCriterioDto) {
         return this.criteriosService.createCriterio(data);
