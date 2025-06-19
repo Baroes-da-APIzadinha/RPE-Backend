@@ -8,6 +8,7 @@ export class CicloController {
 
     @Post('criar')
     async criarCiclo(@Body() data: CreateCicloDto) {
+        console.log("controller")
         return this.cicloService.createCiclo(data);
     }
 

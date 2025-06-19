@@ -20,6 +20,7 @@ enum perfilTipo {
 }
 
 enum cicloStatus {
+  AGENDADO
   EM_ANDAMENTO
   FECHADO
 }

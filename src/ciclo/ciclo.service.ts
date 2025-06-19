@@ -6,42 +6,18 @@ import { cicloStatus } from '@prisma/client';
 const tempoMinimo = 20;
 const tempoMaximo = 40;
 
+// Pega o momento atual em UTC
+const hoje = new Date();
+hoje.setHours(-3, 0, 0, 0);
+console.log(hoje)
 
 @Injectable()
 export class CicloService {
     constructor(private readonly prisma: PrismaService) {}
 
     async createCiclo(data: CreateCicloDto) {
+        console.log(hoje.getDate())
 
-        if (data.dataInicio > data.dataFim ) {
-            return {
-                status: 400,
-                message: 'Data de início não pode ser maior que a data de fim'
-            }
-        }
-        if (data.dataInicio < new Date().toISOString() || data.dataFim < new Date().toISOString()) {
-            return {
-                status: 400,
-                message: 'Data de início ou fim não pode ser menor que a data atual'
-            }
-        }
-        if(data.status !== 'EM_ANDAMENTO') {
-            return {
-                status: 400,
-                message: 'Status inválido, deve ser EM_ANDAMENTO'
-            }
-        }
-        const cicloNameExists = await this.prisma.cicloAvaliacao.findFirst({
-            where: {
-                nomeCiclo: data.nome
-            }
-        })
-        if (cicloNameExists) {
-            return {
-                status: 400,
-                message: 'Ciclo com este nome já existe'
-            }
-        }
         const cicloEmAndamento = await this.prisma.cicloAvaliacao.findFirst({
             where: {
                 status: 'EM_ANDAMENTO'
@@ -54,7 +30,31 @@ export class CicloService {
             }
         }
 
-        const diffMs = new Date(data.dataFim).getTime() - new Date(data.dataInicio).getTime();
+        const dataInicio = this.createData(data.dataInicioAno, data.dataInicioMes, data.dataInicioDia);
+        const dataFim = this.createData(data.dataFimAno, data.dataFimMes, data.dataFimDia);
+
+        if (!dataInicio || !dataFim) {
+            return {
+                status: 400,
+                message: 'Data de início ou fim inválida.'
+            }
+        }
+
+        if (dataInicio > dataFim ) {
+            return {
+                status: 400,
+                message: 'Data de início não pode ser maior que a data de fim'
+            }
+        }
+    
+        if (dataInicio < hoje || dataFim < hoje) {
+            return {
+                status: 400,
+                message: 'Data de início ou fim não pode ser menor que o dia atual'
+            }
+        }
+
+        const diffMs = dataFim.getTime() - dataInicio.getTime();
         const diffDays = diffMs / (1000 * 60 * 60 * 24);
         if (diffDays < tempoMinimo) {
             return { status: 400, message: `O ciclo deve ter pelo menos ${tempoMinimo} dias de duração.` };
@@ -64,11 +64,25 @@ export class CicloService {
         }
 
         
+
+        const cicloNameExists = await this.prisma.cicloAvaliacao.findFirst({
+            where: {
+                nomeCiclo: data.nome
+            }
+        })
+        if (cicloNameExists) {
+            return {
+                status: 400,
+                message: 'Ciclo com este nome já existe'
+            }
+        }
+
+
         return this.prisma.cicloAvaliacao.create({
             data: {
                 nomeCiclo: data.nome,
-                dataInicio: data.dataInicio,
-                dataFim: data.dataFim,
+                dataInicio: dataInicio,
+                dataFim: dataFim,
                 status: data.status as cicloStatus
             }
         })
@@ -155,30 +169,62 @@ export class CicloService {
                 message: 'Ciclo não encontrado'
             }
         }
-        if (data.dataInicio > data.dataFim ) {
+
+        // Monta as datas a partir dos campos recebidos ou mantém as antigas
+        let dataInicio = cicloExists.dataInicio;
+        let dataFim = cicloExists.dataFim;
+        
+        if (data.dataInicioAno && data.dataInicioMes && data.dataInicioDia) {
+            dataInicio = new Date(data.dataInicioAno, data.dataInicioMes -1, data.dataInicioDia);
+            if (!this.isDataValida(data.dataInicioAno, data.dataInicioMes, data.dataInicioDia)) {
+                return {
+                    status: 400,
+                    message: 'Data de início inválida.'
+                }
+            }
+           
+        }
+        if (data.dataFimAno && data.dataFimMes && data.dataFimDia) {
+            dataFim = new Date(data.dataFimAno, data.dataFimMes -1, data.dataFimDia);
+            if (!this.isDataValida(data.dataFimAno, data.dataFimMes, data.dataFimDia)) {
+                return {
+                    status: 400,
+                    message: 'Data de fim inválida.'
+                }
+            }
+        }
+
+        if (dataInicio > dataFim ) {
             return {
                 status: 400,
                 message: 'Data de início não pode ser maior que a data de fim'
             }
         }
-        if (data.dataInicio < new Date().toISOString() || data.dataFim < new Date().toISOString()) {
+        if (dataInicio < new Date() || dataFim < new Date()) {
             return {
                 status: 400,
                 message: 'Data de início ou fim não pode ser menor que a data atual'
             }
         }
-        if(data.status !== 'EM_ANDAMENTO' && data.status !== 'FECHADO') {
-            return {
-                status: 400,
-                message: 'Status inválido, deve ser EM_ANDAMENTO ou FECHADO'
-            }
+
+        const diffMs = dataFim.getTime() - dataInicio.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        if (diffDays < tempoMinimo) {
+            return { status: 400, message: `O ciclo deve ter pelo menos ${tempoMinimo} dias de duração.` };
+        }
+        if (diffDays > tempoMaximo) {
+            return { status: 400, message: `O ciclo não pode ter mais de ${tempoMaximo} dias de duração.` };
         }
 
         return this.prisma.cicloAvaliacao.update({
             where: {
                 idCiclo: id
             },
-            data
+            data: {
+                ...data,
+                dataInicio,
+                dataFim
+            }
         })
     }   
 
@@ -197,11 +243,9 @@ export class CicloService {
             }
         });
 
-        const now = new Date();
-
         return ciclos.map(ciclo => {
             const dataFim = new Date(ciclo.dataFim);
-            const diffMs = dataFim.getTime() - now.getTime();
+            const diffMs = dataFim.getTime() - hoje.getTime();
 
             // Converter para dias, horas, minutos
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -238,5 +282,23 @@ export class CicloService {
         return uuidRegex.test(uuid);
     }
 
+    private isDataValida(ano: number, mes: number, dia: number): boolean {
+        // mes: 1-12
+        const data = new Date(ano, mes - 1, dia);
+        return (
+            data.getFullYear() === ano &&
+            data.getMonth() === mes - 1 &&
+            data.getDate() === dia
+        );
+    }
+
+    private createData(ano: number, mes: number, dia: number) {
+        // Pega o momento atual em UTC
+        const date = new Date(ano, mes - 1, dia);
+        if(this.isDataValida(ano, mes, dia)) {
+            return date;
+        }
+        return null;
+    }
 
 }
