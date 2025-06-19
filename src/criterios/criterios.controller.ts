@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete } from '@nestjs/common';
 import { CriteriosService } from './criterios.service';
+import { pilarCriterio } from '@prisma/client';
+import { CreateCriterioDto, UpdateCriterioDto } from './criterios.dto';
 
 @Controller('criterios')
 export class CriteriosController {
@@ -15,13 +17,18 @@ export class CriteriosController {
         return this.criteriosService.getCriterio(id);
     }
 
+    @Get('pilar/:pilar')
+    async getCriterioPorPilar(@Param('pilar') pilar: pilarCriterio) {
+        return this.criteriosService.getCriterioPorPilar(pilar);
+    }
+
     @Post()
-    async createCriterio(@Body() data: any) {
+    async createCriterio(@Body() data: CreateCriterioDto) {
         return this.criteriosService.createCriterio(data);
     }
 
     @Patch(':id')
-    async updateCriterio(@Param('id') id: string, @Body() data: any) {
+    async updateCriterio(@Param('id') id: string, @Body() data: UpdateCriterioDto) {
         return this.criteriosService.updateCriterio(id, data);
     }
 

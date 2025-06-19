@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prismaService';
+import { pilarCriterio } from '@prisma/client';
+import { CreateCriterioDto, UpdateCriterioDto } from './criterios.dto';
 
 @Injectable()
 export class CriteriosService {
@@ -18,14 +20,20 @@ export class CriteriosService {
         where: { idCriterio: id },
         });
     }
+
+    async getCriterioPorPilar(pilar: pilarCriterio) {
+        return this.prisma.criterioAvaliativo.findMany({
+            where: { pilar },
+        });
+    }
     
-    async createCriterio(data: any) {
+    async createCriterio(data: CreateCriterioDto) {
         return this.prisma.criterioAvaliativo.create({
         data,
         });
     }
     
-    async updateCriterio(id: string, data: any) {
+    async updateCriterio(id: string, data: UpdateCriterioDto) {
         return this.prisma.criterioAvaliativo.update({
         where: { idCriterio: id },
         data: {
