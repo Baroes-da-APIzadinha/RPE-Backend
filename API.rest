@@ -34,7 +34,7 @@ POST http://localhost:3000/ciclo/criar
 Content-Type: application/json
 
 {
-    "nome": "2025.33",
+    "nome": "2025.2",
     "dataInicioAno": 2025,
     "dataInicioMes": 6,
     "dataInicioDia": 20,

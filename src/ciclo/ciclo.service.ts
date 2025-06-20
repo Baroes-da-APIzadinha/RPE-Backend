@@ -49,6 +49,7 @@ export class CicloService {
         );
 
         await this._validarDatas(dataInicio, dataFim);
+        this._validarPadraoNomeCiclo(data.nome);
         await this._validarNomeUnico(data.nome);
 
         const status = this._isSameDay(dataInicio, hoje)
@@ -93,6 +94,7 @@ export class CicloService {
         await this._validarDatas(dataInicio, dataFim);
 
         if (data.nome && data.nome !== cicloExistente.nomeCiclo) {
+            this._validarPadraoNomeCiclo(data.nome);
             await this._validarNomeUnico(data.nome);
         }
 
@@ -276,5 +278,14 @@ export class CicloService {
         }
         // Cria a data no início do dia em Brasília (00:00:00), que é 03:00:00 em UTC
         return new Date(Date.UTC(ano, mes - 1, dia, 3, 0, 0, 0));
+    }
+
+    private _validarPadraoNomeCiclo(nome: string): void {
+        const padrao = /^\d{4}\.\d{1}$/;
+        if (!padrao.test(nome)) {
+            throw new BadRequestException(
+                'O nome do ciclo deve seguir o padrão AAAA.S (ex: 2024.1).',
+            );
+        }
     }
 }
