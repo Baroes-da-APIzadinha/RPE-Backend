@@ -3,9 +3,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ColaboradorModule } from './colaborador/colaborador.module';
 import { CicloModule } from './ciclo/ciclo.module';
+import { CriteriosModule } from './criterios/criterios.module';
 
 @Module({
-  imports: [ColaboradorModule, CicloModule],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule],
   controllers: [AppController],
   providers: [AppService],
 })
