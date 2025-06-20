@@ -26,3 +26,42 @@ Content-Type: application/json
     "email": "marcos.vinicius@example.com"
     
 }
+
+
+
+### Criar ciclo
+POST http://localhost:3000/ciclo/criar
+Content-Type: application/json
+
+{
+    "nome": "2025.2",
+    "dataInicioAno": 2025,
+    "dataInicioMes": 6,
+    "dataInicioDia": 20,
+    "dataFimAno": 2025,
+    "dataFimMes": 7,
+    "dataFimDia":19
+}
+
+### Remover ciclo
+DELETE http://localhost:3000/ciclo/remover/d7087ccd-575e-4586-aeb7-c8454d4f2ea3
+
+### Get ciclo
+GET http://localhost:3000/ciclo/get/b55004c9-4656-42ab-8b61-ebcd701fd2d6
+
+### Get all ciclos
+GET http://localhost:3000/ciclo/get-all
+
+### Get ciclos ativos
+GET http://localhost:3000/ciclo/get-ativos
+
+### Get historico ciclos
+GET http://localhost:3000/ciclo/get-historico
+
+### Atualizar ciclo
+PUT http://localhost:3000/ciclo/atualizar/5fb2b328-edd7-4734-ac2a-cae9c3d18bf1
+Content-Type: application/json
+
+{
+    "nome": "2025.28"
+}
