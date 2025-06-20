@@ -78,6 +78,7 @@ model Colaborador {
   liderancasProjeto  AlocacaoLiderProjeto[]     @relation("LiderDeProjetos")
   mentorandos        GestorColaborador[]        @relation("Mentorando")
   gestorDe           GestorColaborador[]        @relation("ComoGestor")
+  ciclosParticipados ColaboradorCiclo[]
 }
 
 model ColaboradorPerfil {
@@ -99,6 +100,7 @@ model CicloAvaliacao {
   associacoesCriterio  AssociacaoCriterioCiclo[]
   indicacoesReferencia IndicacaoReferencia[]
   gestorColaboradores  GestorColaborador[]
+  participantes         ColaboradorCiclo[]
 }
 
 model CriterioAvaliativo {
@@ -224,4 +226,16 @@ model GestorColaborador {
   ciclo             CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
 
   @@unique([idGestor, idColaborador, idCiclo])
+}
+
+model ColaboradorCiclo {
+  id            String @id @default(uuid()) @db.Uuid
+  idColaborador String @db.Uuid
+  idCiclo       String @db.Uuid
+
+  colaborador   Colaborador  @relation(fields: [idColaborador], references: [idColaborador])
+  ciclo         CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo])
+
+  @@unique([idColaborador, idCiclo])
+  @@map("colaboradores_ciclos")
 }

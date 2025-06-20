@@ -342,92 +342,83 @@ export class CicloService {
      * Este método contém a lógica pesada e foi projetado para rodar em background.
      */
     private async executarLancamentoEmBackground(idCiclo: string): Promise<void> {
-      this.logger.log(`Iniciando job de lançamento para o ciclo ID: ${idCiclo}`);
+        this.logger.log(`Iniciando job de lançamento para o ciclo ID: ${idCiclo}`);
 
-      // ETAPA 1: Validações essenciais antes de processar
-      const ciclo = await this.prisma.cicloAvaliacao.findUnique({
-        where: { idCiclo: idCiclo },
-      });
-      if (!ciclo) {
-        this.logger.error(`Ciclo ${idCiclo} não encontrado.`);
-        throw new NotFoundException('O ciclo especificado não foi encontrado.');
-      }
-
-      const avaliacoesExistentes = await this.prisma.avaliacao.count({
-        where: { idCiclo: idCiclo },
-      });
-      if (avaliacoesExistentes > 0) {
-        this.logger.warn(
-          `Ciclo ${idCiclo} já possui avaliações lançadas.`,
-        );
-        throw new ConflictException(
-          'Este ciclo de avaliação já foi lançado anteriormente.',
-        );
-      }
-
-      // ETAPA 2: Coleta de dados necessários para a geração
-      const colaboradores = await this.prisma.colaborador.findMany({
-        where: { /* active: true */ }, // Adapte se houver campo 'active'
-      });
-      // Buscamos apenas as relações de gestão que pertencem a ESTE ciclo específico.
-      const mapaGestaoDoCiclo = await this.prisma.gestorColaborador.findMany({
-        where: { idCiclo: idCiclo }
-      });
-
-      if (colaboradores.length === 0) {
-        this.logger.warn(`Nenhum colaborador ativo encontrado para o ciclo ${idCiclo}. Processo encerrado.`);
-        return;
-      }
-      
-      // Corrigindo tipagem para evitar erro de 'never'
-      const novasAvaliacoes: any[] = [];
-
-      // ETAPA 3: Geração dos registros de avaliação em memória
-      for (const colaborador of colaboradores) {
-        // 3.1. Gerar a AUTOAVALIACAO (colaborador avalia a si mesmo)
-        novasAvaliacoes.push({
-          idCiclo: idCiclo,
-          idAvaliado: colaborador.idColaborador,
-          idAvaliador: colaborador.idColaborador,
-          tipo: avaliacaoTipo.AUTOAVALIACAO,
-        });
-
-        // Procuramos a relação no mapa já filtrado pelo ciclo.
-        const relacaoGestor = mapaGestaoDoCiclo.find(
-          (rel) => rel.idColaborador === colaborador.idColaborador,
-        );
-
-        if (relacaoGestor) {
-          // Gestor avalia o liderado
-          novasAvaliacoes.push({
-            idCiclo: idCiclo,
-            idAvaliado: colaborador.idColaborador,
-            idAvaliador: relacaoGestor.idGestor,
-            tipo: avaliacaoTipo.GESTOR_LIDERADO,
-          });
-          // Liderado avalia o gestor
-          novasAvaliacoes.push({
-            idCiclo: idCiclo,
-            idAvaliado: relacaoGestor.idGestor,
-            idAvaliador: colaborador.idColaborador,
-            tipo: avaliacaoTipo.LIDERADO_GESTOR,
-          });
+        // Validações (seu código aqui está bom)
+        const ciclo = await this.prisma.cicloAvaliacao.findUnique({ where: { idCiclo } });
+        if (!ciclo) {
+            this.logger.error(`Ciclo ${idCiclo} não encontrado.`);
+            throw new NotFoundException('O ciclo especificado não foi encontrado.');
         }
-      }
+        const avaliacoesExistentes = await this.prisma.avaliacao.count({ where: { idCiclo } });
+        if (avaliacoesExistentes > 0) {
+            this.logger.warn(`Ciclo ${idCiclo} já possui avaliações lançadas.`);
+            throw new ConflictException('Este ciclo de avaliação já foi lançado anteriormente.');
+        }
 
-      // ETAPA 4: Inserção em massa no banco de dados
-      if (novasAvaliacoes.length > 0) {
-        const resultado = await this.prisma.avaliacao.createMany({
-          data: novasAvaliacoes,
+        // ================== INÍCIO DA CORREÇÃO CRÍTICA ==================
+        // ETAPA 2: Coleta de dados - BUSCA CORRETA DOS PARTICIPANTES
+        const participantesDoCiclo = await this.prisma.colaboradorCiclo.findMany({
+            where: { idCiclo: idCiclo },
+            include: {
+                colaborador: true // Traz os dados do colaborador junto
+            }
         });
-        this.logger.log(
-          `${resultado.count} avaliações geradas com SUCESSO para o ciclo ${idCiclo}.`,
-        );
-      } else {
-        this.logger.warn(
-          `Nenhuma avaliação foi gerada para o ciclo ${idCiclo}. Verifique os dados.`,
-        );
-      }
+
+        if (participantesDoCiclo.length === 0) {
+            this.logger.warn(`Nenhum colaborador associado a este ciclo (${idCiclo}). Processo encerrado.`);
+            return;
+        }
+        // =================== FIM DA CORREÇÃO CRÍTICA ====================
+
+        const mapaGestaoDoCiclo = await this.prisma.gestorColaborador.findMany({
+            where: { idCiclo: idCiclo }
+        });
+        console.log('DEBUG: Relações de gestão encontradas para este ciclo:', mapaGestaoDoCiclo);
+
+        // Usando a tipagem correta do Prisma
+        const novasAvaliacoes: Prisma.AvaliacaoCreateManyInput[] = [];
+
+        // ETAPA 3: Geração dos registros - Agora o loop é sobre os participantes corretos
+        for (const participante of participantesDoCiclo) {
+            const colaborador = participante.colaborador; // Pegamos os dados do colaborador aqui
+            console.log(`--- DEBUG: Processando Colaborador ID: ${colaborador.idColaborador} ---`);
+            
+            novasAvaliacoes.push({
+                idCiclo: idCiclo,
+                idAvaliado: colaborador.idColaborador,
+                idAvaliador: colaborador.idColaborador,
+                tipo: "AUTOAVALIACAO", // Usando string ou o enum 'avaliacaoTipo.AUTOAVALIACAO'
+            });
+
+            const relacaoGestor = mapaGestaoDoCiclo.find(
+                (rel) => rel.idColaborador === colaborador.idColaborador,
+            );
+            console.log(`DEBUG: Relação de gestor encontrada para este colaborador?`, relacaoGestor);
+
+            if (relacaoGestor) {
+                novasAvaliacoes.push({
+                    idCiclo: idCiclo,
+                    idAvaliado: colaborador.idColaborador,
+                    idAvaliador: relacaoGestor.idGestor,
+                    tipo: "GESTOR_LIDERADO",
+                });
+                novasAvaliacoes.push({
+                    idCiclo: idCiclo,
+                    idAvaliado: relacaoGestor.idGestor,
+                    idAvaliador: colaborador.idColaborador,
+                    tipo: "LIDERADO_GESTOR",
+                });
+            }
+        }
+
+        // ETAPA 4: Inserção em massa (continua igual)
+        if (novasAvaliacoes.length > 0) {
+            const resultado = await this.prisma.avaliacao.createMany({ data: novasAvaliacoes });
+            this.logger.log(`${resultado.count} avaliações geradas com SUCESSO para o ciclo ${idCiclo}.`);
+        } else {
+            this.logger.warn(`Nenhuma avaliação foi gerada para o ciclo ${idCiclo}. Verifique os dados.`);
+        }
     }
 
 }
