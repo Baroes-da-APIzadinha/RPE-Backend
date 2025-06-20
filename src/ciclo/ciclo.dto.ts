@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber } from "class-validator";
+import { IsNotEmpty, IsString, IsNumber, IsOptional } from "class-validator";
 import { cicloStatus } from "@prisma/client";
 
 export class CreateCicloDto {
@@ -30,7 +30,7 @@ export class CreateCicloDto {
     @IsNumber()
     dataFimDia: number;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     status?: cicloStatus;
 }
