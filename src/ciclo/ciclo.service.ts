@@ -1,8 +1,15 @@
+<<<<<<< HEAD
 import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
 import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
 import { cicloStatus, Prisma, avaliacaoTipo } from '@prisma/client';
 
+=======
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from 'src/database/prismaService';
+import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
+import { cicloStatus } from '@prisma/client';
+>>>>>>> crud-ciclo
 
 const tempoMinimo = 20;
 const tempoMaximo = 40;
@@ -12,6 +19,7 @@ const hoje = new Date();
 hoje.setHours(-3, 0, 0, 0);
 console.log(hoje)
 
+<<<<<<< HEAD
 // Tipos auxiliares para correção
 
 type AvaliacaoCreateManyInput = {
@@ -32,6 +40,11 @@ type RelacaoGestor = {
 export class CicloService {
     constructor(private readonly prisma: PrismaService) {}
     private readonly logger = new Logger(CicloService.name);
+=======
+@Injectable()
+export class CicloService {
+    constructor(private readonly prisma: PrismaService) {}
+>>>>>>> crud-ciclo
 
     async createCiclo(data: CreateCicloDto) {
         console.log(hoje.getDate())
@@ -319,6 +332,7 @@ export class CicloService {
         return null;
     }
 
+<<<<<<< HEAD
     /**
      * Método principal chamado pelo controller.
      * Ele dispara a execução em background e retorna uma resposta imediata.
@@ -421,4 +435,6 @@ export class CicloService {
         }
     }
 
+=======
+>>>>>>> crud-ciclo
 }
