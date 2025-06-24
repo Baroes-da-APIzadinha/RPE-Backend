@@ -162,6 +162,10 @@ model DetalheAvaliacao {
   nota               Int          /// note: 'CHECK: nota >= 1 AND nota <= 5'
   justificativa      String       @db.Text
 
+  // Resposta do gestor (para GESTOR_LIDERADO)
+  notaGestor         Int?    // O '?' torna o campo opcional
+  justificativaGestor String? @db.Text
+
   avaliacao          Avaliacao    @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
   criterio           CriterioAvaliativo @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
 }
