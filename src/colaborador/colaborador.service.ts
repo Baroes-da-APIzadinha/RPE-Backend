@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
 import * as bcrypt from 'bcrypt';
 import { CreateColaboradorDto, UpdateColaboradorDto } from './colaborador.dto';
+import { perfilTipo } from '@prisma/client';
 
 @Injectable()
 export class ColaboradorService {
@@ -114,6 +115,54 @@ export class ColaboradorService {
         return this.prisma.colaborador.update({
             where: { idColaborador: id },
             data
+        });
+    }
+
+    async associarPerfilColaborador(idColaborador: string, tipoPerfil: string) {
+        if (!this.isValidUUID(idColaborador)) {
+            return {
+                status: 400,
+                message: 'ID do colaborador inválido'
+            }
+        }
+        // Verifica se o colaborador existe
+        const colaborador = await this.prisma.colaborador.findUnique({
+            where: { idColaborador }
+        });
+        if (!colaborador) {
+            return {
+                status: 404,
+                message: 'Colaborador não encontrado'
+            }
+        }
+        // Valida se o tipoPerfil é válido
+        if (!Object.values(perfilTipo).includes(tipoPerfil as perfilTipo)) {
+            return {
+                status: 400,
+                message: 'Tipo de perfil inválido'
+            }
+        }
+        // Verifica se já existe a associação
+        const jaAssociado = await this.prisma.colaboradorPerfil.findUnique({
+            where: {
+                idColaborador_tipoPerfil: {
+                    idColaborador,
+                    tipoPerfil: tipoPerfil as perfilTipo
+                }
+            }
+        });
+        if (jaAssociado) {
+            return {
+                status: 400,
+                message: 'Perfil já associado ao colaborador'
+            }
+        }
+        // Cria a associação
+        return this.prisma.colaboradorPerfil.create({
+            data: {
+                idColaborador,
+                tipoPerfil: tipoPerfil as perfilTipo
+            }
         });
     }
 

@@ -16,22 +16,18 @@ export class CicloController {
         return this.avaliacoesService.lancarAvaliacoes(idCiclo);
     }
 
-    @Post('criar')
+    @Post()
     async criarCiclo(@Body() data: CreateCicloDto) {
         return this.cicloService.createCiclo(data);
     }
 
-    @Delete('remover/:id')
+    @Delete(':id')
     async removerCiclo(@Param('id') id: string) {
         return this.cicloService.deleteCiclo(id);
     }
 
-    @Get('get/:id')
-    async getCiclo(@Param('id') id: string) {
-        return this.cicloService.getCiclo(id);
-    }
 
-    @Put('atualizar/:id')
+    @Put(':id')
     async atualizarCiclo(@Param('id') id: string, @Body() data: UpdateCicloDto) {
         return this.cicloService.updateCiclo(id, data);
     }
@@ -49,5 +45,10 @@ export class CicloController {
     @Get('get-historico')
     async getHistoricoCiclos() {
         return this.cicloService.getHistoricoCiclos();
+    }
+
+    @Get(':id')
+    async getCiclo(@Param('id') id: string) {
+        return this.cicloService.getCiclo(id);
     }
 }
