@@ -139,11 +139,21 @@ model Avaliacao {
   status             preenchimentoStatus  @default(PENDENTE)
   dataPreenchimento  DateTime?
 
+  idProjetoJunto     String?             @db.Uuid     // ID do projeto que trabalharam juntos
+  tempoJuntos        String?             @db.VarChar(100) // ex: "3 meses", "Mais de 1 ano"
+  trabalhariaNovamente Boolean?
+  notaGeral          Int?                // Nota geral de 1 a 5
+  pontosMelhorar     String?             @db.Text
+  pontosFortes       String?             @db.Text
+
   ciclo              CicloAvaliacao      @relation(fields: [idCiclo], references: [idCiclo], onDelete: Restrict)
   avaliador          Colaborador          @relation("AvaliacoesFeitas", fields: [idAvaliador], references: [idColaborador], onDelete: Restrict)
   avaliado           Colaborador          @relation("AvaliacoesRecebidas", fields: [idAvaliado], references: [idColaborador], onDelete: Restrict)
   detalhes           DetalheAvaliacao[]
+  projeto            Projeto?            @relation(fields: [idProjetoJunto], references: [idProjeto])
 }
+
+
 
 model DetalheAvaliacao {
   idDetalheAvaliacao String       @id @default(uuid()) @db.Uuid
@@ -191,6 +201,7 @@ model Projeto {
   status        projetoStatus                 @default(PLANEJADO)
   alocacoes     AlocacaoColaboradorProjeto[]
   liderancas    AlocacaoLiderProjeto[]
+  avaliacoes360      Avaliacao[]
 }
 
 model AlocacaoColaboradorProjeto {

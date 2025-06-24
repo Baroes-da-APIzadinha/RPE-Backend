@@ -87,6 +87,12 @@ CREATE TABLE "Avaliacao" (
     "tipo" "avaliacaoTipo" NOT NULL,
     "status" "preenchimentoStatus" NOT NULL DEFAULT 'PENDENTE',
     "dataPreenchimento" TIMESTAMP(3),
+    "idProjetoJunto" UUID,
+    "tempoJuntos" VARCHAR(100),
+    "trabalhariaNovamente" BOOLEAN,
+    "notaGeral" INTEGER,
+    "pontosMelhorar" TEXT,
+    "pontosFortes" TEXT,
 
     CONSTRAINT "Avaliacao_pkey" PRIMARY KEY ("idAvaliacao")
 );
@@ -209,6 +215,9 @@ ALTER TABLE "Avaliacao" ADD CONSTRAINT "Avaliacao_idAvaliador_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "Avaliacao" ADD CONSTRAINT "Avaliacao_idAvaliado_fkey" FOREIGN KEY ("idAvaliado") REFERENCES "Colaborador"("idColaborador") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Avaliacao" ADD CONSTRAINT "Avaliacao_idProjetoJunto_fkey" FOREIGN KEY ("idProjetoJunto") REFERENCES "Projeto"("idProjeto") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DetalheAvaliacao" ADD CONSTRAINT "DetalheAvaliacao_idAvaliacao_fkey" FOREIGN KEY ("idAvaliacao") REFERENCES "Avaliacao"("idAvaliacao") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -23,6 +23,7 @@ export class CriteriosController {
     }
     @Post()
     async createCriterio(@Body() data: CreateCriterioDto) {
+        console.log('Body recebido:', data);
         return this.criteriosService.createCriterio(data);
     }
 

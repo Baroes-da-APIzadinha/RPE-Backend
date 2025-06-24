@@ -63,4 +63,5 @@ package.json
 
 pnpm-lock.yaml
 
+prisma/data
 

@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { Body, Controller, Delete, Get, Param, Post, Put, HttpCode, HttpStatus, UseGuards,} from '@nestjs/common';
-=======
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
->>>>>>> crud-ciclo
+import { Body, Controller, Delete, Get, Param, Post, Put, HttpCode, HttpStatus } from '@nestjs/common';
 import { CicloService } from './ciclo.service';
 import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
 
@@ -10,21 +6,14 @@ import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
 export class CicloController {
     constructor(private readonly cicloService: CicloService) {}
 
-<<<<<<< HEAD
     @Post(':idCiclo/lancar-avaliacoes')
-    // @UseGuards(AuthGuard('jwt'), RolesGuard) // Exemplo de como proteger a rota
-    // @Roles('RH')
     @HttpCode(HttpStatus.ACCEPTED)
     async lancarAvaliacoes(@Param('idCiclo') idCiclo: string) {
-        // A validação do ID (se é um UUID válido, por exemplo) pode ser feita com um Pipe do NestJS
         return this.cicloService.lancarAvaliacoes(idCiclo);
     }
 
-=======
->>>>>>> crud-ciclo
     @Post('criar')
     async criarCiclo(@Body() data: CreateCicloDto) {
-        console.log("controller")
         return this.cicloService.createCiclo(data);
     }
 
