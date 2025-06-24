@@ -17,10 +17,6 @@ export class CicloController {
         return this.cicloService.deleteCiclo(id);
     }
 
-    @Get(':id')
-    async getCiclo(@Param('id') id: string) {
-        return this.cicloService.getCiclo(id);
-    }
 
     @Put(':id')
     async atualizarCiclo(@Param('id') id: string, @Body() data: UpdateCicloDto) {
@@ -40,5 +36,10 @@ export class CicloController {
     @Get('get-historico')
     async getHistoricoCiclos() {
         return this.cicloService.getHistoricoCiclos();
+    }
+
+    @Get(':id')
+    async getCiclo(@Param('id') id: string) {
+        return this.cicloService.getCiclo(id);
     }
 }
