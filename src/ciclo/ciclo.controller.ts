@@ -1,15 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, HttpCode, HttpStatus, Inject, forwardRef } from '@nestjs/common';
 import { CicloService } from './ciclo.service';
 import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
+import { AvaliacoesService } from '../avaliacoes/avaliacoes.service';
 
 @Controller('ciclo')
 export class CicloController {
-    constructor(private readonly cicloService: CicloService) {}
+    constructor(
+        private readonly cicloService: CicloService,
+        private readonly avaliacoesService: AvaliacoesService,
+    ) {}
 
     @Post(':idCiclo/lancar-avaliacoes')
     @HttpCode(HttpStatus.ACCEPTED)
     async lancarAvaliacoes(@Param('idCiclo') idCiclo: string) {
-        return this.cicloService.lancarAvaliacoes(idCiclo);
+        return this.avaliacoesService.lancarAvaliacoes(idCiclo);
     }
 
     @Post('criar')

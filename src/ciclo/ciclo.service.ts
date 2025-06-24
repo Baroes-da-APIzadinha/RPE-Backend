@@ -29,20 +29,6 @@ const hoje = new Date(
     ),
 );
 
-// Tipos auxiliares para correção
-type AvaliacaoCreateManyInput = {
-  idCiclo: string;
-  idAvaliado: string;
-  idAvaliador: string;
-  tipo: string;
-};
-
-type RelacaoGestor = {
-  idColaborador: string;
-  idGestor: string;
-  idCiclo: string;
-  idGestorMentorado: string;
-};
 
 @Injectable()
 export class CicloService {
@@ -262,103 +248,6 @@ export class CicloService {
         const uuidRegex =
             /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
         return uuidRegex.test(uuid);
-    }
-
-    /**
-     * Método principal chamado pelo controller.
-     * Ele dispara a execução em background e retorna uma resposta imediata.
-     */
-    async lancarAvaliacoes(idCiclo: string) {
-      this.executarLancamentoEmBackground(idCiclo).catch((error) => {
-        this.logger.error(
-          `Falha CRÍTICA ao executar o lançamento para o ciclo ${idCiclo}`,
-          error.stack,
-        );
-      });
-
-      return {
-        statusCode: 202,
-        message:
-          'O lançamento das avaliações foi iniciado em segundo plano. Isso pode levar alguns minutos.',
-      };
-    }
-
-    /**
-     * Este método contém a lógica pesada e foi projetado para rodar em background.
-     */
-    private async executarLancamentoEmBackground(idCiclo: string): Promise<void> {
-        this.logger.log(`Iniciando job de lançamento para o ciclo ID: ${idCiclo}`);
-
-        // Validações (seu código aqui está bom)
-        const ciclo = await this.prisma.cicloAvaliacao.findUnique({ where: { idCiclo } });
-        if (!ciclo) {
-            this.logger.error(`Ciclo ${idCiclo} não encontrado.`);
-            throw new NotFoundException('O ciclo especificado não foi encontrado.');
-        }
-        const avaliacoesExistentes = await this.prisma.avaliacao.count({ where: { idCiclo } });
-        if (avaliacoesExistentes > 0) {
-            this.logger.warn(`Ciclo ${idCiclo} já possui avaliações lançadas.`);
-            throw new ConflictException('Este ciclo de avaliação já foi lançado anteriormente.');
-        }
-
-        const participantesDoCiclo = await this.prisma.colaboradorCiclo.findMany({
-            where: { idCiclo: idCiclo },
-            include: {
-                colaborador: true // Traz os dados do colaborador junto
-            }
-        });
-
-        if (participantesDoCiclo.length === 0) {
-            this.logger.warn(`Nenhum colaborador associado a este ciclo (${idCiclo}). Processo encerrado.`);
-            return;
-        }
-
-        const mapaGestaoDoCiclo = await this.prisma.gestorColaborador.findMany({
-            where: { idCiclo: idCiclo }
-        });
-        console.log('DEBUG: Relações de gestão encontradas para este ciclo:', mapaGestaoDoCiclo);
-
-        // Usando a tipagem correta do Prisma
-        const novasAvaliacoes: Prisma.AvaliacaoCreateManyInput[] = [];
-
-        for (const participante of participantesDoCiclo) {
-            const colaborador = participante.colaborador; // Pegamos os dados do colaborador aqui
-            console.log(`--- DEBUG: Processando Colaborador ID: ${colaborador.idColaborador} ---`);
-            
-            novasAvaliacoes.push({
-                idCiclo: idCiclo,
-                idAvaliado: colaborador.idColaborador,
-                idAvaliador: colaborador.idColaborador,
-                tipo: "AUTOAVALIACAO", // Usando string ou o enum 'avaliacaoTipo.AUTOAVALIACAO'
-            });
-
-            const relacaoGestor = mapaGestaoDoCiclo.find(
-                (rel) => rel.idColaborador === colaborador.idColaborador,
-            );
-            console.log(`DEBUG: Relação de gestor encontrada para este colaborador?`, relacaoGestor);
-
-            if (relacaoGestor) {
-                novasAvaliacoes.push({
-                    idCiclo: idCiclo,
-                    idAvaliado: colaborador.idColaborador,
-                    idAvaliador: relacaoGestor.idGestor,
-                    tipo: "GESTOR_LIDERADO",
-                });
-                novasAvaliacoes.push({
-                    idCiclo: idCiclo,
-                    idAvaliado: relacaoGestor.idGestor,
-                    idAvaliador: colaborador.idColaborador,
-                    tipo: "LIDERADO_GESTOR",
-                });
-            }
-        }
-
-        if (novasAvaliacoes.length > 0) {
-            const resultado = await this.prisma.avaliacao.createMany({ data: novasAvaliacoes });
-            this.logger.log(`${resultado.count} avaliações geradas com SUCESSO para o ciclo ${idCiclo}.`);
-        } else {
-            this.logger.warn(`Nenhuma avaliação foi gerada para o ciclo ${idCiclo}. Verifique os dados.`);
-        }
     }
 
     private _isDataValida(ano: number, mes: number, dia: number): boolean {
