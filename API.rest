@@ -1,14 +1,15 @@
 ### Adicionar colaborador
-POST http://localhost:3000/colaborador/criar
+POST http://localhost:3000/colaborador/
 Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0YWNlYzU4NC0yNGU3LTQxMTktOTlmMC1mZmU0MzRjZjQwMmIiLCJlbWFpbCI6Im1hcmNlbG8ub2xpdmVpcmFAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiJdLCJpYXQiOjE3NTA3OTY3MDcsImV4cCI6MTc1MDg4MzEwN30.0vMLbC2Gs3cRUcAPGiY8HMCaAyUmYsBUPyBxLS1HQgw
 
 {
-    "nomeCompleto": "Marcos Vinicius",
-    "email": "marcos.vinicius@example.com",
+    "nomeCompleto": "Joao Rabello",
+    "email": "joao.rabello@example.com",
     "senha": "senha123",
-    "cargo": "Desenvolvedor",
-    "trilhaCarreira": "Desenvolvimento",
-    "unidade": "Recife"
+    "cargo": "DESENVOLVEDR",
+    "trilhaCarreira": "DESENVOLVIMENTO",
+    "unidade": "RECIFE"
 }
 
 ### Remover colaborador
@@ -27,6 +28,23 @@ Content-Type: application/json
     
 }
 
+### Associar perfil
+POST http://localhost:3000/colaborador/associar-perfil
+Content-Type: application/json
+
+{
+    "tipoPerfil": "COLABORADOR_COMUM",
+    "idColaborador": "f9ff538e-9e77-46f1-9a9c-5306076e6ab9"
+}
+
+### Login
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "email": "marcelo.oliveira@example.com",
+    "senha": "senha123"
+}
 
 
 ### Criar ciclo
