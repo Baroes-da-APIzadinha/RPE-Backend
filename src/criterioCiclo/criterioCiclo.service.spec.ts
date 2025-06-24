@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AssociacaoCriterioCicloService } from './criterioCiclo.service';
 import { PrismaService } from 'src/database/prismaService';
 
-describe('ColaboradorService', () => {
+describe('AssociacaoCriterioCicloService', () => {
   let service: AssociacaoCriterioCicloService;
 
   beforeEach(async () => {

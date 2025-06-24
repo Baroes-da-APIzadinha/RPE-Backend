@@ -25,6 +25,11 @@ export class AssociacaoCriterioCicloController {
     return this.service.findAll();
   }
 
+  @Get('/ciclo/:idCiclo')
+  findByCiclo(@Param('idCiclo', new ParseUUIDPipe()) idCiclo: string) {
+    return this.service.findByCiclo(idCiclo);
+  }
+
   @Get(':id')
   findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.service.findOne(id);
@@ -38,10 +43,5 @@ export class AssociacaoCriterioCicloController {
   @Delete(':id')
   remove(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.service.remove(id);
-  }
-
-  @Get('/ciclo/:idCiclo')
-  findByCiclo(@Param('idCiclo', new ParseUUIDPipe()) idCiclo: string) {
-    return this.service.findByCiclo(idCiclo);
   }
 }

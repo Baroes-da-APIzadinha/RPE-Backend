@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AssociacaoCriterioCicloController } from './criterioCiclo.controller';
 
-describe('ColaboradorController', () => {
+describe('AssociacaoCriterioCicloController', () => {
   let controller: AssociacaoCriterioCicloController;
 
   beforeEach(async () => {
