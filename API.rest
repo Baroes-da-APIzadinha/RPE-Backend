@@ -1,15 +1,15 @@
 ### Adicionar colaborador
 POST http://localhost:3000/colaborador/
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmOWZmNTM4ZS05ZTc3LTQ2ZjEtOWE5Yy01MzA2MDc2ZTZhYjkiLCJlbWFpbCI6Im1hcmNvcy52aW5pY2l1c0BleGFtcGxlLmNvbSIsInJvbGVzIjpbIkNPTEFCT1JBRE9SX0NPTVVNIl0sImlhdCI6MTc1MDc5NjA1MSwiZXhwIjoxNzUwODgyNDUxfQ.TPcjEoI_cSw3YQcoZ4t6zJh4H9L0mDoMLn73uupaCdw
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0YWNlYzU4NC0yNGU3LTQxMTktOTlmMC1mZmU0MzRjZjQwMmIiLCJlbWFpbCI6Im1hcmNlbG8ub2xpdmVpcmFAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiJdLCJpYXQiOjE3NTA3OTY3MDcsImV4cCI6MTc1MDg4MzEwN30.0vMLbC2Gs3cRUcAPGiY8HMCaAyUmYsBUPyBxLS1HQgw
 
 {
-    "nomeCompleto": "Marcelo de Oliveira",
-    "email": "marcelo.oliveira@example.com",
+    "nomeCompleto": "Joao Rabello",
+    "email": "joao.rabello@example.com",
     "senha": "senha123",
-    "cargo": "Desenvolvedor",
-    "trilhaCarreira": "Desenvolvimento",
-    "unidade": "Recife"
+    "cargo": "DESENVOLVEDR",
+    "trilhaCarreira": "DESENVOLVIMENTO",
+    "unidade": "RECIFE"
 }
 
 ### Remover colaborador
@@ -42,7 +42,7 @@ POST http://localhost:3000/auth/login
 Content-Type: application/json
 
 {
-    "email": "marcos.vinicius@example.com",
+    "email": "marcelo.oliveira@example.com",
     "senha": "senha123"
 }
 
