@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsUUID, IsEnum } from 'class-validator';
 
 export class CreateColaboradorDto {
     @IsNotEmpty()
@@ -50,4 +50,14 @@ export class UpdateColaboradorDto {
     @IsOptional()
     @IsString()
     unidade?: string;
+}
+
+export class AssociatePerfilDto {
+    @IsNotEmpty()
+    @IsUUID()
+    idColaborador: string;
+
+    @IsNotEmpty()
+    @IsString()
+    tipoPerfil: string;
 }

@@ -1,10 +1,11 @@
 ### Adicionar colaborador
-POST http://localhost:3000/colaborador/criar
+POST http://localhost:3000/colaborador/
 Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmOWZmNTM4ZS05ZTc3LTQ2ZjEtOWE5Yy01MzA2MDc2ZTZhYjkiLCJlbWFpbCI6Im1hcmNvcy52aW5pY2l1c0BleGFtcGxlLmNvbSIsInJvbGVzIjpbIkNPTEFCT1JBRE9SX0NPTVVNIl0sImlhdCI6MTc1MDc5NjA1MSwiZXhwIjoxNzUwODgyNDUxfQ.TPcjEoI_cSw3YQcoZ4t6zJh4H9L0mDoMLn73uupaCdw
 
 {
-    "nomeCompleto": "Marcos Vinicius",
-    "email": "marcos.vinicius@example.com",
+    "nomeCompleto": "Marcelo de Oliveira",
+    "email": "marcelo.oliveira@example.com",
     "senha": "senha123",
     "cargo": "Desenvolvedor",
     "trilhaCarreira": "Desenvolvimento",
@@ -27,6 +28,23 @@ Content-Type: application/json
     
 }
 
+### Associar perfil
+POST http://localhost:3000/colaborador/associar-perfil
+Content-Type: application/json
+
+{
+    "tipoPerfil": "COLABORADOR_COMUM",
+    "idColaborador": "f9ff538e-9e77-46f1-9a9c-5306076e6ab9"
+}
+
+### Login
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "email": "marcos.vinicius@example.com",
+    "senha": "senha123"
+}
 
 
 ### Criar ciclo
