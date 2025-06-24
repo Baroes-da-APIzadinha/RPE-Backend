@@ -6,9 +6,10 @@ import { CriteriosModule } from './criterios/criterios.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaService } from './database/prismaService';
+import { AssociacaoCriterioCicloModule } from './criterioCiclo/criterioCiclo.module';
 
 @Module({
-  imports: [ColaboradorModule, AuthModule, JwtModule.register({}), CriteriosModule],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({})],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
