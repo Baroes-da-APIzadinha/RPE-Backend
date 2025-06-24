@@ -1,15 +1,16 @@
 import {
     Injectable,
+    Logger,
     BadRequestException,
     NotFoundException,
     ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
 import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
-import { cicloStatus, CicloAvaliacao } from '@prisma/client';
+import { cicloStatus, CicloAvaliacao, Prisma } from '@prisma/client';
 
-const TEMPO_MINIMO_DIAS = 20;
-const TEMPO_MAXIMO_DIAS = 40;
+const TEMPO_MINIMO_DIAS = 2;
+const TEMPO_MAXIMO_DIAS = 180;
 
 // Pega o momento atual em UTC
 const agora = new Date();
@@ -24,16 +25,15 @@ const hoje = new Date(
         agoraEmBrasilia.getUTCFullYear(),
         agoraEmBrasilia.getUTCMonth(),
         agoraEmBrasilia.getUTCDate(),
-        3,
-        0,
-        0,
-        0,
+        3, 0, 0, 0,
     ),
 );
+
 
 @Injectable()
 export class CicloService {
     constructor(private readonly prisma: PrismaService) {}
+    private readonly logger = new Logger(CicloService.name);
 
     async createCiclo(data: CreateCicloDto): Promise<CicloAvaliacao> {
         const dataInicio = this._createData(

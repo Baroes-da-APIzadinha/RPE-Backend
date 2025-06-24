@@ -7,9 +7,11 @@ import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaService } from './database/prismaService';
 import { AssociacaoCriterioCicloModule } from './criterioCiclo/criterioCiclo.module';
+import { AvaliacoesModule } from './avaliacoes/avaliacoes.module';
+
 
 @Module({
-  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({})],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, AvaliacoesModule, JwtModule.register({})],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
