@@ -8,6 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PrismaService } from './database/prismaService';
 import { AssociacaoCriterioCicloModule } from './criterioCiclo/criterioCiclo.module';
 import { AvaliacoesModule } from './avaliacoes/avaliacoes.module';
+import { CicloModule } from './ciclo/ciclo.module';
 
 
 @Module({

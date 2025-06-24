@@ -37,12 +37,16 @@ export class ColaboradorController {
         return this.colaboradorService.updateColaborador(id, data);
     }
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
+   
     @Post('associar-perfil')
     async associarPerfil(@Body() data: AssociatePerfilDto) {
         
         return this.colaboradorService.associarPerfilColaborador(data.idColaborador, data.tipoPerfil);
+    }
+
+    @Post('associar-ciclo')
+    async associarCiclo(@Body() data: any) {
+        return this.colaboradorService.associarColaboradorCiclo(data.idColaborador, data.idCiclo);
     }
 
 }
