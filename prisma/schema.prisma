@@ -116,10 +116,6 @@ model CriterioAvaliativo {
   dataCriacao              DateTime                    @default(now())
   dataUltimaModificacao    DateTime?
   associacoesCriterio      AssociacaoCriterioCiclo[]
-  cardAutoAvaliacoes       CardAutoAvaliacao[]
-  cardAvaliacaoLiderColaboradores CardAvaliacaoLiderColaborador[]
-  cardAvaliacaoPares       CardAvaliacaoPares[]
-  cardAvaliacaoColaboradorMentores CardAvaliacaoColaboradorMentor[]
 }
 
 model AssociacaoCriterioCiclo {
@@ -196,7 +192,6 @@ model AvaliacaoPares {
   pontosFortes           String?               @db.Text
   pontosFracos           String?               @db.Text
   avaliacao              Avaliacao             @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
-  cardAvaliacaoPares     CardAvaliacaoPares[]
 }
 
 /// Detalhes específicos para avaliação de liderado para gestor
@@ -205,7 +200,6 @@ model AvaliacaoColaboradorMentor {
   nota        Decimal?    @db.Decimal(5, 2)
   justificativa String?     @db.Text
   avaliacao   Avaliacao   @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
-  cardAvaliacaoColaboradorMentor CardAvaliacaoColaboradorMentor[]
 }
 
 /// Detalhes específicos para avaliação de gestor para liderado
@@ -222,44 +216,20 @@ model AvaliacaoLiderColaborador {
 model CardAutoAvaliacao {
   idCardAvaliacao String              @id @default(uuid()) @db.Uuid
   idAvaliacao     String              @db.Uuid
-  idCriterio      String              @db.Uuid
+  nomeCriterio    String 
   nota            Decimal?
   justificativa   String?             @db.Text
   autoAvaliacao   AutoAvaliacao       @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
-  criterioAvaliativo CriterioAvaliativo @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
 }
 
 /// Cards individuais de critérios para avaliação de gestor para liderado
 model CardAvaliacaoLiderColaborador {
   idCardAvaliacao String                  @id @default(uuid()) @db.Uuid
   idAvaliacao     String                  @db.Uuid
-  idCriterio      String                  @db.Uuid
+  nomeCriterio    String                  
   nota            Decimal?
   justificativa   String?                 @db.Text
   AvaliacaoLiderColaborador AvaliacaoLiderColaborador @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
-  criterioAvaliativo CriterioAvaliativo     @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
-}
-
-/// Cards individuais de critérios para avaliação de pares
-model CardAvaliacaoPares {
-  idCardAvaliacao String              @id @default(uuid()) @db.Uuid
-  idAvaliacao     String              @db.Uuid
-  idCriterio      String              @db.Uuid
-  nota            Decimal?
-  justificativa   String?             @db.Text
-  avaliacaoPares  AvaliacaoPares      @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
-  criterioAvaliativo CriterioAvaliativo @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
-}
-
-/// Cards individuais de critérios para avaliação de liderado para gestor
-model CardAvaliacaoColaboradorMentor {
-  idCardAvaliacao String                  @id @default(uuid()) @db.Uuid
-  idAvaliacao     String                  @db.Uuid
-  idCriterio      String                  @db.Uuid
-  nota            Decimal?
-  justificativa   String?                 @db.Text
-  AvaliacaoColaboradorMentor AvaliacaoColaboradorMentor @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
-  criterioAvaliativo CriterioAvaliativo     @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
 }
 
 model GestorColaborador {
