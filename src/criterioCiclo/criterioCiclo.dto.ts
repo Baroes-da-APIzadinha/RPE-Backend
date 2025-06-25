@@ -2,8 +2,9 @@ import {
   IsUUID,
   IsOptional,
   IsString,
-  MaxLength,
+  IsEnum,
 } from 'class-validator';
+import { TRILHAS, CARGOS, UNIDADES } from '../colaborador/colaborador.constants';
 
 // DTO para criação
 export class CreateAssociacaoCriterioCicloDto {
@@ -14,18 +15,15 @@ export class CreateAssociacaoCriterioCicloDto {
   idCriterio: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
+  @IsEnum(CARGOS)
   cargo?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
+  @IsEnum(TRILHAS)
   trilhaCarreira?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
+  @IsEnum(UNIDADES)
   unidade?: string;
 }
 
@@ -40,17 +38,14 @@ export class UpdateAssociacaoCriterioCicloDto {
   idCriterio?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
+  @IsEnum(CARGOS)
   cargo?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
+  @IsEnum(TRILHAS)
   trilhaCarreira?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
+  @IsEnum(UNIDADES)
   unidade?: string;
 }
