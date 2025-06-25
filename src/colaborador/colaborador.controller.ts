@@ -9,8 +9,7 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 export class ColaboradorController {
     constructor(private readonly colaboradorService: ColaboradorService) {}
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
+   
     @Post()
     async criarColaborador(@Body() data: CreateColaboradorDto) {
         return this.colaboradorService.criarColaborador(data);

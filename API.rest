@@ -4,12 +4,12 @@ Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYmNmM2QxNC03NWVmLTRjNDQtYjgwYy1jYmFhM2RjYzZmYTMiLCJlbWFpbCI6ImpvYW8ucmFiZWxsb0BleGFtcGxlLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc1MDc5ODQyNywiZXhwIjoxNzUwODg0ODI3fQ.nwNhdi_egLiU64lo4QaPgIUW7PyqRNolXPfz5OqskVc
 
 {
-    "nomeCompleto": "Marcelo de Oliveira",
-    "email": "marcelo.oliveira@example.com",
+    "nomeCompleto": "Gabriel Calado",
+    "email": "gabriel.calado@example.com",
     "senha": "senha123",
-    "cargo": "SUPORTE",
-    "trilhaCarreira": "SUPORTE",
-    "unidade": "SAO PAULO"
+    "cargo": "QA",
+    "trilhaCarreira": "QA",
+    "unidade": "RECIFE"
 }
 
 ### Remover colaborador
@@ -119,3 +119,20 @@ Content-Type: application/json
 
 ### Lancar avaliacoes
 POST http://localhost:3000/ciclo/cf72bef9-9b02-4979-977b-def79fb69daf/lancar-avaliacoes
+
+### Gerar Pares para teste
+
+POST http://localhost:3000/avaliacoes/gerar-pares
+Content-Type: application/json
+
+{
+    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
+}
+
+### Lançar avaliações de pares
+POST http://localhost:3000/avaliacoes/lancar-pares
+Content-Type: application/json
+
+{
+    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
+}
