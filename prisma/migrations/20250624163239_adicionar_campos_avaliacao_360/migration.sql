@@ -2,7 +2,7 @@
 CREATE TYPE "perfilTipo" AS ENUM ('COLABORADOR_COMUM', 'GESTOR', 'RH', 'MEMBRO_COMITE', 'ADMIN');
 
 -- CreateEnum
-CREATE TYPE "cicloStatus" AS ENUM ('EM_ANDAMENTO', 'FECHADO');
+CREATE TYPE "cicloStatus" AS ENUM ('AGENDADO', 'EM_ANDAMENTO', 'FECHADO');
 
 -- CreateEnum
 CREATE TYPE "avaliacaoTipo" AS ENUM ('AUTOAVALIACAO', 'GESTOR_LIDERADO', 'LIDERADO_GESTOR', 'AVALIACAO_PARES');
@@ -24,6 +24,7 @@ CREATE TABLE "Colaborador" (
     "idColaborador" UUID NOT NULL,
     "nomeCompleto" VARCHAR(255) NOT NULL,
     "email" VARCHAR(255) NOT NULL,
+    "senha" VARCHAR(255) NOT NULL,
     "cargo" VARCHAR(100),
     "trilhaCarreira" VARCHAR(100),
     "unidade" VARCHAR(100),
@@ -86,6 +87,12 @@ CREATE TABLE "Avaliacao" (
     "tipo" "avaliacaoTipo" NOT NULL,
     "status" "preenchimentoStatus" NOT NULL DEFAULT 'PENDENTE',
     "dataPreenchimento" TIMESTAMP(3),
+    "idProjetoJunto" UUID,
+    "tempoJuntos" VARCHAR(100),
+    "trabalhariaNovamente" BOOLEAN,
+    "notaGeral" INTEGER,
+    "pontosMelhorar" TEXT,
+    "pontosFortes" TEXT,
 
     CONSTRAINT "Avaliacao_pkey" PRIMARY KEY ("idAvaliacao")
 );
@@ -170,6 +177,15 @@ CREATE TABLE "GestorColaborador" (
     CONSTRAINT "GestorColaborador_pkey" PRIMARY KEY ("idGestorMentorado")
 );
 
+-- CreateTable
+CREATE TABLE "colaboradores_ciclos" (
+    "id" UUID NOT NULL,
+    "idColaborador" UUID NOT NULL,
+    "idCiclo" UUID NOT NULL,
+
+    CONSTRAINT "colaboradores_ciclos_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Colaborador_email_key" ON "Colaborador"("email");
 
@@ -178,6 +194,9 @@ CREATE UNIQUE INDEX "AssociacaoCriterioCiclo_idCiclo_idCriterio_cargo_trilhaCarr
 
 -- CreateIndex
 CREATE UNIQUE INDEX "GestorColaborador_idGestor_idColaborador_idCiclo_key" ON "GestorColaborador"("idGestor", "idColaborador", "idCiclo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "colaboradores_ciclos_idColaborador_idCiclo_key" ON "colaboradores_ciclos"("idColaborador", "idCiclo");
 
 -- AddForeignKey
 ALTER TABLE "ColaboradorPerfil" ADD CONSTRAINT "ColaboradorPerfil_idColaborador_fkey" FOREIGN KEY ("idColaborador") REFERENCES "Colaborador"("idColaborador") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -196,6 +215,9 @@ ALTER TABLE "Avaliacao" ADD CONSTRAINT "Avaliacao_idAvaliador_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "Avaliacao" ADD CONSTRAINT "Avaliacao_idAvaliado_fkey" FOREIGN KEY ("idAvaliado") REFERENCES "Colaborador"("idColaborador") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Avaliacao" ADD CONSTRAINT "Avaliacao_idProjetoJunto_fkey" FOREIGN KEY ("idProjetoJunto") REFERENCES "Projeto"("idProjeto") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DetalheAvaliacao" ADD CONSTRAINT "DetalheAvaliacao_idAvaliacao_fkey" FOREIGN KEY ("idAvaliacao") REFERENCES "Avaliacao"("idAvaliacao") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -238,3 +260,9 @@ ALTER TABLE "GestorColaborador" ADD CONSTRAINT "GestorColaborador_idColaborador_
 
 -- AddForeignKey
 ALTER TABLE "GestorColaborador" ADD CONSTRAINT "GestorColaborador_idCiclo_fkey" FOREIGN KEY ("idCiclo") REFERENCES "CicloAvaliacao"("idCiclo") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "colaboradores_ciclos" ADD CONSTRAINT "colaboradores_ciclos_idColaborador_fkey" FOREIGN KEY ("idColaborador") REFERENCES "Colaborador"("idColaborador") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "colaboradores_ciclos" ADD CONSTRAINT "colaboradores_ciclos_idCiclo_fkey" FOREIGN KEY ("idCiclo") REFERENCES "CicloAvaliacao"("idCiclo") ON DELETE RESTRICT ON UPDATE CASCADE;

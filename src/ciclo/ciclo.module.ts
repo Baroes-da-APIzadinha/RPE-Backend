@@ -1,10 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { CicloService } from './ciclo.service';
 import { CicloController } from './ciclo.controller';
 import { PrismaService } from 'src/database/prismaService';
+import { AvaliacoesModule } from '../avaliacoes/avaliacoes.module';
 
 @Module({
+  imports: [forwardRef(() => AvaliacoesModule)],
   providers: [CicloService, PrismaService],
-  controllers: [CicloController]
+  controllers: [CicloController],
 })
 export class CicloModule {}

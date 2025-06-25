@@ -1,14 +1,15 @@
 ### Adicionar colaborador
-POST http://localhost:3000/colaborador/criar
+POST http://localhost:3000/colaborador/
 Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYmNmM2QxNC03NWVmLTRjNDQtYjgwYy1jYmFhM2RjYzZmYTMiLCJlbWFpbCI6ImpvYW8ucmFiZWxsb0BleGFtcGxlLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc1MDc5ODQyNywiZXhwIjoxNzUwODg0ODI3fQ.nwNhdi_egLiU64lo4QaPgIUW7PyqRNolXPfz5OqskVc
 
 {
-    "nomeCompleto": "Marcos Vinicius",
-    "email": "marcos.vinicius@example.com",
+    "nomeCompleto": "Marcelo de Oliveira",
+    "email": "marcelo.oliveira@example.com",
     "senha": "senha123",
-    "cargo": "Desenvolvedor",
-    "trilhaCarreira": "Desenvolvimento",
-    "unidade": "Recife"
+    "cargo": "SUPORTE",
+    "trilhaCarreira": "SUPORTE",
+    "unidade": "SAO PAULO"
 }
 
 ### Remover colaborador
@@ -27,17 +28,34 @@ Content-Type: application/json
     
 }
 
+### Associar perfil
+POST http://localhost:3000/colaborador/associar-perfil
+Content-Type: application/json
+
+{
+    "tipoPerfil": "COLABORADOR_COMUM",
+    "idColaborador": "379763a7-db56-4b79-a9f1-f3212a33a7e2"
+}
+
+### Login
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "email": "joao.rabello@example.com",
+    "senha": "senha123"
+}
 
 
 ### Criar ciclo
-POST http://localhost:3000/ciclo/criar
+POST http://localhost:3000/ciclo
 Content-Type: application/json
 
 {
     "nome": "2025.2",
     "dataInicioAno": 2025,
     "dataInicioMes": 6,
-    "dataInicioDia": 20,
+    "dataInicioDia": 25,
     "dataFimAno": 2025,
     "dataFimMes": 7,
     "dataFimDia":19
@@ -65,3 +83,39 @@ Content-Type: application/json
 {
     "nome": "2025.28"
 }
+
+### Criar criterio
+POST http://localhost:3000/criterios
+Content-Type: application/json
+
+{
+  "nomeCriterio": "Comunicação",
+  "descricao": "Avalia se o colaborador cumpre prazos e horários.",
+  "peso": 1.0,
+  "obrigatorio": true,
+  "pilar": "Comportamento"
+}
+
+### Associar criterio ao ciclo
+POST http://localhost:3000/associacoes-criterio-ciclo
+Content-Type: application/json
+
+{
+    "idCiclo": "cf72bef9-9b02-4979-977b-def79fb69daf",
+    "idCriterio": "1550ccb7-ea61-4f5c-b8a4-bb676abb5838",
+    "trilhaCarreira": "SUPORTE",
+    "cargo": "SUPORTE",
+    "unidade": "SAO PAULO"
+}
+
+### Associar ciclo ao colaborador
+POST http://localhost:3000/colaborador/associar-ciclo
+Content-Type: application/json
+
+{
+    "idCiclo": "cf72bef9-9b02-4979-977b-def79fb69daf",
+    "idColaborador": "cbcf3d14-75ef-4c44-b80c-cbaa3dcc6fa3"
+}
+
+### Lancar avaliacoes
+POST http://localhost:3000/ciclo/cf72bef9-9b02-4979-977b-def79fb69daf/lancar-avaliacoes

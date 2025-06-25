@@ -78,6 +78,7 @@ model Colaborador {
   liderancasProjeto  AlocacaoLiderProjeto[]     @relation("LiderDeProjetos")
   mentorandos        GestorColaborador[]        @relation("Mentorando")
   gestorDe           GestorColaborador[]        @relation("ComoGestor")
+  ciclosParticipados ColaboradorCiclo[]
 }
 
 model ColaboradorPerfil {
@@ -99,6 +100,7 @@ model CicloAvaliacao {
   associacoesCriterio  AssociacaoCriterioCiclo[]
   indicacoesReferencia IndicacaoReferencia[]
   gestorColaboradores  GestorColaborador[]
+  participantes         ColaboradorCiclo[]
 }
 
 model CriterioAvaliativo {
@@ -137,11 +139,21 @@ model Avaliacao {
   status             preenchimentoStatus  @default(PENDENTE)
   dataPreenchimento  DateTime?
 
+  idProjetoJunto     String?             @db.Uuid     // ID do projeto que trabalharam juntos
+  tempoJuntos        String?             @db.VarChar(100) // ex: "3 meses", "Mais de 1 ano"
+  trabalhariaNovamente Boolean?
+  notaGeral          Int?                // Nota geral de 1 a 5
+  pontosMelhorar     String?             @db.Text
+  pontosFortes       String?             @db.Text
+
   ciclo              CicloAvaliacao      @relation(fields: [idCiclo], references: [idCiclo], onDelete: Restrict)
   avaliador          Colaborador          @relation("AvaliacoesFeitas", fields: [idAvaliador], references: [idColaborador], onDelete: Restrict)
   avaliado           Colaborador          @relation("AvaliacoesRecebidas", fields: [idAvaliado], references: [idColaborador], onDelete: Restrict)
   detalhes           DetalheAvaliacao[]
+  projeto            Projeto?            @relation(fields: [idProjetoJunto], references: [idProjeto])
 }
+
+
 
 model DetalheAvaliacao {
   idDetalheAvaliacao String       @id @default(uuid()) @db.Uuid
@@ -149,6 +161,10 @@ model DetalheAvaliacao {
   idCriterio         String       @db.Uuid
   nota               Int          /// note: 'CHECK: nota >= 1 AND nota <= 5'
   justificativa      String       @db.Text
+
+  // Resposta do gestor (para GESTOR_LIDERADO)
+  notaGestor         Int?    // O '?' torna o campo opcional
+  justificativaGestor String? @db.Text
 
   avaliacao          Avaliacao    @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
   criterio           CriterioAvaliativo @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
@@ -189,6 +205,7 @@ model Projeto {
   status        projetoStatus                 @default(PLANEJADO)
   alocacoes     AlocacaoColaboradorProjeto[]
   liderancas    AlocacaoLiderProjeto[]
+  avaliacoes360      Avaliacao[]
 }
 
 model AlocacaoColaboradorProjeto {
@@ -224,4 +241,16 @@ model GestorColaborador {
   ciclo             CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
 
   @@unique([idGestor, idColaborador, idCiclo])
+}
+
+model ColaboradorCiclo {
+  id            String @id @default(uuid()) @db.Uuid
+  idColaborador String @db.Uuid
+  idCiclo       String @db.Uuid
+
+  colaborador   Colaborador  @relation(fields: [idColaborador], references: [idColaborador])
+  ciclo         CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo])
+
+  @@unique([idColaborador, idCiclo])
+  @@map("colaboradores_ciclos")
 }
