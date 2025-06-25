@@ -1,21 +1,30 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
 import { CreateAssociacaoCriterioCicloDto, UpdateAssociacaoCriterioCicloDto } from './criterioCiclo.dto';
+import { ConflictException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AssociacaoCriterioCicloService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateAssociacaoCriterioCicloDto) {
-    return this.prisma.associacaoCriterioCiclo.create({
-        data: {
-        idCiclo: dto.idCiclo,
-        idCriterio: dto.idCriterio,
-        cargo: dto.cargo,
-        trilhaCarreira: dto.trilhaCarreira,
-        unidade: dto.unidade,
-        },
-    });
+    try {
+      return await this.prisma.associacaoCriterioCiclo.create({
+          data: {
+          idCiclo: dto.idCiclo,
+          idCriterio: dto.idCriterio,
+          cargo: dto.cargo,
+          trilhaCarreira: dto.trilhaCarreira,
+          unidade: dto.unidade,
+          },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('Associação já existente');
+      }
+      throw error;
+    }
   }
 
 
