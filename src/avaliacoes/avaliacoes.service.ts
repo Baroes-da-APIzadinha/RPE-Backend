@@ -1,8 +1,9 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
 
 @Injectable()
 export class AvaliacoesService {
+    private readonly logger = new Logger(AvaliacoesService.name);
     constructor(private readonly prisma: PrismaService) {}
 
     async lancarAvaliaçãoPares(idCiclo: string): Promise<void> {
@@ -54,5 +55,132 @@ export class AvaliacoesService {
         if (jaLancadas) {
             throw new HttpException('Avaliações de pares já foram lançadas para este ciclo.', HttpStatus.CONFLICT);
         }
+    }
+
+    async lancarAutoAvaliacoes(cicloId: string): Promise<void> {
+        const participantesDoCiclo = await this.prisma.colaboradorCiclo.findMany({
+            where: { idCiclo: cicloId}, include: { colaborador: true }
+        });
+        if (participantesDoCiclo.length === 0) {
+            this.logger.warn(`Nenhum colaborador associado a este ciclo. Processo encerrado.`);
+            return;
+        }
+
+        for (const participante of participantesDoCiclo) {
+            const colaborador = participante.colaborador;
+            try {
+            // 3. Buscar critérios específicos para este colaborador
+            const criterios = await this.buscarCriteriosParaColaborador(
+                cicloId, 
+                colaborador.cargo, 
+                colaborador.trilhaCarreira, 
+                colaborador.unidade
+            );
+            
+            if (criterios.length === 0) {
+                this.logger.warn(
+                    `Nenhum critério encontrado para colaborador ${colaborador.nomeCompleto} `+
+                    `(Cargo: ${colaborador.cargo}, Trilha: ${colaborador.trilhaCarreira}, `+
+                    `Unidade: ${colaborador.unidade}). Pulando autoavaliação.`
+                );
+                continue;
+            }
+            
+            // 4. Criar avaliação principal
+            const avaliacao = await this.prisma.avaliacao.create({
+                data: {
+                    idCiclo: cicloId,
+                    idAvaliado: colaborador.idColaborador,
+                    idAvaliador: colaborador.idColaborador,
+                    tipoAvaliacao: 'AUTOAVALIACAO',
+                    status: 'PENDENTE',
+                    // 5. Criar autoAvaliação relacionada
+                    autoAvaliacao: {
+                        create: {
+                            // 6. Criar cards de avaliação para cada critério
+                            cardAutoAvaliacoes: {
+                                createMany: {
+                                    data: criterios.map(criterio => ({
+                                        nomeCriterio: criterio.nomeCriterio,
+                                    }))
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            this.logger.log(
+                `Autoavaliação criada com sucesso para ${colaborador.nomeCompleto} `+
+                `com ${criterios.length} critérios`
+            );
+        } catch (error) {
+            this.logger.error(
+                `Erro ao criar autoavaliação para ${colaborador.nomeCompleto}: ${error.message}`,
+                error.stack
+            );
+            }
+        }
+        this.logger.log(`Processo de lançamento de autoavaliações concluído`);
+    }
+
+
+    private async buscarCriteriosParaColaborador(
+        idCiclo: string,
+        cargo?: string | null,
+        trilhaCarreira?: string | null,
+        unidade?: string | null
+    ): Promise<Array<{ idCriterio: string; nomeCriterio: string }>> {
+        // Buscar associações de critérios para o ciclo que correspondam ao perfil do colaborador
+        // Ordenação de prioridade: específico > geral
+        const associacoesCriterios = await this.prisma.associacaoCriterioCiclo.findMany({
+            where: {
+                idCiclo,
+                AND: [
+                    {
+                        OR: [
+                            { cargo: cargo || null },
+                            { cargo: null }
+                        ]
+                    },
+                    {
+                        OR: [
+                            { trilhaCarreira: trilhaCarreira || null },
+                            { trilhaCarreira: null }
+                        ]
+                    },
+                    {
+                        OR: [
+                            { unidade: unidade || null },
+                            { unidade: null }
+                        ]
+                    }
+                ]
+            },
+            include: {
+                criterio: true
+            },
+            orderBy: [
+                // Priorizar critérios mais específicos (não nulos)
+                { cargo: cargo ? 'desc' : 'asc' },
+                { trilhaCarreira: trilhaCarreira ? 'desc' : 'asc' },
+                { unidade: unidade ? 'desc' : 'asc' }
+            ]
+        });
+
+        // Eliminar duplicatas, mantendo apenas o critério mais específico
+        const criterioMap = new Map<string, { idCriterio: string; nomeCriterio: string }>();
+        
+        for (const associacao of associacoesCriterios) {
+            // Se ainda não temos este critério OU o que temos é menos específico
+            if (!criterioMap.has(associacao.idCriterio)) {
+                criterioMap.set(associacao.idCriterio, {
+                    idCriterio: associacao.criterio.idCriterio,
+                    nomeCriterio: associacao.criterio.nomeCriterio
+                });
+            }
+        }
+        
+        return Array.from(criterioMap.values());
     }
 }
