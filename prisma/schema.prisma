@@ -28,9 +28,9 @@ enum cicloStatus {
 
 enum avaliacaoTipo {
   AUTOAVALIACAO
-  GESTOR_LIDERADO
-  LIDERADO_GESTOR
   AVALIACAO_PARES
+  LIDER_COLABORADOR
+  COLABORADOR_MENTOR
 }
 
 enum preenchimentoStatus {
@@ -44,10 +44,6 @@ enum pilarCriterio {
   Gestao_e_Lideranca
 }
 
-enum referenciaTipo {
-  TECNICA
-  CULTURAL
-}
 
 enum projetoStatus {
   PLANEJADO
@@ -59,26 +55,30 @@ enum projetoStatus {
 /// =========== MODELS ===========
 
 model Colaborador {
-  idColaborador      String                     @id @default(uuid()) @db.Uuid
-  nomeCompleto       String                     @db.VarChar(255)
-  email              String                     @unique @db.VarChar(255)
-  senha              String                     @db.VarChar(255)
-  cargo              String?                    @db.VarChar(100)
-  trilhaCarreira     String?                    @db.VarChar(100)
-  unidade            String?                    @db.VarChar(100)
-  dataCriacao        DateTime                   @default(now())
-  perfis             ColaboradorPerfil[]
-  avaliacoesFeitas   Avaliacao[]                @relation("AvaliacoesFeitas")
-  avaliacoesRecebidas Avaliacao[]               @relation("AvaliacoesRecebidas")
-  equalizacoes       Equalizacao[]              @relation("EqualizacoesAlvo")
-  comites            Equalizacao[]              @relation("EqualizacoesMembro")
-  indicacoesFeitas   IndicacaoReferencia[]      @relation("Indicador")
-  indicacoesRecebidas IndicacaoReferencia[]     @relation("Indicado")
-  alocacoesProjeto   AlocacaoColaboradorProjeto[]
-  liderancasProjeto  AlocacaoLiderProjeto[]     @relation("LiderDeProjetos")
-  mentorandos        GestorColaborador[]        @relation("Mentorando")
-  gestorDe           GestorColaborador[]        @relation("ComoGestor")
-  ciclosParticipados ColaboradorCiclo[]
+  idColaborador       String               @id @default(uuid()) @db.Uuid
+  nomeCompleto        String               @db.VarChar(255)
+  email               String               @unique @db.VarChar(255)
+  senha               String                     @db.VarChar(255)
+  cargo               String?              @db.VarChar(100)
+  trilhaCarreira      String?              @db.VarChar(100)
+  unidade             String?              @db.VarChar(100)
+  dataCriacao         DateTime             @default(now()) @db.Timestamptz
+  perfis              ColaboradorPerfil[]
+  avaliacoesFeitas    Avaliacao[]          @relation("Avaliador")
+  avaliacoesRecebidas Avaliacao[]          @relation("Avaliado")
+  equalizacoesFeitas  Equalizacao[]        @relation("MembroComite")
+  equalizacoesAlvo    Equalizacao[]        @relation("Alvo")
+  indicacoesFeitas    IndicacaoReferencia[] @relation("Indicador")
+  indicacoesRecebidas IndicacaoReferencia[] @relation("Indicado")
+  gestoes             GestorColaborador[]  @relation("Gestor")
+  colaboracoes        GestorColaborador[]  @relation("ColaboradorGestor")
+  pares1              Pares[]              @relation("Par1")
+  pares2              Pares[]              @relation("Par2")
+  liderados           LiderColaborador[]   @relation("Lider")
+  lideres             LiderColaborador[]   @relation("ColaboradorLider")
+  mentores            MentorColaborador[]  @relation("Mentor")
+  mentoreados         MentorColaborador[]  @relation("ColaboradorMentor")
+  colaboradoresCiclos ColaboradorCiclo[]
 }
 
 model ColaboradorPerfil {
@@ -100,7 +100,10 @@ model CicloAvaliacao {
   associacoesCriterio  AssociacaoCriterioCiclo[]
   indicacoesReferencia IndicacaoReferencia[]
   gestorColaboradores  GestorColaborador[]
-  participantes         ColaboradorCiclo[]
+  participantes        ColaboradorCiclo[]
+  pares                Pares[]
+  liderColaboradores   LiderColaborador[]
+  mentorColaboradores  MentorColaborador[]
 }
 
 model CriterioAvaliativo {
@@ -112,8 +115,11 @@ model CriterioAvaliativo {
   obrigatorio              Boolean                     @default(true)
   dataCriacao              DateTime                    @default(now())
   dataUltimaModificacao    DateTime?
-  detalhesAvaliacao        DetalheAvaliacao[]
   associacoesCriterio      AssociacaoCriterioCiclo[]
+  cardAutoAvaliacoes       CardAutoAvaliacao[]
+  cardAvaliacaoLiderColaboradores CardAvaliacaoLiderColaborador[]
+  cardAvaliacaoPares       CardAvaliacaoPares[]
+  cardAvaliacaoColaboradorMentores CardAvaliacaoColaboradorMentor[]
 }
 
 model AssociacaoCriterioCiclo {
@@ -130,45 +136,7 @@ model AssociacaoCriterioCiclo {
   @@unique([idCiclo, idCriterio, cargo, trilhaCarreira, unidade])
 }
 
-model Avaliacao {
-  idAvaliacao        String               @id @default(uuid()) @db.Uuid
-  idCiclo            String               @db.Uuid
-  idAvaliador        String               @db.Uuid
-  idAvaliado         String               @db.Uuid
-  tipo               avaliacaoTipo
-  status             preenchimentoStatus  @default(PENDENTE)
-  dataPreenchimento  DateTime?
 
-  idProjetoJunto     String?             @db.Uuid     // ID do projeto que trabalharam juntos
-  tempoJuntos        String?             @db.VarChar(100) // ex: "3 meses", "Mais de 1 ano"
-  trabalhariaNovamente Boolean?
-  notaGeral          Int?                // Nota geral de 1 a 5
-  pontosMelhorar     String?             @db.Text
-  pontosFortes       String?             @db.Text
-
-  ciclo              CicloAvaliacao      @relation(fields: [idCiclo], references: [idCiclo], onDelete: Restrict)
-  avaliador          Colaborador          @relation("AvaliacoesFeitas", fields: [idAvaliador], references: [idColaborador], onDelete: Restrict)
-  avaliado           Colaborador          @relation("AvaliacoesRecebidas", fields: [idAvaliado], references: [idColaborador], onDelete: Restrict)
-  detalhes           DetalheAvaliacao[]
-  projeto            Projeto?            @relation(fields: [idProjetoJunto], references: [idProjeto])
-}
-
-
-
-model DetalheAvaliacao {
-  idDetalheAvaliacao String       @id @default(uuid()) @db.Uuid
-  idAvaliacao        String       @db.Uuid
-  idCriterio         String       @db.Uuid
-  nota               Int          /// note: 'CHECK: nota >= 1 AND nota <= 5'
-  justificativa      String       @db.Text
-
-  // Resposta do gestor (para GESTOR_LIDERADO)
-  notaGestor         Int?    // O '?' torna o campo opcional
-  justificativaGestor String? @db.Text
-
-  avaliacao          Avaliacao    @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
-  criterio           CriterioAvaliativo @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
-}
 
 model Equalizacao {
   idEqualizacao     String               @id @default(uuid()) @db.Uuid
@@ -179,8 +147,8 @@ model Equalizacao {
   status            preenchimentoStatus  @default(PENDENTE)
   dataEqualizacao   DateTime             @default(now())
 
-  alvo              Colaborador          @relation("EqualizacoesAlvo", fields: [idAvaliado], references: [idColaborador], onDelete: Restrict)
-  membroComite      Colaborador          @relation("EqualizacoesMembro", fields: [idMembroComite], references: [idColaborador], onDelete: Restrict)
+  alvo              Colaborador          @relation("Alvo", fields: [idAvaliado], references: [idColaborador], onDelete: Restrict)
+  membroComite      Colaborador          @relation("MembroComite", fields: [idMembroComite], references: [idColaborador], onDelete: Restrict)
 }
 
 model IndicacaoReferencia {
@@ -188,7 +156,7 @@ model IndicacaoReferencia {
   idCiclo        String            @db.Uuid
   idIndicador    String            @db.Uuid
   idIndicado     String            @db.Uuid
-  tipo           referenciaTipo
+  tipo           String
   justificativa  String?           @db.Text
 
   ciclo          CicloAvaliacao    @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
@@ -196,51 +164,150 @@ model IndicacaoReferencia {
   indicado       Colaborador       @relation("Indicado", fields: [idIndicado], references: [idColaborador], onDelete: Cascade)
 }
 
-model Projeto {
-  idProjeto     String                        @id @default(uuid()) @db.Uuid
-  nomeProjeto   String                        @db.VarChar(255)
-  cliente       String?                       @db.VarChar(255)
-  dataInicio    DateTime?                     @db.Date
-  dataFim       DateTime?                     @db.Date
-  status        projetoStatus                 @default(PLANEJADO)
-  alocacoes     AlocacaoColaboradorProjeto[]
-  liderancas    AlocacaoLiderProjeto[]
-  avaliacoes360      Avaliacao[]
+model Avaliacao {
+  idAvaliacao           String                @id @default(uuid()) @db.Uuid
+  idCiclo               String                @db.Uuid
+  idAvaliador           String                @db.Uuid
+  idAvaliado            String                @db.Uuid
+  status                preenchimentoStatus
+  tipoAvaliacao         avaliacaoTipo         
+  ciclo                 CicloAvaliacao        @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
+  avaliador             Colaborador           @relation("Avaliador", fields: [idAvaliador], references: [idColaborador], onDelete: Restrict)
+  avaliado              Colaborador           @relation("Avaliado", fields: [idAvaliado], references: [idColaborador], onDelete: Restrict)
+  autoAvaliacao         AutoAvaliacao?
+  avaliacaoPares        AvaliacaoPares?
+  avaliacaoColaboradorMentor AvaliacaoColaboradorMentor? 
+  avaliacaoLiderColaborador AvaliacaoLiderColaborador? 
 }
 
-model AlocacaoColaboradorProjeto {
-  idAlocacao    String     @id @default(uuid()) @db.Uuid
-  idColaborador String     @db.Uuid
-  idProjeto     String     @db.Uuid
-  dataEntrada   DateTime   @db.Date
-  dataSaida     DateTime?  @db.Date
-
-  colaborador   Colaborador @relation(fields: [idColaborador], references: [idColaborador], onDelete: Cascade)
-  projeto       Projeto     @relation(fields: [idProjeto], references: [idProjeto], onDelete: Cascade)
+/// Detalhes específicos para autoavaliações
+model AutoAvaliacao {
+  idAvaliacao      String              @id @db.Uuid
+  notaFinal        Decimal?            @db.Decimal(5, 2)
+  avaliacao        Avaliacao           @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
+  cardAutoAvaliacoes CardAutoAvaliacao[]
 }
 
-model AlocacaoLiderProjeto {
-  idAlocacaoLider String     @id @default(uuid()) @db.Uuid
-  idLider         String     @db.Uuid
-  idProjeto       String     @db.Uuid
-  dataEntrada     DateTime   @db.Date
-  dataSaida       DateTime?  @db.Date
+/// Detalhes específicos para avaliação entre pares
+model AvaliacaoPares {
+  idAvaliacao            String                @id @db.Uuid
+  nota                   Decimal?              @db.Decimal(5, 2)
+  motivadoTrabalharNovamente String?           @db.Text
+  pontosFortes           String?               @db.Text
+  pontosFracos           String?               @db.Text
+  avaliacao              Avaliacao             @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
+  cardAvaliacaoPares     CardAvaliacaoPares[]
+}
 
-  lider           Colaborador @relation("LiderDeProjetos", fields: [idLider], references: [idColaborador], onDelete: Cascade)
-  projeto         Projeto     @relation(fields: [idProjeto], references: [idProjeto], onDelete: Cascade)
+/// Detalhes específicos para avaliação de liderado para gestor
+model AvaliacaoColaboradorMentor {
+  idAvaliacao String      @id @db.Uuid
+  nota        Decimal?    @db.Decimal(5, 2)
+  justificativa String?     @db.Text
+  avaliacao   Avaliacao   @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
+  cardAvaliacaoColaboradorMentor CardAvaliacaoColaboradorMentor[]
+}
+
+/// Detalhes específicos para avaliação de gestor para liderado
+model AvaliacaoLiderColaborador {
+  idAvaliacao             String                  @id @db.Uuid
+  notaFinal               Decimal?                @db.Decimal(5, 2)
+  avaliacao               Avaliacao               @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
+  cardAvaliacaoLiderColaborador CardAvaliacaoLiderColaborador[]
+}
+
+// Tabelas de Cards de Avaliação
+
+/// Cards individuais de critérios para autoavaliações
+model CardAutoAvaliacao {
+  idCardAvaliacao String              @id @default(uuid()) @db.Uuid
+  idAvaliacao     String              @db.Uuid
+  idCriterio      String              @db.Uuid
+  nota            Decimal?
+  justificativa   String?             @db.Text
+  autoAvaliacao   AutoAvaliacao       @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
+  criterioAvaliativo CriterioAvaliativo @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
+}
+
+/// Cards individuais de critérios para avaliação de gestor para liderado
+model CardAvaliacaoLiderColaborador {
+  idCardAvaliacao String                  @id @default(uuid()) @db.Uuid
+  idAvaliacao     String                  @db.Uuid
+  idCriterio      String                  @db.Uuid
+  nota            Decimal?
+  justificativa   String?                 @db.Text
+  AvaliacaoLiderColaborador AvaliacaoLiderColaborador @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
+  criterioAvaliativo CriterioAvaliativo     @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
+}
+
+/// Cards individuais de critérios para avaliação de pares
+model CardAvaliacaoPares {
+  idCardAvaliacao String              @id @default(uuid()) @db.Uuid
+  idAvaliacao     String              @db.Uuid
+  idCriterio      String              @db.Uuid
+  nota            Decimal?
+  justificativa   String?             @db.Text
+  avaliacaoPares  AvaliacaoPares      @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
+  criterioAvaliativo CriterioAvaliativo @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
+}
+
+/// Cards individuais de critérios para avaliação de liderado para gestor
+model CardAvaliacaoColaboradorMentor {
+  idCardAvaliacao String                  @id @default(uuid()) @db.Uuid
+  idAvaliacao     String                  @db.Uuid
+  idCriterio      String                  @db.Uuid
+  nota            Decimal?
+  justificativa   String?                 @db.Text
+  AvaliacaoColaboradorMentor AvaliacaoColaboradorMentor @relation(fields: [idAvaliacao], references: [idAvaliacao], onDelete: Cascade)
+  criterioAvaliativo CriterioAvaliativo     @relation(fields: [idCriterio], references: [idCriterio], onDelete: Restrict)
 }
 
 model GestorColaborador {
-  idGestorMentorado String   @id @default(uuid()) @db.Uuid
-  idGestor          String   @db.Uuid
-  idColaborador     String   @db.Uuid
-  idCiclo           String   @db.Uuid
-
-  gestor            Colaborador     @relation("ComoGestor", fields: [idGestor], references: [idColaborador], onDelete: Cascade)
-  mentorando        Colaborador     @relation("Mentorando", fields: [idColaborador], references: [idColaborador], onDelete: Cascade)
-  ciclo             CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
+  idGestorColaborador String       @id @default(uuid()) @db.Uuid
+  idGestor            String       @db.Uuid
+  idColaborador       String       @db.Uuid
+  idCiclo             String       @db.Uuid
+  gestor              Colaborador  @relation("Gestor", fields: [idGestor], references: [idColaborador], onDelete: Cascade)
+  colaborador         Colaborador  @relation("ColaboradorGestor", fields: [idColaborador], references: [idColaborador], onDelete: Cascade)
+  ciclo               CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
 
   @@unique([idGestor, idColaborador, idCiclo])
+}
+
+model Pares {
+  idPar         String       @id @default(uuid()) @db.Uuid
+  idColaborador1 String?      @db.Uuid
+  idColaborador2 String?      @db.Uuid
+  idCiclo       String?      @db.Uuid
+  colaborador1  Colaborador? @relation("Par1", fields: [idColaborador1], references: [idColaborador])
+  colaborador2  Colaborador? @relation("Par2", fields: [idColaborador2], references: [idColaborador])
+  ciclo         CicloAvaliacao? @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
+
+  @@unique([idColaborador1, idColaborador2, idCiclo])
+}
+
+model LiderColaborador {
+  idLiderColaborador String       @id @default(uuid()) @db.Uuid
+  idLider            String       @db.Uuid
+  idColaborador      String       @db.Uuid
+  idCiclo            String       @db.Uuid
+  lider              Colaborador  @relation("Lider", fields: [idLider], references: [idColaborador])
+  colaborador        Colaborador  @relation("ColaboradorLider", fields: [idColaborador], references: [idColaborador])
+  ciclo              CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo])
+
+  @@unique([idLider, idColaborador, idCiclo])
+}
+
+model MentorColaborador {
+  idMentorColaborador String       @id @default(uuid()) @db.Uuid
+  idMentor            String       @db.Uuid
+  idColaborador       String       @db.Uuid
+  idCiclo             String       @db.Uuid
+  mentor              Colaborador  @relation("Mentor", fields: [idMentor], references: [idColaborador])
+  colaborador         Colaborador  @relation("ColaboradorMentor", fields: [idColaborador], references: [idColaborador])
+  ciclo               CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo])
+
+  @@unique([idMentor, idColaborador, idCiclo])
 }
 
 model ColaboradorCiclo {
@@ -252,5 +319,4 @@ model ColaboradorCiclo {
   ciclo         CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo])
 
   @@unique([idColaborador, idCiclo])
-  @@map("colaboradores_ciclos")
 }
