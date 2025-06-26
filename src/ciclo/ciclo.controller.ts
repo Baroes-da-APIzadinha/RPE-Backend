@@ -2,7 +2,6 @@ import { Body, Controller, Delete, Get, Param, Post, Put, HttpCode, HttpStatus, 
 import { CicloService } from './ciclo.service';
 import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
 
-
 @Controller('ciclo')
 export class CicloController {
     constructor(
