@@ -24,4 +24,10 @@ export class AvaliacoesController {
         return { message: 'Avaliações de pares lançadas com sucesso!' };
   }
 
+    @Post('lancar-lider-colaborador')
+    async lancarLiderColaborador(@Body('idCiclo') idCiclo: string) {
+        await this.service.lancarAvaliacaoLiderColaborador(idCiclo);
+        return { message: 'Avaliações Lider-Colaborador lançadas com sucesso!' };
+  }
+
 }

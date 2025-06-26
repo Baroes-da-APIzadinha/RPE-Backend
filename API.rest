@@ -136,3 +136,20 @@ Content-Type: application/json
 {
     "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
 }
+
+### Lançar auto-avaliações
+POST http://localhost:3000/avaliacoes/lancar-auto-avaliacoes
+Content-Type: application/json
+
+{
+    "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3"
+}
+
+
+### Lançar avaliações de lideres
+POST http://localhost:3000/avaliacoes/lancar-lider-colaborador
+Content-Type: application/json
+
+{
+    "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3"
+}
