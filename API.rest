@@ -146,13 +146,16 @@ Content-Type: application/json
 }
 
 ### Preencher Equalização
-PATCH http://localhost:3000/equalizacao/b1d03a21-9192-4339-a485-0b9402749a32
+PATCH http://localhost:3000/equalizacao/5f4e1bc9-47f9-4344-86b3-02e0e2400e1c
 Content-Type: application/json
 
 {
-    "notaAjustada": "4.5",
+    "notaAjustada": "5.0",
     "justificativa": "Você foi muito bem no projeto, mas poderia melhorar na comunicação com a equipe."
 }
 
 ### Get Equalizações
 GET http://localhost:3000/equalizacao
+
+### Get Equalizações por user
+GET http://localhost:3000/equalizacao/avaliado/996e4e19-cfca-4414-ac93-0a274a417c7e

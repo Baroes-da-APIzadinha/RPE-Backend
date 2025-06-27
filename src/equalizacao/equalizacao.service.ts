@@ -54,6 +54,7 @@ export class EqualizacaoService {
         try {
             const novaEqualizacao = await this.prisma.equalizacao.create({
             data: {
+                idCiclo: createEqualizacaoDto.idCiclo,
                 idAvaliado: participante.idColaborador,
                 // Outros campos permanecem com valores padrão
             },
@@ -186,6 +187,11 @@ export class EqualizacaoService {
         throw new BadRequestException('A nota é obrigatória para preencher a equalização');
     }
 
+    const nota = parseFloat(updateEqualizacaoDto.notaAjustada.toString());
+    if (isNaN(nota) || (nota < 1) || (nota > 5)) {
+        throw new BadRequestException('A nota deve estar entre 1 e 5');
+    }
+
     if (!updateEqualizacaoDto.justificativa) {
         throw new BadRequestException('A justificativa é obrigatória para preencher a equalização');
     }
@@ -225,37 +231,5 @@ export class EqualizacaoService {
     
     this.logger.log(`Equalização removida com sucesso: ${idEqualizacao}`);
     return { message: 'Equalização removida com sucesso' };
-  }
-
-  private async verificarColaboradores(idAvaliado: string, idMembroComite: string) {
-    // Verificar se o avaliado existe
-    const avaliado = await this.prisma.colaborador.findUnique({
-      where: { idColaborador: idAvaliado },
-    });
-    
-    if (!avaliado) {
-      throw new NotFoundException(`Colaborador avaliado com ID ${idAvaliado} não encontrado`);
-    }
-    
-    // Verificar se o membro do comitê existe
-    const membroComite = await this.prisma.colaborador.findUnique({
-      where: { idColaborador: idMembroComite },
-    });
-    
-    if (!membroComite) {
-      throw new NotFoundException(`Membro do comitê com ID ${idMembroComite} não encontrado`);
-    }
-    
-    // Verificar se o membro do comitê tem o perfil adequado
-    const temPerfilComite = await this.prisma.colaboradorPerfil.findFirst({
-      where: {
-        idColaborador: idMembroComite,
-        tipoPerfil: 'MEMBRO_COMITE',
-      },
-    });
-    
-    if (!temPerfilComite) {
-      throw new BadRequestException(`O colaborador ${membroComite.nomeCompleto} não é um membro do comitê`);
-    }
   }
 }
