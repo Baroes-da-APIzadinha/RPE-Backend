@@ -136,3 +136,26 @@ Content-Type: application/json
 {
     "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
 }
+
+### Lançar Equalização
+POST http://localhost:3000/equalizacao
+Content-Type: application/json
+
+{
+    "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3"
+}
+
+### Preencher Equalização
+PATCH http://localhost:3000/equalizacao/bac3b77d-ab32-478f-bc69-f8c288e03e51
+Content-Type: application/json
+
+{
+    "notaAjustada": "5.0",
+    "justificativa": "Você foi muito bem no projeto, mas poderia melhorar na comunicação com a equipe."
+}
+
+### Get Equalizações
+GET http://localhost:3000/equalizacao
+
+### Get Equalizações por user
+GET http://localhost:3000/equalizacao/avaliado/996e4e19-cfca-4414-ac93-0a274a417c7e

@@ -104,6 +104,7 @@ model CicloAvaliacao {
   pares                Pares[]
   liderColaboradores   LiderColaborador[]
   mentorColaboradores  MentorColaborador[]
+  equalizacoes         Equalizacao[]
 }
 
 model CriterioAvaliativo {
@@ -135,16 +136,18 @@ model AssociacaoCriterioCiclo {
 
 
 model Equalizacao {
-  idEqualizacao     String               @id @default(uuid()) @db.Uuid
-  idAvaliado        String               @db.Uuid
-  idMembroComite    String               @db.Uuid
-  notaAjustada      Int                  /// note: 'CHECK: notaAjustada >= 1 AND notaAjustada <= 5'
-  justificativa     String               @db.Text
-  status            preenchimentoStatus  @default(PENDENTE)
-  dataEqualizacao   DateTime             @default(now())
+  idEqualizacao     String                @id @default(uuid()) @db.Uuid
+  idCiclo           String                @db.Uuid
+  idAvaliado        String                @db.Uuid
+  idMembroComite    String?               @db.Uuid
+  notaAjustada      Decimal?              @db.Decimal(5, 2)    /// note: 'CHECK: notaAjustada >= 1 AND notaAjustada <= 5'
+  justificativa     String?               @db.Text
+  status            preenchimentoStatus   @default(PENDENTE)
+  dataEqualizacao   DateTime              @default(now())
 
-  alvo              Colaborador          @relation("Alvo", fields: [idAvaliado], references: [idColaborador], onDelete: Restrict)
-  membroComite      Colaborador          @relation("MembroComite", fields: [idMembroComite], references: [idColaborador], onDelete: Restrict)
+  ciclo             CicloAvaliacao        @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
+  alvo              Colaborador           @relation("Alvo", fields: [idAvaliado], references: [idColaborador], onDelete: Restrict)
+  membroComite      Colaborador?          @relation("MembroComite", fields: [idMembroComite], references: [idColaborador], onDelete: Restrict)
 }
 
 model IndicacaoReferencia {
