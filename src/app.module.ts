@@ -11,10 +11,11 @@ import { CicloModule } from './ciclo/ciclo.module';
 import { AvaliacoesController } from './avaliacoes/avaliacoes.controller';
 import { AvaliacoesService } from './avaliacoes/avaliacoes.service';
 import { AvaliacoesModule } from './avaliacoes/avaliacoes.module';
+import { ReferenciasModule } from './referencias/referencias.module';
 
 
 @Module({
-  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, ReferenciasModule],
   controllers: [AppController, AvaliacoesController],
   providers: [AppService, PrismaService, AvaliacoesService],
 })
