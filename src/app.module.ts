@@ -11,11 +11,14 @@ import { CicloModule } from './ciclo/ciclo.module';
 import { AvaliacoesController } from './avaliacoes/avaliacoes.controller';
 import { AvaliacoesService } from './avaliacoes/avaliacoes.service';
 import { AvaliacoesModule } from './avaliacoes/avaliacoes.module';
+import { EqualizacaoService } from './equalizacao/equalizacao.service';
+import { EqualizacaoController } from './equalizacao/equalizacao.controller';
+import { EqualizacaoModule } from './equalizacao/equalizacao.module';
 
 
 @Module({
-  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule],
-  controllers: [AppController, AvaliacoesController],
-  providers: [AppService, PrismaService, AvaliacoesService],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule],
+  controllers: [AppController, AvaliacoesController, EqualizacaoController],
+  providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService],
 })
 export class AppModule {}
