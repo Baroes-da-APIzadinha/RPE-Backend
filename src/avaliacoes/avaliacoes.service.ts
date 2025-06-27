@@ -1,11 +1,12 @@
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
+import { Motivacao } from './avaliacoes.contants';
 
 @Injectable()
 export class AvaliacoesService {
     private readonly logger = new Logger(AvaliacoesService.name);
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(private readonly prisma: PrismaService) { }
 
     // =================== MÉTODOS PÚBLICOS ===================
 
@@ -51,7 +52,7 @@ export class AvaliacoesService {
     async lancarAutoAvaliacoes(cicloId: string): Promise<void> {
         await this.verificarAutoAvaliacoesLancadas(cicloId);
         const participantesDoCiclo = await this.prisma.colaboradorCiclo.findMany({
-            where: { idCiclo: cicloId}, include: { colaborador: true }
+            where: { idCiclo: cicloId }, include: { colaborador: true }
         });
         if (participantesDoCiclo.length === 0) {
             this.logger.warn(`Nenhum colaborador associado a este ciclo. Processo encerrado.`);
@@ -61,56 +62,56 @@ export class AvaliacoesService {
         for (const participante of participantesDoCiclo) {
             const colaborador = participante.colaborador;
             try {
-            // 3. Buscar critérios específicos para este colaborador
-            const criterios = await this.buscarCriteriosParaColaborador(
-                cicloId, 
-                colaborador.cargo, 
-                colaborador.trilhaCarreira, 
-                colaborador.unidade
-            );
-            
-            if (criterios.length === 0) {
-                this.logger.warn(
-                    `Nenhum critério encontrado para colaborador ${colaborador.nomeCompleto} `+
-                    `(Cargo: ${colaborador.cargo}, Trilha: ${colaborador.trilhaCarreira}, `+
-                    `Unidade: ${colaborador.unidade}). Pulando autoavaliação.`
+                // 3. Buscar critérios específicos para este colaborador
+                const criterios = await this.buscarCriteriosParaColaborador(
+                    cicloId,
+                    colaborador.cargo,
+                    colaborador.trilhaCarreira,
+                    colaborador.unidade
                 );
-                continue;
-            }
-            
-            // 4. Criar avaliação principal
-            const avaliacao = await this.prisma.avaliacao.create({
-                data: {
-                    idCiclo: cicloId,
-                    idAvaliado: colaborador.idColaborador,
-                    idAvaliador: colaborador.idColaborador,
-                    tipoAvaliacao: 'AUTOAVALIACAO',
-                    status: 'PENDENTE',
-                    // 5. Criar autoAvaliação relacionada
-                    autoAvaliacao: {
-                        create: {
-                            // 6. Criar cards de avaliação para cada critério
-                            cardAutoAvaliacoes: {
-                                createMany: {
-                                    data: criterios.map(criterio => ({
-                                        nomeCriterio: criterio.nomeCriterio,
-                                    }))
+
+                if (criterios.length === 0) {
+                    this.logger.warn(
+                        `Nenhum critério encontrado para colaborador ${colaborador.nomeCompleto} ` +
+                        `(Cargo: ${colaborador.cargo}, Trilha: ${colaborador.trilhaCarreira}, ` +
+                        `Unidade: ${colaborador.unidade}). Pulando autoavaliação.`
+                    );
+                    continue;
+                }
+
+                // 4. Criar avaliação principal
+                const avaliacao = await this.prisma.avaliacao.create({
+                    data: {
+                        idCiclo: cicloId,
+                        idAvaliado: colaborador.idColaborador,
+                        idAvaliador: colaborador.idColaborador,
+                        tipoAvaliacao: 'AUTOAVALIACAO',
+                        status: 'PENDENTE',
+                        // 5. Criar autoAvaliação relacionada
+                        autoAvaliacao: {
+                            create: {
+                                // 6. Criar cards de avaliação para cada critério
+                                cardAutoAvaliacoes: {
+                                    createMany: {
+                                        data: criterios.map(criterio => ({
+                                            nomeCriterio: criterio.nomeCriterio,
+                                        }))
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            });
-            
-            this.logger.log(
-                `Autoavaliação criada com sucesso para ${colaborador.nomeCompleto} `+
-                `com ${criterios.length} critérios`
-            );
-        } catch (error) {
-            this.logger.error(
-                `Erro ao criar autoavaliação para ${colaborador.nomeCompleto}: ${error.message}`,
-                error.stack
-            );
+                });
+
+                this.logger.log(
+                    `Autoavaliação criada com sucesso para ${colaborador.nomeCompleto} ` +
+                    `com ${criterios.length} critérios`
+                );
+            } catch (error) {
+                this.logger.error(
+                    `Erro ao criar autoavaliação para ${colaborador.nomeCompleto}: ${error.message}`,
+                    error.stack
+                );
             }
         }
         this.logger.log(`Processo de lançamento de autoavaliações concluído`);
@@ -119,7 +120,7 @@ export class AvaliacoesService {
     async lancarAvaliacaoLiderColaborador(idCiclo: string): Promise<void> {
         await this.verificarAvaliacoesLiderColaboradorLancadas(idCiclo);
         this.logger.log(`Iniciando lançamento de avaliações líder-colaborador para ciclo ${idCiclo}`);
-        
+
         // Buscar todas as relações líder-colaborador do ciclo
         const lideresColaboradores = await this.prisma.liderColaborador.findMany({
             where: { idCiclo },
@@ -128,12 +129,12 @@ export class AvaliacoesService {
                 colaborador: true
             }
         });
-        
+
         if (lideresColaboradores.length === 0) {
             this.logger.warn(`Nenhuma relação líder-colaborador encontrada para este ciclo. Processo encerrado.`);
             return;
         }
-        
+
         await this.prisma.$transaction(async (tx) => {
             for (const relacao of lideresColaboradores) {
                 try {
@@ -144,7 +145,7 @@ export class AvaliacoesService {
                         relacao.colaborador.trilhaCarreira,
                         relacao.colaborador.unidade
                     );
-                    
+
                     if (criterios.length === 0) {
                         this.logger.warn(
                             `Nenhum critério encontrado para colaborador ${relacao.colaborador.nomeCompleto}. ` +
@@ -152,7 +153,7 @@ export class AvaliacoesService {
                         );
                         continue;
                     }
-                    
+
                     // Criar a avaliação principal
                     const avaliacao = await tx.avaliacao.create({
                         data: {
@@ -176,12 +177,12 @@ export class AvaliacoesService {
                             }
                         }
                     });
-                    
+
                     this.logger.log(
                         `Avaliação líder-colaborador criada: Líder ${relacao.lider.nomeCompleto} -> ` +
                         `Colaborador ${relacao.colaborador.nomeCompleto} com ${criterios.length} critérios`
                     );
-                    
+
                 } catch (error) {
                     this.logger.error(
                         `Erro ao criar avaliação líder-colaborador: ${error.message}`,
@@ -191,14 +192,14 @@ export class AvaliacoesService {
                 }
             }
         });
-        
+
         this.logger.log(`Processo de lançamento de avaliações líder-colaborador concluído`);
     }
 
     async lancarAvaliacaoColaboradorMentor(idCiclo: string): Promise<void> {
         await this.verificarAvaliacoesColaboradorMentorLancadas(idCiclo);
         this.logger.log(`Iniciando lançamento de avaliações colaborador-mentor para ciclo ${idCiclo}`);
-        
+
         // Buscar todas as relações mentor-colaborador do ciclo
         const mentoresColaboradores = await this.prisma.mentorColaborador.findMany({
             where: { idCiclo },
@@ -207,12 +208,12 @@ export class AvaliacoesService {
                 colaborador: true
             }
         });
-        
+
         if (mentoresColaboradores.length === 0) {
             this.logger.warn(`Nenhuma relação mentor-colaborador encontrada para este ciclo. Processo encerrado.`);
             return;
         }
-        
+
         await this.prisma.$transaction(async (tx) => {
             for (const relacao of mentoresColaboradores) {
                 try {
@@ -230,12 +231,12 @@ export class AvaliacoesService {
                             }
                         }
                     });
-                    
+
                     this.logger.log(
                         `Avaliação colaborador-mentor criada: Colaborador ${relacao.colaborador.nomeCompleto} -> ` +
                         `Mentor ${relacao.mentor.nomeCompleto}`
                     );
-                    
+
                 } catch (error) {
                     this.logger.error(
                         `Erro ao criar avaliação colaborador-mentor: ${error.message}`,
@@ -245,10 +246,173 @@ export class AvaliacoesService {
                 }
             }
         });
-        
+
         this.logger.log(`Processo de lançamento de avaliações colaborador-mentor concluído`);
     }
 
+    async getAvaliacoesPorUsuarioTipo(
+        idColaborador: string,
+        idCiclo: string,
+        tipoAvaliacao?: avaliacaoTipo // Use o enum do Prisma para tipos de avaliação
+    ): Promise<any> {
+        this.logger.log(
+            `Buscando avaliações para colaborador ${idColaborador}, ciclo ${idCiclo}, ` +
+            `tipo ${tipoAvaliacao || 'todos os tipos'}`
+        );
+
+        // Construir objeto de filtro base
+        const whereFilter: any = {
+            idCiclo,
+            idAvaliador: idColaborador
+        };
+
+        // Adicionar filtro por tipo se fornecido
+        if (tipoAvaliacao) {
+            whereFilter.tipoAvaliacao = tipoAvaliacao;
+        }
+
+        const avaliacoes = await this.prisma.avaliacao.findMany({
+            where: whereFilter,
+            include: {
+                avaliacaoPares: true,
+                avaliacaoColaboradorMentor: true,
+                autoAvaliacao: {
+                    include: {
+                        cardAutoAvaliacoes: true
+                    }
+                },
+                avaliacaoLiderColaborador: {
+                    include: {
+                        cardAvaliacaoLiderColaborador: true
+                    }
+                },
+                ciclo: true,
+                avaliador: {
+                    select: {
+                        nomeCompleto: true
+                    }
+                },
+                avaliado: {
+                    select: {
+                        nomeCompleto: true,
+                    }
+                }
+            },
+            orderBy: {
+                tipoAvaliacao: 'asc'
+            }
+        });
+
+        this.logger.log(`Encontradas ${avaliacoes.length} avaliações`);
+        return avaliacoes;
+    }
+
+    async getAvaliacoesPorCicloStatus(
+        idCiclo: string,
+        status?: preenchimentoStatus  // Usando o enum preenchimentoStatus do Prisma
+    ): Promise<any> {
+        this.logger.log(
+            `Buscando avaliações para ciclo ${idCiclo}, status ${status || 'todos'}`
+        );
+
+        // Construir objeto de filtro base
+        const whereFilter: any = {
+            idCiclo
+        };
+
+        // Adicionar filtro por status se fornecido
+        if (status) {
+            whereFilter.status = status;
+        }
+
+        const avaliacoes = await this.prisma.avaliacao.findMany({
+            where: whereFilter,
+            include: {
+                autoAvaliacao: {
+                    include: {
+                        cardAutoAvaliacoes: true
+                    }
+                },
+                avaliacaoPares: true,
+                avaliacaoLiderColaborador: {
+                    include: {
+                        cardAvaliacaoLiderColaborador: true
+                    }
+                },
+                avaliacaoColaboradorMentor: true,
+                ciclo: true,
+                avaliador: {
+                    select: {
+                        nomeCompleto: true
+                    }
+                },
+                avaliado: {
+                    select: {
+                        nomeCompleto: true
+                    }
+                }
+            },
+            orderBy: [
+                { status: 'asc' },
+                { tipoAvaliacao: 'asc' }
+            ]
+        });
+
+        this.logger.log(`Encontradas ${avaliacoes.length} avaliações`);
+        return avaliacoes;
+    }
+
+    async preencherAvaliacaoPares(
+        idAvaliacao: string,
+        nota: number,
+        motivacao: Motivacao,
+        pontosFortes: string,
+        pontosFracos: string
+      ): Promise<void> {
+        // Verificações extraídas
+        const avaliacao = await this.prisma.avaliacao.findUnique({
+          where: { idAvaliacao },
+          include: { avaliacaoPares: true },
+        });
+        await this.verificarAvaliacaoExiste(idAvaliacao);
+        this.verificarAvaliacaoTipo(avaliacao, 'AVALIACAO_PARES');
+        this.verificarAvaliacaoStatus(avaliacao);
+        this.verificarNota(nota);
+
+        await this.prisma.avaliacaoPares.update({
+            where: { idAvaliacao },
+            data: {
+                nota, // Prisma converte number para Decimal
+                motivadoTrabalharNovamente: motivacao,
+                pontosFortes,
+                pontosFracos,
+            },
+        });
+        await this.prisma.avaliacao.update({
+            where: { idAvaliacao },
+            data: { status: 'CONCLUIDA' },
+        });
+    }
+
+    async preencherAvaliacaoColaboradorMentor(
+        idAvaliacao: string,
+        nota: number,
+        justificativa: string
+    ): Promise<void> {
+        const avaliacao = await this.prisma.avaliacao.findUnique({
+            where: { idAvaliacao },
+            include: { avaliacaoColaboradorMentor: true },
+        });
+        await this.verificarAvaliacaoExiste(idAvaliacao);
+        this.verificarAvaliacaoTipo(avaliacao, 'COLABORADOR_MENTOR');
+        this.verificarAvaliacaoStatus(avaliacao);
+        this.verificarNota(nota);
+
+        await this.prisma.avaliacaoColaboradorMentor.update({
+            where: { idAvaliacao },
+            data: { nota, justificativa },
+        });
+    }
 
     // =================== MÉTODOS PRIVADOS ===================
 
@@ -351,7 +515,7 @@ export class AvaliacoesService {
 
         // Eliminar duplicatas, mantendo apenas o critério mais específico
         const criterioMap = new Map<string, { idCriterio: string; nomeCriterio: string }>();
-        
+
         for (const associacao of associacoesCriterios) {
             // Se ainda não temos este critério OU o que temos é menos específico
             if (!criterioMap.has(associacao.idCriterio)) {
@@ -361,124 +525,37 @@ export class AvaliacoesService {
                 });
             }
         }
-        
+
         return Array.from(criterioMap.values());
     }
 
-    
-
-
-    async getAvaliacoesPorUsuarioTipo(
-        idColaborador: string, 
-        idCiclo: string, 
-        tipoAvaliacao?: avaliacaoTipo // Use o enum do Prisma para tipos de avaliação
-    ): Promise<any> {
-        this.logger.log(
-            `Buscando avaliações para colaborador ${idColaborador}, ciclo ${idCiclo}, ` +
-            `tipo ${tipoAvaliacao || 'todos os tipos'}`
-        );
-        
-        // Construir objeto de filtro base
-        const whereFilter: any = {
-            idCiclo,
-            idAvaliador: idColaborador
-        };
-        
-        // Adicionar filtro por tipo se fornecido
-        if (tipoAvaliacao) {
-            whereFilter.tipoAvaliacao = tipoAvaliacao;
+    private async verificarAvaliacaoExiste(idAvaliacao: string) {
+        const avaliacao = await this.prisma.avaliacao.findUnique({ where: { idAvaliacao } });
+        if (!avaliacao) {
+            throw new HttpException('Avaliação não encontrada.', HttpStatus.NOT_FOUND);
         }
-        
-        const avaliacoes = await this.prisma.avaliacao.findMany({
-            where: whereFilter,
-            include: {
-                avaliacaoPares: true,
-                avaliacaoColaboradorMentor: true,
-                autoAvaliacao: {
-                    include: {
-                        cardAutoAvaliacoes: true
-                    }
-                },
-                avaliacaoLiderColaborador: {
-                    include: {
-                        cardAvaliacaoLiderColaborador: true
-                    }
-                },
-                ciclo: true,
-                avaliador: {
-                    select: {
-                        nomeCompleto: true
-                    }
-                },
-                avaliado: {
-                    select: {
-                        nomeCompleto: true,
-                    }
-                }
-            },
-            orderBy: {
-                tipoAvaliacao: 'asc'
-            }
-        });
-        
-        this.logger.log(`Encontradas ${avaliacoes.length} avaliações`);
-        return avaliacoes;
+        return avaliacao;
     }
 
-    async getAvaliacoesPorCicloStatus(
-        idCiclo: string,
-        status?: preenchimentoStatus  // Usando o enum preenchimentoStatus do Prisma
-    ): Promise<any> {
-        this.logger.log(
-            `Buscando avaliações para ciclo ${idCiclo}, status ${status || 'todos'}`
-        );
-        
-        // Construir objeto de filtro base
-        const whereFilter: any = {
-            idCiclo
-        };
-        
-        // Adicionar filtro por status se fornecido
-        if (status) {
-            whereFilter.status = status;
+    private verificarAvaliacaoStatus(avaliacao: any) {
+        if (avaliacao.status === 'CONCLUIDA') {
+            throw new HttpException('Avaliação já foi concluída.', HttpStatus.BAD_REQUEST);
         }
-        
-        const avaliacoes = await this.prisma.avaliacao.findMany({
-            where: whereFilter,
-            include: {
-                autoAvaliacao: {
-                    include: {
-                        cardAutoAvaliacoes: true
-                    }
-                },
-                avaliacaoPares: true,
-                avaliacaoLiderColaborador: {
-                    include: {
-                        cardAvaliacaoLiderColaborador: true
-                    }
-                },
-                avaliacaoColaboradorMentor: true,
-                ciclo: true,
-                avaliador: {
-                    select: {
-                        nomeCompleto: true
-                    }
-                },
-                avaliado: {
-                    select: {
-                        nomeCompleto: true
-                    }
-                }
-            },
-            orderBy: [
-                { status: 'asc' },
-                { tipoAvaliacao: 'asc' }
-            ]
-        });
-        
-        this.logger.log(`Encontradas ${avaliacoes.length} avaliações`);
-        return avaliacoes;
     }
 
+    private verificarAvaliacaoTipo(avaliacao: any, tipoEsperado: avaliacaoTipo) {
+        if (avaliacao.tipoAvaliacao !== tipoEsperado) {
+            throw new HttpException(`Avaliação não é do tipo ${tipoEsperado}.`, HttpStatus.BAD_REQUEST);
+        }
+    }
 
+    private verificarNota(nota: number) {
+        if (nota < 0 || nota > 5) {
+            throw new HttpException('Nota inválida. Deve estar entre 0 e 5.', HttpStatus.BAD_REQUEST);
+        }
+        // Só aceita múltiplos de 0.5
+        if (Math.abs(nota * 10) % 5 !== 0) {
+            throw new HttpException('Nota inválida. Só são permitidos valores como 0.0, 0.5, 1.0, ..., 5.0', HttpStatus.BAD_REQUEST);
+        }
+    }
 }

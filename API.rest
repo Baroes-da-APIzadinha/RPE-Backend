@@ -117,18 +117,6 @@ Content-Type: application/json
     "idColaborador": "0526ff8f-fd94-4548-a61e-b96fed2976d3"
 }
 
-### Lancar avaliacoes
-POST http://localhost:3000/ciclo/cf72bef9-9b02-4979-977b-def79fb69daf/lancar-avaliacoes
-
-### Gerar Pares para teste
-
-POST http://localhost:3000/avaliacoes/gerar-pares
-Content-Type: application/json
-
-{
-    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
-}
-
 ### Lançar avaliações de pares
 POST http://localhost:3000/avaliacoes/lancar-pares
 Content-Type: application/json
@@ -162,24 +150,31 @@ Content-Type: application/json
     "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
 }
 
-### Preencher tabela mentor-colaborador
-POST http://localhost:3000/avaliacoes/preencher-mentor-colaborador
-Content-Type: application/json
-
-{
-    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
-}
-
-### GET Avaliações por usuário
-GET  http://localhost:3000/avaliacoes/usuario/996e4e19-cfca-4414-ac93-0a274a417c7e
-Content-Type: application/json
-
-{
-    "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3"
-}
 
 ### GET Avaliações por usuário e tipo
-GET http://localhost:3000/avaliacoes/tipo/usuario/973ba98c-678c-478b-aca4-7ce119795a66?idCiclo=4e4b287f-bddd-47c7-83ff-a663720f2ba3
+GET http://localhost:3000/avaliacoes/tipo/usuario/0526ff8f-fd94-4548-a61e-b96fed2976d3?tipoAvaliacao=AVALIACAO_PARES
 
 ### GET Avaliações por usuário e tipo
 GET http://localhost:3000/avaliacoes/status/4e4b287f-bddd-47c7-83ff-a663720f2ba3?status=PENDENTE
+
+### Preencher avaliação pares
+POST http://localhost:3000/avaliacoes/preencher-avaliacao-pares
+Content-Type: application/json
+
+{
+    "idAvaliacao": "c4d51c0d-d849-4495-b3bb-e12d6ffd8aab",
+    "nota": 5,
+    "motivacao": "Concordo Totalmente",
+    "pontosFortes": "Pontos Fortes",
+    "pontosFracos": "Pontos Fracos"
+}
+
+### Preencher avaliação colaborador mentor
+POST http://localhost:3000/avaliacoes/preencher-avaliacao-colaborador-mentor
+Content-Type: application/json
+
+{
+    "idAvaliacao": "c4d51c0d-d849-4495-b3bb-e12d6ffd8aab",
+    "nota": 3.7,
+    "justificativa": "Justificativa"
+}
