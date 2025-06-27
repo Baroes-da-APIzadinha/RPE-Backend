@@ -1,5 +1,6 @@
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
+import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 
 @Injectable()
 export class AvaliacoesService {
@@ -365,4 +366,119 @@ export class AvaliacoesService {
     }
 
     
+
+
+    async getAvaliacoesPorUsuarioTipo(
+        idColaborador: string, 
+        idCiclo: string, 
+        tipoAvaliacao?: avaliacaoTipo // Use o enum do Prisma para tipos de avaliação
+    ): Promise<any> {
+        this.logger.log(
+            `Buscando avaliações para colaborador ${idColaborador}, ciclo ${idCiclo}, ` +
+            `tipo ${tipoAvaliacao || 'todos os tipos'}`
+        );
+        
+        // Construir objeto de filtro base
+        const whereFilter: any = {
+            idCiclo,
+            idAvaliador: idColaborador
+        };
+        
+        // Adicionar filtro por tipo se fornecido
+        if (tipoAvaliacao) {
+            whereFilter.tipoAvaliacao = tipoAvaliacao;
+        }
+        
+        const avaliacoes = await this.prisma.avaliacao.findMany({
+            where: whereFilter,
+            include: {
+                avaliacaoPares: true,
+                avaliacaoColaboradorMentor: true,
+                autoAvaliacao: {
+                    include: {
+                        cardAutoAvaliacoes: true
+                    }
+                },
+                avaliacaoLiderColaborador: {
+                    include: {
+                        cardAvaliacaoLiderColaborador: true
+                    }
+                },
+                ciclo: true,
+                avaliador: {
+                    select: {
+                        nomeCompleto: true
+                    }
+                },
+                avaliado: {
+                    select: {
+                        nomeCompleto: true,
+                    }
+                }
+            },
+            orderBy: {
+                tipoAvaliacao: 'asc'
+            }
+        });
+        
+        this.logger.log(`Encontradas ${avaliacoes.length} avaliações`);
+        return avaliacoes;
+    }
+
+    async getAvaliacoesPorCicloStatus(
+        idCiclo: string,
+        status?: preenchimentoStatus  // Usando o enum preenchimentoStatus do Prisma
+    ): Promise<any> {
+        this.logger.log(
+            `Buscando avaliações para ciclo ${idCiclo}, status ${status || 'todos'}`
+        );
+        
+        // Construir objeto de filtro base
+        const whereFilter: any = {
+            idCiclo
+        };
+        
+        // Adicionar filtro por status se fornecido
+        if (status) {
+            whereFilter.status = status;
+        }
+        
+        const avaliacoes = await this.prisma.avaliacao.findMany({
+            where: whereFilter,
+            include: {
+                autoAvaliacao: {
+                    include: {
+                        cardAutoAvaliacoes: true
+                    }
+                },
+                avaliacaoPares: true,
+                avaliacaoLiderColaborador: {
+                    include: {
+                        cardAvaliacaoLiderColaborador: true
+                    }
+                },
+                avaliacaoColaboradorMentor: true,
+                ciclo: true,
+                avaliador: {
+                    select: {
+                        nomeCompleto: true
+                    }
+                },
+                avaliado: {
+                    select: {
+                        nomeCompleto: true
+                    }
+                }
+            },
+            orderBy: [
+                { status: 'asc' },
+                { tipoAvaliacao: 'asc' }
+            ]
+        });
+        
+        this.logger.log(`Encontradas ${avaliacoes.length} avaliações`);
+        return avaliacoes;
+    }
+
+
 }

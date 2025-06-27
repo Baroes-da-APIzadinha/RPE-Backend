@@ -1,6 +1,7 @@
-import { Controller } from '@nestjs/common';
-import { Post, Body } from '@nestjs/common';
+import { Controller, Param, Query } from '@nestjs/common';
+import { Post, Body, Get } from '@nestjs/common';
 import { AvaliacoesService } from './avaliacoes.service';
+import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 
 interface LancarAvaliacaoDto {
   idCiclo: string;
@@ -33,6 +34,43 @@ export class AvaliacoesController {
     async lancarColaboradorMentor(@Body('idCiclo') idCiclo : string){
       await this.service.lancarAvaliacaoColaboradorMentor(idCiclo)
       return {message: 'Avaliações Colaborador-Mentor lançadas com sucesso'}
+    }
+
+    @Get('tipo/usuario/:idColaborador')
+    async getAvaliacoesPorUsuarioTipo(
+        @Param('idColaborador') idColaborador: string,
+        @Query('idCiclo') idCiclo: string,
+        @Query('tipoAvaliacao') tipoAvaliacao?: avaliacaoTipo
+    ) {
+        const avaliacoes = await this.service.getAvaliacoesPorUsuarioTipo(
+            idColaborador,
+            idCiclo,
+            tipoAvaliacao
+        );
+        
+        return {
+            success: true,
+            count: avaliacoes.length,
+            tipoFiltrado: tipoAvaliacao || 'todos',
+            avaliacoes
+        };
+    }
+
+    @Get('status/:idCiclo')
+    async getAvaliacoesPorCicloStatus(
+        @Param('idCiclo') idCiclo: string,
+        @Query('status') status?: preenchimentoStatus
+    ) {
+        const avaliacoes = await this.service.getAvaliacoesPorCicloStatus(
+            idCiclo,
+            status
+        );
+        
+        return {
+            success: true,
+            count: avaliacoes.length,
+            statusFiltrado: status || 'todos',
+        };
     }
 
 }

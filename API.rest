@@ -134,7 +134,7 @@ POST http://localhost:3000/avaliacoes/lancar-pares
 Content-Type: application/json
 
 {
-    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
+    "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3"
 }
 
 ### Lançar auto-avaliações
@@ -169,3 +169,17 @@ Content-Type: application/json
 {
     "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
 }
+
+### GET Avaliações por usuário
+GET  http://localhost:3000/avaliacoes/usuario/996e4e19-cfca-4414-ac93-0a274a417c7e
+Content-Type: application/json
+
+{
+    "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3"
+}
+
+### GET Avaliações por usuário e tipo
+GET http://localhost:3000/avaliacoes/tipo/usuario/973ba98c-678c-478b-aca4-7ce119795a66?idCiclo=4e4b287f-bddd-47c7-83ff-a663720f2ba3
+
+### GET Avaliações por usuário e tipo
+GET http://localhost:3000/avaliacoes/status/4e4b287f-bddd-47c7-83ff-a663720f2ba3?status=PENDENTE
