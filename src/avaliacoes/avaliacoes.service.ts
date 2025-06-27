@@ -58,6 +58,7 @@ export class AvaliacoesService {
     }
 
     async lancarAutoAvaliacoes(cicloId: string): Promise<void> {
+        await this.verificarAutoAvaliacoesLancadas(cicloId);
         const participantesDoCiclo = await this.prisma.colaboradorCiclo.findMany({
             where: { idCiclo: cicloId}, include: { colaborador: true }
         });
@@ -123,6 +124,113 @@ export class AvaliacoesService {
         }
         this.logger.log(`Processo de lançamento de autoavaliações concluído`);
     }
+
+    private async verificarAutoAvaliacoesLancadas(idCiclo: string): Promise<void> {
+        const jaLancadas = await this.prisma.avaliacao.findFirst({
+            where: {
+                idCiclo,
+                tipoAvaliacao: 'AUTOAVALIACAO',
+            },
+        });
+        if (jaLancadas) {
+            throw new HttpException('Autoavaliações já foram lançadas para este ciclo.', HttpStatus.CONFLICT);
+        }
+    }
+
+    async lancarAvaliacaoLiderColaborador(idCiclo: string): Promise<void> {
+        await this.verificarAvaliacoesLiderColaboradorLancadas(idCiclo);
+        this.logger.log(`Iniciando lançamento de avaliações líder-colaborador para ciclo ${idCiclo}`);
+        
+        // Buscar todas as relações líder-colaborador do ciclo
+        const lideresColaboradores = await this.prisma.liderColaborador.findMany({
+            where: { idCiclo },
+            include: {
+                lider: true,
+                colaborador: true
+            }
+        });
+        
+        if (lideresColaboradores.length === 0) {
+            this.logger.warn(`Nenhuma relação líder-colaborador encontrada para este ciclo. Processo encerrado.`);
+            return;
+        }
+        
+        await this.prisma.$transaction(async (tx) => {
+            for (const relacao of lideresColaboradores) {
+                try {
+                    // Buscar critérios específicos para este colaborador
+                    const criterios = await this.buscarCriteriosParaColaborador(
+                        idCiclo,
+                        relacao.colaborador.cargo,
+                        relacao.colaborador.trilhaCarreira,
+                        relacao.colaborador.unidade
+                    );
+                    
+                    if (criterios.length === 0) {
+                        this.logger.warn(
+                            `Nenhum critério encontrado para colaborador ${relacao.colaborador.nomeCompleto}. ` +
+                            `Pulando avaliação líder-colaborador.`
+                        );
+                        continue;
+                    }
+                    
+                    // Criar a avaliação principal
+                    const avaliacao = await tx.avaliacao.create({
+                        data: {
+                            idCiclo,
+                            idAvaliador: relacao.idLider,
+                            idAvaliado: relacao.idColaborador,
+                            tipoAvaliacao: 'LIDER_COLABORADOR',
+                            status: 'PENDENTE',
+                            // Criar a estrutura específica de avaliação líder-colaborador
+                            avaliacaoLiderColaborador: {
+                                create: {
+                                    // Criar cards para cada critério
+                                    cardAvaliacaoLiderColaborador: {
+                                        createMany: {
+                                            data: criterios.map(criterio => ({
+                                                nomeCriterio: criterio.nomeCriterio,
+                                            }))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    this.logger.log(
+                        `Avaliação líder-colaborador criada: Líder ${relacao.lider.nomeCompleto} -> ` +
+                        `Colaborador ${relacao.colaborador.nomeCompleto} com ${criterios.length} critérios`
+                    );
+                    
+                } catch (error) {
+                    this.logger.error(
+                        `Erro ao criar avaliação líder-colaborador: ${error.message}`,
+                        error.stack
+                    );
+                    // Continua o processo mesmo com erro em uma avaliação específica
+                }
+            }
+        });
+        
+        this.logger.log(`Processo de lançamento de avaliações líder-colaborador concluído`);
+    }
+
+    private async verificarAvaliacoesLiderColaboradorLancadas(idCiclo: string): Promise<void> {
+        const jaLancadas = await this.prisma.avaliacao.findFirst({
+            where: {
+                idCiclo,
+                tipoAvaliacao: 'LIDER_COLABORADOR',
+            },
+        });
+        if (jaLancadas) {
+            throw new HttpException(
+                'Avaliações de líder para colaborador já foram lançadas para este ciclo.',
+                HttpStatus.CONFLICT
+            );
+        }
+    }
+
 
 
     private async buscarCriteriosParaColaborador(
