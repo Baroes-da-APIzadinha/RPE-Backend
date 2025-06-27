@@ -45,8 +45,8 @@ export class EqualizacaoService {
         // Verifica se já existe uma equalização para este colaborador neste ciclo
         const equalizacaoExistente = await this.prisma.equalizacao.findFirst({
             where: {
-                idAvaliado: participante.idColaborador
-                // Opcionalmente, adicionar filtro de ciclo se você incluir ciclo na tabela equalização
+                idAvaliado: participante.idColaborador,
+                idCiclo: createEqualizacaoDto.idCiclo
             }
         });
         
