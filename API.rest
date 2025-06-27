@@ -4,11 +4,11 @@ Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYmNmM2QxNC03NWVmLTRjNDQtYjgwYy1jYmFhM2RjYzZmYTMiLCJlbWFpbCI6ImpvYW8ucmFiZWxsb0BleGFtcGxlLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc1MDc5ODQyNywiZXhwIjoxNzUwODg0ODI3fQ.nwNhdi_egLiU64lo4QaPgIUW7PyqRNolXPfz5OqskVc
 
 {
-    "nomeCompleto": "Gabriel Calado",
-    "email": "gabriel.calado@example.com",
+    "nomeCompleto": "Sardinha ",
+    "email": "sardinha@example.com",
     "senha": "senha123",
-    "cargo": "QA",
-    "trilhaCarreira": "QA",
+    "cargo": "FINANCEIRO",
+    "trilhaCarreira": "FINANCEIRO",
     "unidade": "RECIFE"
 }
 
@@ -152,4 +152,20 @@ Content-Type: application/json
 
 {
     "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3"
+}
+
+### Lançar avaliações mentor-colaborador
+POST http://localhost:3000/avaliacoes/lancar-colaborador-mentor
+Content-Type: application/json
+
+{
+    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
+}
+
+### Preencher tabela mentor-colaborador
+POST http://localhost:3000/avaliacoes/preencher-mentor-colaborador
+Content-Type: application/json
+
+{
+    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
 }

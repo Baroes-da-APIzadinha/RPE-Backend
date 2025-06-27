@@ -6,6 +6,8 @@ export class AvaliacoesService {
     private readonly logger = new Logger(AvaliacoesService.name);
     constructor(private readonly prisma: PrismaService) {}
 
+    // =================== MÉTODOS PÚBLICOS ===================
+
     async lancarAvaliaçãoPares(idCiclo: string): Promise<void> {
         await this.verificarAvaliacoesParesLancadas(idCiclo);
         const where = { idCiclo };
@@ -43,18 +45,6 @@ export class AvaliacoesService {
                 });
             }
         });
-    }
-
-    private async verificarAvaliacoesParesLancadas(idCiclo: string): Promise<void> {
-        const jaLancadas = await this.prisma.avaliacao.findFirst({
-            where: {
-                idCiclo,
-                tipoAvaliacao: 'AVALIACAO_PARES',
-            },
-        });
-        if (jaLancadas) {
-            throw new HttpException('Avaliações de pares já foram lançadas para este ciclo.', HttpStatus.CONFLICT);
-        }
     }
 
     async lancarAutoAvaliacoes(cicloId: string): Promise<void> {
@@ -123,18 +113,6 @@ export class AvaliacoesService {
             }
         }
         this.logger.log(`Processo de lançamento de autoavaliações concluído`);
-    }
-
-    private async verificarAutoAvaliacoesLancadas(idCiclo: string): Promise<void> {
-        const jaLancadas = await this.prisma.avaliacao.findFirst({
-            where: {
-                idCiclo,
-                tipoAvaliacao: 'AUTOAVALIACAO',
-            },
-        });
-        if (jaLancadas) {
-            throw new HttpException('Autoavaliações já foram lançadas para este ciclo.', HttpStatus.CONFLICT);
-        }
     }
 
     async lancarAvaliacaoLiderColaborador(idCiclo: string): Promise<void> {
@@ -216,6 +194,87 @@ export class AvaliacoesService {
         this.logger.log(`Processo de lançamento de avaliações líder-colaborador concluído`);
     }
 
+    async lancarAvaliacaoColaboradorMentor(idCiclo: string): Promise<void> {
+        await this.verificarAvaliacoesColaboradorMentorLancadas(idCiclo);
+        this.logger.log(`Iniciando lançamento de avaliações colaborador-mentor para ciclo ${idCiclo}`);
+        
+        // Buscar todas as relações mentor-colaborador do ciclo
+        const mentoresColaboradores = await this.prisma.mentorColaborador.findMany({
+            where: { idCiclo },
+            include: {
+                mentor: true,
+                colaborador: true
+            }
+        });
+        
+        if (mentoresColaboradores.length === 0) {
+            this.logger.warn(`Nenhuma relação mentor-colaborador encontrada para este ciclo. Processo encerrado.`);
+            return;
+        }
+        
+        await this.prisma.$transaction(async (tx) => {
+            for (const relacao of mentoresColaboradores) {
+                try {
+                    // Criar a avaliação principal
+                    const avaliacao = await tx.avaliacao.create({
+                        data: {
+                            idCiclo,
+                            idAvaliador: relacao.idColaborador, // Colaborador avalia
+                            idAvaliado: relacao.idMentor,       // Mentor é avaliado
+                            tipoAvaliacao: 'COLABORADOR_MENTOR',
+                            status: 'PENDENTE',
+                            // Criar a estrutura específica de avaliação colaborador-mentor
+                            avaliacaoColaboradorMentor: {
+                                create: {}
+                            }
+                        }
+                    });
+                    
+                    this.logger.log(
+                        `Avaliação colaborador-mentor criada: Colaborador ${relacao.colaborador.nomeCompleto} -> ` +
+                        `Mentor ${relacao.mentor.nomeCompleto}`
+                    );
+                    
+                } catch (error) {
+                    this.logger.error(
+                        `Erro ao criar avaliação colaborador-mentor: ${error.message}`,
+                        error.stack
+                    );
+                    // Continua o processo mesmo com erro em uma avaliação específica
+                }
+            }
+        });
+        
+        this.logger.log(`Processo de lançamento de avaliações colaborador-mentor concluído`);
+    }
+
+
+    // =================== MÉTODOS PRIVADOS ===================
+
+    private async verificarAvaliacoesParesLancadas(idCiclo: string): Promise<void> {
+        const jaLancadas = await this.prisma.avaliacao.findFirst({
+            where: {
+                idCiclo,
+                tipoAvaliacao: 'AVALIACAO_PARES',
+            },
+        });
+        if (jaLancadas) {
+            throw new HttpException('Avaliações de pares já foram lançadas para este ciclo.', HttpStatus.CONFLICT);
+        }
+    }
+
+    private async verificarAutoAvaliacoesLancadas(idCiclo: string): Promise<void> {
+        const jaLancadas = await this.prisma.avaliacao.findFirst({
+            where: {
+                idCiclo,
+                tipoAvaliacao: 'AUTOAVALIACAO',
+            },
+        });
+        if (jaLancadas) {
+            throw new HttpException('Autoavaliações já foram lançadas para este ciclo.', HttpStatus.CONFLICT);
+        }
+    }
+
     private async verificarAvaliacoesLiderColaboradorLancadas(idCiclo: string): Promise<void> {
         const jaLancadas = await this.prisma.avaliacao.findFirst({
             where: {
@@ -231,7 +290,20 @@ export class AvaliacoesService {
         }
     }
 
-
+    private async verificarAvaliacoesColaboradorMentorLancadas(idCiclo: string): Promise<void> {
+        const jaLancadas = await this.prisma.avaliacao.findFirst({
+            where: {
+                idCiclo,
+                tipoAvaliacao: 'COLABORADOR_MENTOR',
+            },
+        });
+        if (jaLancadas) {
+            throw new HttpException(
+                'Avaliações de colaborador para mentor já foram lançadas para este ciclo.',
+                HttpStatus.CONFLICT
+            );
+        }
+    }
 
     private async buscarCriteriosParaColaborador(
         idCiclo: string,
@@ -291,4 +363,6 @@ export class AvaliacoesService {
         
         return Array.from(criterioMap.values());
     }
+
+    
 }
