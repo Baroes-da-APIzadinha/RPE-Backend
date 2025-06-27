@@ -146,7 +146,7 @@ Content-Type: application/json
 }
 
 ### Preencher Equalização
-PATCH http://localhost:3000/equalizacao/5f4e1bc9-47f9-4344-86b3-02e0e2400e1c
+PATCH http://localhost:3000/equalizacao/bac3b77d-ab32-478f-bc69-f8c288e03e51
 Content-Type: application/json
 
 {
