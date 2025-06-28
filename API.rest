@@ -160,3 +160,6 @@ Content-Type: application/json
 
 ### Deletar referência
 DELETE http://localhost:3000/referencias/123e4567-e89b-12d3-a456-426614174000
+
+### Listar avaliações de cada colaborador como comitê
+GET http://localhost:3000/avaliacoes/comite
