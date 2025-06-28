@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, Req } from '@nestjs/common';
 import { ColaboradorService } from './colaborador.service';
 import { CreateColaboradorDto, UpdateColaboradorDto, AssociatePerfilDto } from './colaborador.dto';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -25,8 +25,8 @@ export class ColaboradorController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('ADMIN', 'COLABORADOR_COMUM')
     @Get(':id')
-    async getColaborador(@Param('id') id: string) {
-        return this.colaboradorService.getColaborador(id);
+    async getColaborador(@Param('id') id: string, @Req() req) {
+        return this.colaboradorService.getColaborador(id, req.user);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)

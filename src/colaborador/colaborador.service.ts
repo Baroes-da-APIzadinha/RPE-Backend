@@ -55,7 +55,7 @@ export class ColaboradorService {
         });
     }
 
-    async getColaborador(id: string) {
+    async getColaborador(id: string, user?: any) {
         if (!this.isValidUUID(id)) {
             return {
                 status: 400,
@@ -63,18 +63,51 @@ export class ColaboradorService {
             }
         }
 
-        const colaborador = await this.prisma.colaborador.findUnique({
-            where: { idColaborador: id }
-        });
-
-        if (!colaborador) {
-            return {
-                status: 404,
-                message: 'Colaborador não encontrado'
+        // Se for ADMIN, retorna normalmente
+        if (user && user.roles && user.roles.includes('ADMIN')) {
+            const colaborador = await this.prisma.colaborador.findUnique({
+                where: { idColaborador: id }
+            });
+            if (!colaborador) {
+                return {
+                    status: 404,
+                    message: 'Colaborador não encontrado'
+                }
             }
+            return colaborador;
         }
 
-        return colaborador;
+        // Se for GESTOR, só pode acessar seus liderados
+        if (user && user.roles && user.roles.includes('GESTOR')) {
+            const relacao = await this.prisma.gestorColaborador.findFirst({
+                where: {
+                    idGestor: user.userId,
+                    idColaborador: id
+                }
+            });
+            if (!relacao) {
+                return {
+                    status: 403,
+                    message: 'Acesso negado: colaborador não é liderado deste gestor.'
+                }
+            }
+            const colaborador = await this.prisma.colaborador.findUnique({
+                where: { idColaborador: id }
+            });
+            if (!colaborador) {
+                return {
+                    status: 404,
+                    message: 'Colaborador não encontrado'
+                }
+            }
+            return colaborador;
+        }
+
+        // Outros perfis: acesso negado
+        return {
+            status: 403,
+            message: 'Acesso negado.'
+        }
     }
 
     async updateColaborador(id: string, data: UpdateColaboradorDto) {
