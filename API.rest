@@ -178,3 +178,23 @@ Content-Type: application/json
     "nota": 3.7,
     "justificativa": "Justificativa"
 }
+
+### Preencher autoavaliação
+POST http://localhost:3000/avaliacoes/preencher-auto-avaliacao
+Content-Type: application/json
+
+{
+    "idAvaliacao": "84a114-802b-485b-b272-762fe8aeff55",
+    "criterios": [
+        {
+            "nome": "Comunicação",
+            "nota": 4.5,
+            "justificativa": "Excelente comunicação com a equipe"
+        },
+        {
+            "nome": "Pontualidade",
+            "nota": 3.0,
+            "justificativa": "Bom trabalho em equipe"
+        }
+    ]
+}

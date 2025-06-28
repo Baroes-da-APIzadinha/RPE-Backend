@@ -412,6 +412,50 @@ export class AvaliacoesService {
             where: { idAvaliacao },
             data: { nota, justificativa },
         });
+
+        await this.prisma.avaliacao.update({
+            where: {idAvaliacao},
+            data: {status: 'CONCLUIDA'}
+        })
+    }
+
+    async preencherAutoAvaliacao( idAvaliacao: string, criterios: {nome: string, nota: number, justificativa: string}[]) : Promise<void> {
+
+        const avaliacao = await this.prisma.avaliacao.findUnique({
+            where: { idAvaliacao },
+            include: { autoAvaliacao: true },
+        });
+        await this.verificarAvaliacaoExiste(idAvaliacao);
+        this.verificarAvaliacaoTipo(avaliacao, 'AUTOAVALIACAO');
+        this.verificarAvaliacaoStatus(avaliacao);
+
+        for(const criterio of criterios){
+            this.verificarNota(criterio.nota);
+            
+            const card = await this.prisma.cardAutoAvaliacao.findFirst({
+                where: {
+                    idAvaliacao: idAvaliacao,
+                    nomeCriterio: criterio.nome
+                }
+            });
+            
+            if (!card) {
+                throw new HttpException(`Card não encontrado para critério: ${criterio.nome}`, HttpStatus.NOT_FOUND);
+            }
+            
+            await this.prisma.cardAutoAvaliacao.update({
+                where: { idCardAvaliacao: card.idCardAvaliacao },
+                data: {
+                    nota: criterio.nota,
+                    justificativa: criterio.justificativa
+                }
+            });
+        }
+        
+        await this.prisma.avaliacao.update({
+            where: { idAvaliacao },
+            data: { status: 'CONCLUIDA' },
+        });
     }
 
     // =================== MÉTODOS PRIVADOS ===================
@@ -530,6 +574,7 @@ export class AvaliacoesService {
     }
 
     private async verificarAvaliacaoExiste(idAvaliacao: string) {
+        
         const avaliacao = await this.prisma.avaliacao.findUnique({ where: { idAvaliacao } });
         if (!avaliacao) {
             throw new HttpException('Avaliação não encontrada.', HttpStatus.NOT_FOUND);

@@ -2,7 +2,7 @@ import { Controller, Param, Query } from '@nestjs/common';
 import { Post, Body, Get } from '@nestjs/common';
 import { AvaliacoesService } from './avaliacoes.service';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
-import { AvaliacaoColaboradorMentorDto, AvaliacaoParesDto } from './avaliacoes.dto';
+import { AvaliacaoColaboradorMentorDto, AvaliacaoParesDto, PreencherAutoAvaliacaoDto } from './avaliacoes.dto';
 
 interface LancarAvaliacaoDto {
   idCiclo: string;
@@ -84,6 +84,15 @@ export class AvaliacoesController {
     async preencherAvaliacaoColaboradorMentor(@Body() dto: AvaliacaoColaboradorMentorDto) {
         await this.service.preencherAvaliacaoColaboradorMentor(dto.idAvaliacao, dto.nota, dto.justificativa);
         return { message: 'Avaliação preenchida com sucesso!' };
+    }
+
+    @Post('preencher-auto-avaliacao')
+    async preencherAutoAvaliacao(@Body() dto: PreencherAutoAvaliacaoDto): Promise<{ message: string; idAvaliacao: string }> {
+        await this.service.preencherAutoAvaliacao(dto.idAvaliacao, dto.criterios);
+        return { 
+            message: 'Autoavaliação preenchida com sucesso!', 
+            idAvaliacao: dto.idAvaliacao 
+        };
     }
 
 }

@@ -1,10 +1,13 @@
 import { IsNotEmpty, IsString } from "class-validator";
 import { IsNumber } from "class-validator";
 import { Motivacao } from "./avaliacoes.contants";
+import { IsArray, ValidateNested, IsOptional, Min, Max, IsUUID } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class AvaliacaoParesDto {
     @IsNotEmpty()
     @IsString()
+    @IsUUID()
     idAvaliacao: string;
 
     @IsNotEmpty()
@@ -28,6 +31,7 @@ export class AvaliacaoParesDto {
 export class AvaliacaoColaboradorMentorDto {
     @IsNotEmpty()
     @IsString()
+    @IsUUID()
     idAvaliacao: string;
 
     @IsNotEmpty()
@@ -39,4 +43,33 @@ export class AvaliacaoColaboradorMentorDto {
     justificativa: string;
     
     
+}
+
+export class Autoavaliação{
+
+    
+}
+
+export class CriterioAutoAvaliacaoDto {
+    @IsString()
+    nome: string;
+
+    @IsNumber()
+    @Min(0)
+    @Max(5)
+    nota: number;
+
+    @IsString()
+    justificativa: string;
+}
+
+export class PreencherAutoAvaliacaoDto {
+    @IsString()
+    @IsUUID()
+    idAvaliacao: string;
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => CriterioAutoAvaliacaoDto)
+    criterios: CriterioAutoAvaliacaoDto[];
 }
