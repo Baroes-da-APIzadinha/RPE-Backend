@@ -159,3 +159,36 @@ GET http://localhost:3000/equalizacao
 
 ### Get Equalizações por user
 GET http://localhost:3000/equalizacao/avaliado/996e4e19-cfca-4414-ac93-0a274a417c7e
+
+### Criar referência
+POST http://localhost:3000/referencias
+Content-Type: application/json
+
+{
+    "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3",
+    "idIndicador": "996e4e19-cfca-4414-ac93-0a274a417c7e",
+    "idIndicado": "3063125c-87a8-4348-a42e-f5845635581b",
+    "tipo": "CULTURAL",
+    "justificativa": "Excelente conhecimento"
+}
+
+### Atualizar referência
+PUT http://localhost:3000/referencias/10bfb9d5-717a-42b4-ab5d-7232849d6beb
+Content-Type: application/json
+
+{
+    "tipo": "CULTURAL",
+    "justificativa": "BOM trabalho em equipe e comunicação"
+}
+
+### Deletar referência
+DELETE http://localhost:3000/referencias/10bfb9d5-717a-42b4-ab5d-7232849d6beb
+
+### Listar referências
+GET http://localhost:3000/referencias/
+
+### Listar referências por indicado
+GET http://localhost:3000/referencias/indicado/3063125c-87a8-4348-a42e-f5845635581b
+
+### Listar referências por indicador
+GET http://localhost:3000/referencias/indicador/996e4e19-cfca-4414-ac93-0a274a417c7e
