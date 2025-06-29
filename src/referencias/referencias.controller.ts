@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Put, Delete, Param } from '@nestjs/common';
+import { Body, Controller, Post, Put, Delete, Param, Get } from '@nestjs/common';
 import { ReferenciasService } from './referencias.service';
 import { CriarReferenciaDto, AtualizarReferenciaDto } from './referencias.dto';
 
@@ -22,5 +22,25 @@ export class ReferenciasController {
   @Delete(':idIndicacao')
   async deletarReferencia(@Param('idIndicacao') idIndicacao: string) {
     return this.referenciasService.deletarReferencia(idIndicacao);
+  }
+
+  @Get()
+  async getAllReferencias() {
+    return this.referenciasService.getAllReferencias();
+  }
+
+  @Get('indicado/:idIndicado')
+  async getReferenciaByIndicado(@Param('idIndicado') idIndicado: string) {
+    return this.referenciasService.getReferenciaByIndicado(idIndicado);
+  }
+
+  @Get('indicador/:idIndicador')
+  async getReferenciaByIndicador(@Param('idIndicador') idIndicador: string) {
+    return this.referenciasService.getReferenciaByIndicador(idIndicador);
+  }
+
+  @Get(':idIndicacao')
+  async getReferenciaById(@Param('idIndicacao') idIndicacao: string) {
+    return this.referenciasService.getReferenciaById(idIndicacao);
   }
 } 

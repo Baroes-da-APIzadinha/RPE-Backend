@@ -142,21 +142,30 @@ POST http://localhost:3000/referencias
 Content-Type: application/json
 
 {
-    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4",
-    "idIndicador": "0526ff8f-fd94-4548-a61e-b96fed2976d3",
-    "idIndicado": "379763a7-db56-4b79-a9f1-f3212a33a7e2",
-    "tipo": "TECNICA",
-    "justificativa": "Excelente conhecimento técnico em desenvolvimento backend"
+    "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3",
+    "idIndicador": "996e4e19-cfca-4414-ac93-0a274a417c7e",
+    "idIndicado": "3063125c-87a8-4348-a42e-f5845635581b",
+    "tipo": "CULTURAL",
+    "justificativa": "Excelente conhecimento"
 }
 
 ### Atualizar referência
-PUT http://localhost:3000/referencias/123e4567-e89b-12d3-a456-426614174000
+PUT http://localhost:3000/referencias/10bfb9d5-717a-42b4-ab5d-7232849d6beb
 Content-Type: application/json
 
 {
     "tipo": "CULTURAL",
-    "justificativa": "Ótimo trabalho em equipe e comunicação"
+    "justificativa": "BOM trabalho em equipe e comunicação"
 }
 
 ### Deletar referência
-DELETE http://localhost:3000/referencias/123e4567-e89b-12d3-a456-426614174000
+DELETE http://localhost:3000/referencias/10bfb9d5-717a-42b4-ab5d-7232849d6beb
+
+### Listar referências
+GET http://localhost:3000/referencias/
+
+### Listar referências por indicado
+GET http://localhost:3000/referencias/indicado/3063125c-87a8-4348-a42e-f5845635581b
+
+### Listar referências por indicador
+GET http://localhost:3000/referencias/indicador/996e4e19-cfca-4414-ac93-0a274a417c7e
