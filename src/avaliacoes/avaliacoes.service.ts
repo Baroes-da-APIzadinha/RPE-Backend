@@ -10,8 +10,20 @@ export class AvaliacoesService {
 
     // =================== MÉTODOS PÚBLICOS ===================
 
+    async lancarAvaliacoes(idCiclo: string ): Promise<void> {
+
+
+        await this.verificarAvaliacoesLancadas(idCiclo);
+        await this.verificarCicloAtivo(idCiclo);
+
+        await this.lancarAutoAvaliacoes(idCiclo)
+        await this.lancarAvaliaçãoPares(idCiclo)
+        await this.lancarAvaliacaoLiderColaborador(idCiclo)
+        await this.lancarAvaliacaoColaboradorMentor(idCiclo)
+
+    }
+
     async lancarAvaliaçãoPares(idCiclo: string): Promise<void> {
-        await this.verificarAvaliacoesParesLancadas(idCiclo);
         const where = { idCiclo };
         const pares = await this.prisma.pares.findMany({
             where,
@@ -50,16 +62,37 @@ export class AvaliacoesService {
     }
 
     async lancarAutoAvaliacoes(cicloId: string): Promise<void> {
-        await this.verificarAutoAvaliacoesLancadas(cicloId);
         const participantesDoCiclo = await this.prisma.colaboradorCiclo.findMany({
-            where: { idCiclo: cicloId }, include: { colaborador: true }
+            where: { 
+                idCiclo: cicloId 
+            }, 
+            include: { 
+                colaborador: {
+                    include: {
+                        perfis: true
+                    }
+                } 
+            }
         });
+
         if (participantesDoCiclo.length === 0) {
             this.logger.warn(`Nenhum colaborador associado a este ciclo. Processo encerrado.`);
             return;
         }
 
-        for (const participante of participantesDoCiclo) {
+        // Filtrar apenas colaboradores com perfil COLABORADOR_COMUM
+        const colaboradoresComuns = participantesDoCiclo.filter(participante => 
+            participante.colaborador.perfis.some(perfil => perfil.tipoPerfil === 'COLABORADOR_COMUM')
+        );
+
+        if (colaboradoresComuns.length === 0) {
+            this.logger.warn(`Nenhum colaborador com perfil COLABORADOR_COMUM encontrado neste ciclo. Processo encerrado.`);
+            return;
+        }
+
+        this.logger.log(`Encontrados ${colaboradoresComuns.length} colaboradores com perfil COLABORADOR_COMUM para autoavaliação.`);
+
+        for (const participante of colaboradoresComuns) {
             const colaborador = participante.colaborador;
             try {
                 // 3. Buscar critérios específicos para este colaborador
@@ -118,7 +151,6 @@ export class AvaliacoesService {
     }
 
     async lancarAvaliacaoLiderColaborador(idCiclo: string): Promise<void> {
-        await this.verificarAvaliacoesLiderColaboradorLancadas(idCiclo);
         this.logger.log(`Iniciando lançamento de avaliações líder-colaborador para ciclo ${idCiclo}`);
 
         // Buscar todas as relações líder-colaborador do ciclo
@@ -197,7 +229,6 @@ export class AvaliacoesService {
     }
 
     async lancarAvaliacaoColaboradorMentor(idCiclo: string): Promise<void> {
-        await this.verificarAvaliacoesColaboradorMentorLancadas(idCiclo);
         this.logger.log(`Iniciando lançamento de avaliações colaborador-mentor para ciclo ${idCiclo}`);
 
         // Buscar todas as relações mentor-colaborador do ciclo
@@ -428,7 +459,11 @@ export class AvaliacoesService {
         await this.verificarAvaliacaoExiste(idAvaliacao);
         this.verificarAvaliacaoTipo(avaliacao, 'AUTOAVALIACAO');
         this.verificarAvaliacaoStatus(avaliacao);
+        
+        // Verificar se o número de critérios não excede o número de cards existentes
+        await this.verificarQuantidadeCriterios(idAvaliacao, criterios.length, 1);
 
+        let soma = 0
         for(const criterio of criterios){
             this.verificarNota(criterio.nota);
             
@@ -450,67 +485,84 @@ export class AvaliacoesService {
                     justificativa: criterio.justificativa
                 }
             });
+            soma += criterio.nota
         }
         
         await this.prisma.avaliacao.update({
             where: { idAvaliacao },
             data: { status: 'CONCLUIDA' },
         });
+        
+        const tamanho = criterios.length
+        let nota_final = soma/tamanho
+
+        await this.prisma.autoAvaliacao.update({
+            where: { idAvaliacao },
+            data: {notaFinal: nota_final}
+        })
+    }
+
+    async preencherAvaliacaoLiderColaborador( idAvaliacao: string, criterios: {nome: string, nota: number, justificativa: string}[]) : Promise<void> {
+        const avaliacao = await this.prisma.avaliacao.findUnique({
+            where: { idAvaliacao },
+            include: { avaliacaoLiderColaborador: true },
+        });
+        await this.verificarAvaliacaoExiste(idAvaliacao);
+        this.verificarAvaliacaoTipo(avaliacao, 'LIDER_COLABORADOR');
+        this.verificarAvaliacaoStatus(avaliacao);
+        await this.verificarQuantidadeCriterios(idAvaliacao, criterios.length, 2);
+
+        let soma = 0
+        for(const criterio of criterios){
+            this.verificarNota(criterio.nota);
+            
+            const card = await this.prisma.cardAvaliacaoLiderColaborador.findFirst({
+                where: {
+                    idAvaliacao: idAvaliacao,
+                    nomeCriterio: criterio.nome
+                }
+            });
+            
+            if (!card) {
+                throw new HttpException(`Card não encontrado para critério: ${criterio.nome}`, HttpStatus.NOT_FOUND);
+            }
+            
+            await this.prisma.cardAvaliacaoLiderColaborador.update({
+                where: { idCardAvaliacao: card.idCardAvaliacao },
+                data: {
+                    nota: criterio.nota,
+                    justificativa: criterio.justificativa
+                }
+            });
+            soma += criterio.nota
+        }
+        
+        await this.prisma.avaliacao.update({
+            where: { idAvaliacao },
+            data: { status: 'CONCLUIDA' },
+        });
+        
+        const tamanho = criterios.length
+        let nota_final = soma/tamanho
+
+        await this.prisma.avaliacaoLiderColaborador.update({
+            where: { idAvaliacao },
+            data: {notaFinal: nota_final}
+        })
     }
 
     // =================== MÉTODOS PRIVADOS ===================
 
-    private async verificarAvaliacoesParesLancadas(idCiclo: string): Promise<void> {
+    private async verificarAvaliacoesLancadas(idCiclo: string): Promise<void> {
         const jaLancadas = await this.prisma.avaliacao.findFirst({
             where: {
-                idCiclo,
-                tipoAvaliacao: 'AVALIACAO_PARES',
+                idCiclo
             },
         });
+        
         if (jaLancadas) {
-            throw new HttpException('Avaliações de pares já foram lançadas para este ciclo.', HttpStatus.CONFLICT);
-        }
-    }
-
-    private async verificarAutoAvaliacoesLancadas(idCiclo: string): Promise<void> {
-        const jaLancadas = await this.prisma.avaliacao.findFirst({
-            where: {
-                idCiclo,
-                tipoAvaliacao: 'AUTOAVALIACAO',
-            },
-        });
-        if (jaLancadas) {
-            throw new HttpException('Autoavaliações já foram lançadas para este ciclo.', HttpStatus.CONFLICT);
-        }
-    }
-
-    private async verificarAvaliacoesLiderColaboradorLancadas(idCiclo: string): Promise<void> {
-        const jaLancadas = await this.prisma.avaliacao.findFirst({
-            where: {
-                idCiclo,
-                tipoAvaliacao: 'LIDER_COLABORADOR',
-            },
-        });
-        if (jaLancadas) {
-            throw new HttpException(
-                'Avaliações de líder para colaborador já foram lançadas para este ciclo.',
-                HttpStatus.CONFLICT
-            );
-        }
-    }
-
-    private async verificarAvaliacoesColaboradorMentorLancadas(idCiclo: string): Promise<void> {
-        const jaLancadas = await this.prisma.avaliacao.findFirst({
-            where: {
-                idCiclo,
-                tipoAvaliacao: 'COLABORADOR_MENTOR',
-            },
-        });
-        if (jaLancadas) {
-            throw new HttpException(
-                'Avaliações de colaborador para mentor já foram lançadas para este ciclo.',
-                HttpStatus.CONFLICT
-            );
+            
+            throw new HttpException('As avaliações para esse ciclo já foram lançadas', HttpStatus.CONFLICT);
         }
     }
 
@@ -602,5 +654,68 @@ export class AvaliacoesService {
         if (Math.abs(nota * 10) % 5 !== 0) {
             throw new HttpException('Nota inválida. Só são permitidos valores como 0.0, 0.5, 1.0, ..., 5.0', HttpStatus.BAD_REQUEST);
         }
+    }
+
+    private async verificarQuantidadeCriterios(idAvaliacao: string, quantidadeCriteriosEnviados: number, tipo: number): Promise<void> {
+
+
+        if(!tipo || tipo !== 1 && tipo !== 2 || typeof tipo !== 'number'){
+            throw new HttpException(
+                `Tipo nao enviado ou incorreto pra funcao verificarQuantidadeCriterio no arquivo avaliacoes.service.`,
+                HttpStatus.BAD_REQUEST
+            );
+        }
+        if(tipo === 1){
+            const quantidadeCardsExistentes1 = await this.prisma.cardAutoAvaliacao.count({
+                where: { idAvaliacao }
+            });
+
+            if (quantidadeCriteriosEnviados !== quantidadeCardsExistentes1) {
+                throw new HttpException(
+                    `Quantidade de critérios enviados (${quantidadeCriteriosEnviados}) é diferente da quantidade de cards de avaliação existentes (${quantidadeCardsExistentes1}).`,
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
+        else if(tipo === 2){
+            const quantidadeCardsExistentes2 = await this.prisma.cardAvaliacaoLiderColaborador.count({
+                where: { idAvaliacao }
+            });
+
+            if (quantidadeCriteriosEnviados !== quantidadeCardsExistentes2) {
+                throw new HttpException(
+                    `Quantidade de critérios enviados (${quantidadeCriteriosEnviados}) é diferente da quantidade de cards de avaliação existentes (${quantidadeCardsExistentes2}).`,
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
+        
+    }
+
+    private async verificarCicloAtivo(idCiclo: string): Promise<void> {
+        const ciclo = await this.prisma.cicloAvaliacao.findUnique({
+            where: { idCiclo }
+        });
+
+        if (!ciclo) {
+            throw new HttpException(
+                `Ciclo de avaliação com ID ${idCiclo} não encontrado.`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (ciclo.status === 'FECHADO') {
+            throw new HttpException(
+                `Ciclo de avaliação '${ciclo.nomeCiclo}' está fechado e não permite operações.`,
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        
+        this.logger.debug(
+            `Ciclo de avaliação '${ciclo.nomeCiclo}' verificado e ativo para operações.`
+        );
     }
 }

@@ -2,40 +2,24 @@ import { Controller, Param, Query } from '@nestjs/common';
 import { Post, Body, Get } from '@nestjs/common';
 import { AvaliacoesService } from './avaliacoes.service';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
-import { AvaliacaoColaboradorMentorDto, AvaliacaoParesDto, PreencherAutoAvaliacaoDto } from './avaliacoes.dto';
+import { AvaliacaoColaboradorMentorDto, AvaliacaoParesDto, PreencherAuto_ou_Lider_Dto } from './avaliacoes.dto';
 
 interface LancarAvaliacaoDto {
-  idCiclo: string;
+    idCiclo: string;
 }
 
 @Controller('avaliacoes')
 export class AvaliacoesController {
 
-    constructor(private readonly service: AvaliacoesService) {}
+    constructor(private readonly service: AvaliacoesService) { }
 
-    @Post('lancar-auto-avaliacoes')
-    async lancarAutoAvaliacao(@Body() dto: LancarAvaliacaoDto) {
-        console.log('DTO recebido:', dto);
-        await this.service.lancarAutoAvaliacoes(dto.idCiclo);
-        return { message: 'Avaliações lançadas com sucesso!' };
+
+    @Post()
+    async lancarAvaliacoes(@Body('idCiclo') idCiclo: string) {
+        await this.service.lancarAvaliacoes(idCiclo)
+        return { message: 'Avaliações lançadas com sucesso' }
     }
 
-    @Post('lancar-pares')
-    async lancarPares(@Body('idCiclo') idCiclo: string) {
-        await this.service.lancarAvaliaçãoPares(idCiclo);
-        return { message: 'Avaliações de pares lançadas com sucesso!' };
-  }
-
-    @Post('lancar-lider-colaborador')
-    async lancarLiderColaborador(@Body('idCiclo') idCiclo: string) {
-        await this.service.lancarAvaliacaoLiderColaborador(idCiclo);
-        return { message: 'Avaliações Lider-Colaborador lançadas com sucesso!' };
-  }
-    @Post('lancar-colaborador-mentor')
-    async lancarColaboradorMentor(@Body('idCiclo') idCiclo : string){
-      await this.service.lancarAvaliacaoColaboradorMentor(idCiclo)
-      return {message: 'Avaliações Colaborador-Mentor lançadas com sucesso'}
-    }
 
     @Get('tipo/usuario/:idColaborador')
     async getAvaliacoesPorUsuarioTipo(
@@ -48,7 +32,7 @@ export class AvaliacoesController {
             idCiclo,
             tipoAvaliacao
         );
-        
+
         return {
             success: true,
             count: avaliacoes.length,
@@ -66,7 +50,7 @@ export class AvaliacoesController {
             idCiclo,
             status
         );
-        
+
         return {
             success: true,
             count: avaliacoes.length,
@@ -87,12 +71,45 @@ export class AvaliacoesController {
     }
 
     @Post('preencher-auto-avaliacao')
-    async preencherAutoAvaliacao(@Body() dto: PreencherAutoAvaliacaoDto): Promise<{ message: string; idAvaliacao: string }> {
+    async preencherAutoAvaliacao(@Body() dto: PreencherAuto_ou_Lider_Dto): Promise<{ message: string; idAvaliacao: string }> {
         await this.service.preencherAutoAvaliacao(dto.idAvaliacao, dto.criterios);
-        return { 
-            message: 'Autoavaliação preenchida com sucesso!', 
-            idAvaliacao: dto.idAvaliacao 
+        return {
+            message: 'Autoavaliação preenchida com sucesso!',
+            idAvaliacao: dto.idAvaliacao
         };
+    }
+
+    @Post('preencher-lider-colaborador')
+    async preencherAvaliacaoLiderColaborador(@Body() dto: PreencherAuto_ou_Lider_Dto): Promise<{ message: string; idAvaliacao: string }> {
+        await this.service.preencherAvaliacaoLiderColaborador(dto.idAvaliacao, dto.criterios);
+        return {
+            message: 'Avaliação lider-colaborador preenchida com sucesso!',
+            idAvaliacao: dto.idAvaliacao
+        };
+    }
+
+    @Post('lancar-auto-avaliacoes')
+    async lancarAutoAvaliacao(@Body() dto: LancarAvaliacaoDto) {
+        console.log('DTO recebido:', dto);
+        await this.service.lancarAutoAvaliacoes(dto.idCiclo);
+        return { message: 'Avaliações lançadas com sucesso!' };
+    }
+
+    @Post('lancar-pares')
+    async lancarPares(@Body('idCiclo') idCiclo: string) {
+        await this.service.lancarAvaliaçãoPares(idCiclo);
+        return { message: 'Avaliações de pares lançadas com sucesso!' };
+    }
+
+    @Post('lancar-lider-colaborador')
+    async lancarLiderColaborador(@Body('idCiclo') idCiclo: string) {
+        await this.service.lancarAvaliacaoLiderColaborador(idCiclo);
+        return { message: 'Avaliações Lider-Colaborador lançadas com sucesso!' };
+    }
+    @Post('lancar-colaborador-mentor')
+    async lancarColaboradorMentor(@Body('idCiclo') idCiclo: string) {
+        await this.service.lancarAvaliacaoColaboradorMentor(idCiclo)
+        return { message: 'Avaliações Colaborador-Mentor lançadas com sucesso' }
     }
 
 }

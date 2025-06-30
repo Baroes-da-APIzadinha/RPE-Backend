@@ -130,20 +130,27 @@ POST http://localhost:3000/avaliacoes/lancar-auto-avaliacoes
 Content-Type: application/json
 
 {
-    "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3"
+    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
 }
 
+### Lançar todas as avaliações
+POST http://localhost:3000/avaliacoes/lancar-todas-avaliacoes
+Content-Type: application/json
+
+{
+    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
+}
 
 ### Lançar avaliações de lideres
 POST http://localhost:3000/avaliacoes/lancar-lider-colaborador
 Content-Type: application/json
 
 {
-    "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3"
+    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
 }
 
 ### Lançar avaliações mentor-colaborador
-POST http://localhost:3000/avaliacoes/lancar-colaborador-mentor
+POST http://localhost:3000/avaliacoes
 Content-Type: application/json
 
 {
@@ -174,8 +181,8 @@ POST http://localhost:3000/avaliacoes/preencher-avaliacao-colaborador-mentor
 Content-Type: application/json
 
 {
-    "idAvaliacao": "c4d51c0d-d849-4495-b3bb-e12d6ffd8aab",
-    "nota": 3.7,
+    "idAvaliacao": "a60b9c66-e2b6-4ebd-962e-5b48e847d572",
+    "nota": 3.5,
     "justificativa": "Justificativa"
 }
 
@@ -184,17 +191,34 @@ POST http://localhost:3000/avaliacoes/preencher-auto-avaliacao
 Content-Type: application/json
 
 {
-    "idAvaliacao": "84a114-802b-485b-b272-762fe8aeff55",
+    "idAvaliacao": "b19fe285-1731-4519-be7e-b22534d0b8b7",
     "criterios": [
         {
             "nome": "Comunicação",
-            "nota": 4.5,
-            "justificativa": "Excelente comunicação com a equipe"
+            "nota": 5.0,
+            "justificativa": "Acredito que me comuniquei da melhor forma possivel"
+        }
+
+    ]
+}
+
+### Preencher lide-colaborador
+
+POST http://localhost:3000/avaliacoes/preencher-lider-colaborador
+Content-Type: application/json
+
+{
+    "idAvaliacao": "cf53cdd1-d541-41b4-9c86-b2e5d96e0531",
+    "criterios": [
+        {
+            "nome": "Comunicação",
+            "nota": 4.0,
+            "justificativa": "Teve uma boa comunicação, porem nao excelente"
         },
         {
             "nome": "Pontualidade",
-            "nota": 3.0,
-            "justificativa": "Bom trabalho em equipe"
+            "nota": 5.0,
+            "justificativa": "Não cheguou atrasado nenhuma vez"
         }
     ]
 }

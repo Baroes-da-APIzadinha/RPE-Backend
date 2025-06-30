@@ -63,7 +63,7 @@ export class CriterioAutoAvaliacaoDto {
     justificativa: string;
 }
 
-export class PreencherAutoAvaliacaoDto {
+export class PreencherAuto_ou_Lider_Dto {
     @IsString()
     @IsUUID()
     idAvaliacao: string;
