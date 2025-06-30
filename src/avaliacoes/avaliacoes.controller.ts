@@ -3,6 +3,7 @@ import { Post, Body, Get } from '@nestjs/common';
 import { AvaliacoesService } from './avaliacoes.service';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 import { AvaliacaoColaboradorMentorDto, AvaliacaoParesDto, PreencherAuto_ou_Lider_Dto } from './avaliacoes.dto';
+import { Logger } from '@nestjs/common';
 
 interface LancarAvaliacaoDto {
     idCiclo: string;
@@ -11,13 +12,16 @@ interface LancarAvaliacaoDto {
 @Controller('avaliacoes')
 export class AvaliacoesController {
 
+    private readonly logger = new Logger(AvaliacoesController.name);
+
     constructor(private readonly service: AvaliacoesService) { }
 
 
     @Post()
     async lancarAvaliacoes(@Body('idCiclo') idCiclo: string) {
-        await this.service.lancarAvaliacoes(idCiclo)
-        return { message: 'Avaliações lançadas com sucesso' }
+        const resultado = await this.service.lancarAvaliacoes(idCiclo);
+        this.logger.log(`Relatório de lançamento de avaliações: ${JSON.stringify(resultado.relatorio)}`);
+        return { message: 'Avaliações lançadas com sucesso', relatorio: resultado.relatorio };
     }
 
 

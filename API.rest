@@ -154,7 +154,7 @@ POST http://localhost:3000/avaliacoes
 Content-Type: application/json
 
 {
-    "idCiclo": "27e66525-41e2-46d5-9d16-be5e2d37daf4"
+    "idCiclo": "55555555-5555-5555-5555-666666666666"
 }
 
 
