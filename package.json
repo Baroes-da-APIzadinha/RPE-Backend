@@ -26,6 +26,9 @@
       "path": "cz-conventional-changelog"
     }
   },
+  "prisma": {
+  "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",

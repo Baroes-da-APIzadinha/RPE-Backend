@@ -92,7 +92,7 @@ model ColaboradorPerfil {
 
 model CicloAvaliacao {
   idCiclo              String                   @id @default(uuid()) @db.Uuid
-  nomeCiclo            String                   @db.VarChar(255)
+  nomeCiclo            String                   @unique @db.VarChar(255)
   dataInicio           DateTime                 @db.Date
   dataFim              DateTime                 @db.Date
   status               cicloStatus              @default(EM_ANDAMENTO)
@@ -109,7 +109,7 @@ model CicloAvaliacao {
 
 model CriterioAvaliativo {
   idCriterio               String                      @id @default(uuid()) @db.Uuid
-  nomeCriterio             String                      @db.VarChar(255)
+  nomeCriterio             String                      @unique @db.VarChar(255)
   pilar                    pilarCriterio?
   descricao                String?                     @db.Text
   peso                     Decimal                     @default(1.0)
