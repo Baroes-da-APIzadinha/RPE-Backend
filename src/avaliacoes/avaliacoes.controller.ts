@@ -94,26 +94,30 @@ export class AvaliacoesController {
 
     @Post('lancar-auto-avaliacoes')
     async lancarAutoAvaliacao(@Body() dto: LancarAvaliacaoDto) {
-        console.log('DTO recebido:', dto);
-        await this.service.lancarAutoAvaliacoes(dto.idCiclo);
-        return { message: 'Avaliações lançadas com sucesso!' };
+        const resultado = await this.service.lancarAutoAvaliacoes(dto.idCiclo);
+        this.logger.log(`Relatório de lançamento de avaliações: ${JSON.stringify(resultado)}`);
+        return { message: 'Autoavaliações lançadas com sucesso', relatorio: resultado };
     }
 
     @Post('lancar-pares')
-    async lancarPares(@Body('idCiclo') idCiclo: string) {
-        await this.service.lancarAvaliaçãoPares(idCiclo);
-        return { message: 'Avaliações de pares lançadas com sucesso!' };
+    async lancarAvaliaçãoPares(@Body('idCiclo') idCiclo: string) {
+        const resultado = await this.service.lancarAvaliaçãoPares(idCiclo);
+        this.logger.log(`Relatório de lançamento de avaliações: ${JSON.stringify(resultado)}`);
+        return { message: 'Avaliações de pares lançadas com sucesso', relatorio: resultado };
     }
 
     @Post('lancar-lider-colaborador')
-    async lancarLiderColaborador(@Body('idCiclo') idCiclo: string) {
-        await this.service.lancarAvaliacaoLiderColaborador(idCiclo);
-        return { message: 'Avaliações Lider-Colaborador lançadas com sucesso!' };
+    async lancarAvaliacaoLiderColaborador(@Body('idCiclo') idCiclo: string) {
+        const resultado = await this.service.lancarAvaliacaoLiderColaborador(idCiclo);
+        this.logger.log(`Relatório de lançamento de avaliações: ${JSON.stringify(resultado)}`);
+        return { message: 'Avaliações lider-colaborador lançadas com sucesso', relatorio: resultado };
     }
+
     @Post('lancar-colaborador-mentor')
-    async lancarColaboradorMentor(@Body('idCiclo') idCiclo: string) {
-        await this.service.lancarAvaliacaoColaboradorMentor(idCiclo)
-        return { message: 'Avaliações Colaborador-Mentor lançadas com sucesso' }
+    async lancarAvaliacaoColaboradorMentor(@Body('idCiclo') idCiclo: string) {
+        const resultado = await this.service.lancarAvaliacaoColaboradorMentor(idCiclo);
+        this.logger.log(`Relatório de lançamento de avaliações: ${JSON.stringify(resultado)}`);
+        return { message: 'Avaliações colaborador-mentor lançadas com sucesso', relatorio: resultado };
     }
 
 }

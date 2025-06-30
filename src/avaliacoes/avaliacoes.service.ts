@@ -2,6 +2,7 @@ import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 import { Motivacao } from './avaliacoes.contants';
+import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class AvaliacoesService {
@@ -10,15 +11,15 @@ export class AvaliacoesService {
 
     // =================== MÉTODOS PÚBLICOS ===================
 
-    async lancarAvaliacoes(idCiclo: string ): Promise<{relatorio: any}> {
+    async lancarAvaliacoes(idCiclo: string): Promise<{ relatorio: any }> {
         await this.verificarCicloAtivo(idCiclo);
 
         // Relatório geral
         const relatorio = {
             autoavaliacao: { lancadas: 0, existentes: 0, erros: 0 },
-            avaliacaopares: { lancadas: 0, existentes: 0, erros: 0},
-            avaliacaoLiderColaborador: { lancadas: 0, existentes: 0, erros: 0},
-            avaliacaoColaboradorMentor: { lancadas: 0, existentes: 0, erros: 0}
+            avaliacaopares: { lancadas: 0, existentes: 0, erros: 0 },
+            avaliacaoLiderColaborador: { lancadas: 0, existentes: 0, erros: 0 },
+            avaliacaoColaboradorMentor: { lancadas: 0, existentes: 0, erros: 0 }
         };
 
         relatorio.autoavaliacao = await this.lancarAutoAvaliacoes(idCiclo);
@@ -29,7 +30,7 @@ export class AvaliacoesService {
         return { relatorio };
     }
 
-    async lancarAvaliaçãoPares(idCiclo: string): Promise<{lancadas: number, existentes: number, erros: number}> {
+    async lancarAvaliaçãoPares(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
         const where = { idCiclo };
         const pares = await this.prisma.pares.findMany({
             where,
@@ -80,7 +81,7 @@ export class AvaliacoesService {
                 });
             }
         }
-        if (avaliacoesData.length === 0) return {lancadas, existentes, erros};
+        if (avaliacoesData.length === 0) return { lancadas, existentes, erros };
 
         await this.prisma.$transaction(async (tx) => {
             for (const data of avaliacoesData) {
@@ -98,36 +99,36 @@ export class AvaliacoesService {
             }
         });
 
-        return {lancadas, existentes, erros};
+        return { lancadas, existentes, erros };
     }
 
-    async lancarAutoAvaliacoes(cicloId: string): Promise<{lancadas: number, existentes: number, erros: number}> {
+    async lancarAutoAvaliacoes(cicloId: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
         const participantesDoCiclo = await this.prisma.colaboradorCiclo.findMany({
-            where: { 
-                idCiclo: cicloId 
-            }, 
-            include: { 
+            where: {
+                idCiclo: cicloId
+            },
+            include: {
                 colaborador: {
                     include: {
                         perfis: true
                     }
-                } 
+                }
             }
         });
 
         if (participantesDoCiclo.length === 0) {
             this.logger.warn(`Nenhum colaborador associado a este ciclo. Processo encerrado.`);
-            return {lancadas: 0, existentes: 0, erros: 0};
+            return { lancadas: 0, existentes: 0, erros: 0 };
         }
 
         // Filtrar apenas colaboradores com perfil COLABORADOR_COMUM
-        const colaboradoresComuns = participantesDoCiclo.filter(participante => 
+        const colaboradoresComuns = participantesDoCiclo.filter(participante =>
             participante.colaborador.perfis.some(perfil => perfil.tipoPerfil === 'COLABORADOR_COMUM')
         );
 
         if (colaboradoresComuns.length === 0) {
             this.logger.warn(`Nenhum colaborador com perfil COLABORADOR_COMUM encontrado neste ciclo. Processo encerrado.`);
-            return {lancadas: 0, existentes: 0, erros: 0};
+            return { lancadas: 0, existentes: 0, erros: 0 };
         }
 
         // Buscar todas as autoavaliações já existentes para o ciclo
@@ -201,10 +202,10 @@ export class AvaliacoesService {
             }
         }
         this.logger.log(`Processo de lançamento de autoavaliações concluído`);
-        return {lancadas, existentes, erros};
+        return { lancadas, existentes, erros };
     }
 
-    async lancarAvaliacaoLiderColaborador(idCiclo: string): Promise<{lancadas: number, existentes: number, erros: number}> {
+    async lancarAvaliacaoLiderColaborador(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
         this.logger.log(`Iniciando lançamento de avaliações líder-colaborador para ciclo ${idCiclo}`);
 
         // Buscar todas as relações líder-colaborador do ciclo
@@ -218,7 +219,7 @@ export class AvaliacoesService {
 
         if (lideresColaboradores.length === 0) {
             this.logger.warn(`Nenhuma relação líder-colaborador encontrada para este ciclo. Processo encerrado.`);
-            return {lancadas: 0, existentes: 0, erros: 0};
+            return { lancadas: 0, existentes: 0, erros: 0 };
         }
 
         // Buscar todas as avaliações já existentes desse tipo para o ciclo
@@ -297,10 +298,10 @@ export class AvaliacoesService {
         });
 
         this.logger.log(`Processo de lançamento de avaliações líder-colaborador concluído`);
-        return {lancadas, existentes, erros};
+        return { lancadas, existentes, erros };
     }
 
-    async lancarAvaliacaoColaboradorMentor(idCiclo: string): Promise<{lancadas: number, existentes: number, erros: number}> {
+    async lancarAvaliacaoColaboradorMentor(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
         this.logger.log(`Iniciando lançamento de avaliações colaborador-mentor para ciclo ${idCiclo}`);
 
         // Buscar todas as relações mentor-colaborador do ciclo
@@ -314,7 +315,7 @@ export class AvaliacoesService {
 
         if (mentoresColaboradores.length === 0) {
             this.logger.warn(`Nenhuma relação mentor-colaborador encontrada para este ciclo. Processo encerrado.`);
-            return {lancadas: 0, existentes: 0, erros: 0};
+            return { lancadas: 0, existentes: 0, erros: 0 };
         }
 
         // Buscar todas as avaliações já existentes desse tipo para o ciclo
@@ -368,7 +369,7 @@ export class AvaliacoesService {
         });
 
         this.logger.log(`Processo de lançamento de avaliações colaborador-mentor concluído`);
-        return {lancadas, existentes, erros};
+        return { lancadas, existentes, erros };
     }
 
     async getAvaliacoesPorUsuarioTipo(
@@ -489,11 +490,11 @@ export class AvaliacoesService {
         motivacao: Motivacao,
         pontosFortes: string,
         pontosFracos: string
-      ): Promise<void> {
+    ): Promise<void> {
         // Verificações extraídas
         const avaliacao = await this.prisma.avaliacao.findUnique({
-          where: { idAvaliacao },
-          include: { avaliacaoPares: true },
+            where: { idAvaliacao },
+            include: { avaliacaoPares: true },
         });
         await this.verificarAvaliacaoExiste(idAvaliacao);
         this.verificarAvaliacaoTipo(avaliacao, 'AVALIACAO_PARES');
@@ -535,13 +536,12 @@ export class AvaliacoesService {
         });
 
         await this.prisma.avaliacao.update({
-            where: {idAvaliacao},
-            data: {status: 'CONCLUIDA'}
+            where: { idAvaliacao },
+            data: { status: 'CONCLUIDA' }
         })
     }
 
-    async preencherAutoAvaliacao( idAvaliacao: string, criterios: {nome: string, nota: number, justificativa: string}[]) : Promise<void> {
-
+    async preencherAutoAvaliacao(idAvaliacao: string, criterios: { nome: string, nota: number, justificativa: string }[]): Promise<void> {
         const avaliacao = await this.prisma.avaliacao.findUnique({
             where: { idAvaliacao },
             include: { autoAvaliacao: true },
@@ -549,11 +549,12 @@ export class AvaliacoesService {
         await this.verificarAvaliacaoExiste(idAvaliacao);
         this.verificarAvaliacaoTipo(avaliacao, 'AUTOAVALIACAO');
         this.verificarAvaliacaoStatus(avaliacao);
-        
+
         // Verificar se o número de critérios não excede o número de cards existentes
         await this.verificarQuantidadeCriterios(idAvaliacao, criterios.length, 1);
 
-        let soma = 0
+        let soma = 0;
+        let soma_pesos = 0;
         for(const criterio of criterios){
             this.verificarNota(criterio.nota);
             
@@ -567,6 +568,16 @@ export class AvaliacoesService {
             if (!card) {
                 throw new HttpException(`Card não encontrado para critério: ${criterio.nome}`, HttpStatus.NOT_FOUND);
             }
+
+            const criterioAvaliativo = await this.prisma.criterioAvaliativo.findFirst({
+                where : {
+                    nomeCriterio : criterio.nome
+                }
+            })
+
+            const peso = criterioAvaliativo?.peso ? criterioAvaliativo.peso.toNumber() : 1;
+            soma += peso * criterio.nota;
+            soma_pesos += peso;
             
             await this.prisma.cardAutoAvaliacao.update({
                 where: { idCardAvaliacao: card.idCardAvaliacao },
@@ -575,7 +586,6 @@ export class AvaliacoesService {
                     justificativa: criterio.justificativa
                 }
             });
-            soma += criterio.nota
         }
         
         await this.prisma.avaliacao.update({
@@ -583,8 +593,7 @@ export class AvaliacoesService {
             data: { status: 'CONCLUIDA' },
         });
         
-        const tamanho = criterios.length
-        let nota_final = soma/tamanho
+        let nota_final = soma_pesos > 0 ? soma / soma_pesos : 0;
 
         await this.prisma.autoAvaliacao.update({
             where: { idAvaliacao },
@@ -592,7 +601,7 @@ export class AvaliacoesService {
         })
     }
 
-    async preencherAvaliacaoLiderColaborador( idAvaliacao: string, criterios: {nome: string, nota: number, justificativa: string}[]) : Promise<void> {
+    async preencherAvaliacaoLiderColaborador(idAvaliacao: string, criterios: { nome: string, nota: number, justificativa: string }[]): Promise<void> {
         const avaliacao = await this.prisma.avaliacao.findUnique({
             where: { idAvaliacao },
             include: { avaliacaoLiderColaborador: true },
@@ -602,7 +611,8 @@ export class AvaliacoesService {
         this.verificarAvaliacaoStatus(avaliacao);
         await this.verificarQuantidadeCriterios(idAvaliacao, criterios.length, 2);
 
-        let soma = 0
+        let soma = 0;
+        let soma_pesos = 0;
         for(const criterio of criterios){
             this.verificarNota(criterio.nota);
             
@@ -617,6 +627,15 @@ export class AvaliacoesService {
                 throw new HttpException(`Card não encontrado para critério: ${criterio.nome}`, HttpStatus.NOT_FOUND);
             }
             
+            const criterioAvaliativo = await this.prisma.criterioAvaliativo.findFirst({
+                where : {
+                    nomeCriterio : criterio.nome
+                }
+            })
+            const peso = criterioAvaliativo?.peso ? criterioAvaliativo.peso.toNumber() : 1;
+            soma += peso * criterio.nota;
+            soma_pesos += peso;
+            
             await this.prisma.cardAvaliacaoLiderColaborador.update({
                 where: { idCardAvaliacao: card.idCardAvaliacao },
                 data: {
@@ -624,7 +643,6 @@ export class AvaliacoesService {
                     justificativa: criterio.justificativa
                 }
             });
-            soma += criterio.nota
         }
         
         await this.prisma.avaliacao.update({
@@ -632,8 +650,7 @@ export class AvaliacoesService {
             data: { status: 'CONCLUIDA' },
         });
         
-        const tamanho = criterios.length
-        let nota_final = soma/tamanho
+        let nota_final = soma_pesos > 0 ? soma / soma_pesos : 0;
 
         await this.prisma.avaliacaoLiderColaborador.update({
             where: { idAvaliacao },
@@ -642,19 +659,6 @@ export class AvaliacoesService {
     }
 
     // =================== MÉTODOS PRIVADOS ===================
-
-    private async verificarAvaliacoesLancadas(idCiclo: string): Promise<void> {
-        const jaLancadas = await this.prisma.avaliacao.findFirst({
-            where: {
-                idCiclo
-            },
-        });
-        
-        if (jaLancadas) {
-            
-            throw new HttpException('As avaliações para esse ciclo já foram lançadas', HttpStatus.CONFLICT);
-        }
-    }
 
     private async buscarCriteriosParaColaborador(
         idCiclo: string,
@@ -716,7 +720,7 @@ export class AvaliacoesService {
     }
 
     private async verificarAvaliacaoExiste(idAvaliacao: string) {
-        
+
         const avaliacao = await this.prisma.avaliacao.findUnique({ where: { idAvaliacao } });
         if (!avaliacao) {
             throw new HttpException('Avaliação não encontrada.', HttpStatus.NOT_FOUND);
@@ -749,13 +753,13 @@ export class AvaliacoesService {
     private async verificarQuantidadeCriterios(idAvaliacao: string, quantidadeCriteriosEnviados: number, tipo: number): Promise<void> {
 
 
-        if(!tipo || tipo !== 1 && tipo !== 2 || typeof tipo !== 'number'){
+        if (!tipo || tipo !== 1 && tipo !== 2 || typeof tipo !== 'number') {
             throw new HttpException(
                 `Tipo nao enviado ou incorreto pra funcao verificarQuantidadeCriterio no arquivo avaliacoes.service.`,
                 HttpStatus.BAD_REQUEST
             );
         }
-        if(tipo === 1){
+        if (tipo === 1) {
             const quantidadeCardsExistentes1 = await this.prisma.cardAutoAvaliacao.count({
                 where: { idAvaliacao }
             });
@@ -768,7 +772,7 @@ export class AvaliacoesService {
             }
         }
 
-        else if(tipo === 2){
+        else if (tipo === 2) {
             const quantidadeCardsExistentes2 = await this.prisma.cardAvaliacaoLiderColaborador.count({
                 where: { idAvaliacao }
             });
@@ -781,7 +785,7 @@ export class AvaliacoesService {
             }
         }
 
-        
+
     }
 
     private async verificarCicloAtivo(idCiclo: string): Promise<void> {
@@ -803,7 +807,7 @@ export class AvaliacoesService {
             );
         }
 
-        
+
         this.logger.debug(
             `Ciclo de avaliação '${ciclo.nomeCiclo}' verificado e ativo para operações.`
         );
