@@ -1,5 +1,6 @@
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
+import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 
 @Injectable()
 export class AvaliacoesService {
@@ -20,16 +21,16 @@ export class AvaliacoesService {
                 idCiclo: par.idCiclo,
                 idAvaliador: par.idColaborador1,
                 idAvaliado: par.idColaborador2,
-                status: 'PENDENTE',
-                tipoAvaliacao: 'AVALIACAO_PARES',
+                status: preenchimentoStatus.PENDENTE,
+                tipoAvaliacao: avaliacaoTipo.AVALIACAO_PARES,
             });
             // B avalia A
             avaliacoesData.push({
                 idCiclo: par.idCiclo,
                 idAvaliador: par.idColaborador2,
                 idAvaliado: par.idColaborador1,
-                status: 'PENDENTE',
-                tipoAvaliacao: 'AVALIACAO_PARES',
+                status: preenchimentoStatus.PENDENTE,
+                tipoAvaliacao: avaliacaoTipo.AVALIACAO_PARES,
             });
         }
         if (avaliacoesData.length === 0) return;
@@ -49,7 +50,7 @@ export class AvaliacoesService {
         const jaLancadas = await this.prisma.avaliacao.findFirst({
             where: {
                 idCiclo,
-                tipoAvaliacao: 'AVALIACAO_PARES',
+                tipoAvaliacao: avaliacaoTipo.AVALIACAO_PARES,
             },
         });
         if (jaLancadas) {
@@ -92,8 +93,8 @@ export class AvaliacoesService {
                     idCiclo: cicloId,
                     idAvaliado: colaborador.idColaborador,
                     idAvaliador: colaborador.idColaborador,
-                    tipoAvaliacao: 'AUTOAVALIACAO',
-                    status: 'PENDENTE',
+                    tipoAvaliacao: avaliacaoTipo.AUTOAVALIACAO,
+                    status: preenchimentoStatus.PENDENTE,
                     // 5. Criar autoAvaliação relacionada
                     autoAvaliacao: {
                         create: {
@@ -219,5 +220,34 @@ export class AvaliacoesService {
         }
         // Retorna como array
         return Object.values(agrupado);
+    }
+
+    /**
+     * Busca o histórico de avaliações em que o usuário é líder
+     */
+    async historicoComoLider(userId: string) {
+        // Busca todos os ciclos em que o usuário é líder
+        const liderancas = await this.prisma.liderColaborador.findMany({
+            where: { idLider: userId },
+            select: { idColaborador: true, idCiclo: true }
+        });
+        if (liderancas.length === 0) return [];
+        // Busca avaliações dos liderados nesses ciclos
+        const avaliacoes = await this.prisma.avaliacao.findMany({
+            where: {
+                tipoAvaliacao: avaliacaoTipo.LIDER_COLABORADOR,
+                OR: liderancas.map(l => ({
+                    idAvaliado: l.idColaborador,
+                    idCiclo: l.idCiclo
+                }))
+            },
+            include: {
+                avaliado: { select: { idColaborador: true, nomeCompleto: true } },
+                ciclo: { select: { idCiclo: true, nomeCiclo: true } },
+                avaliacaoLiderColaborador: true
+            },
+            orderBy: { idCiclo: 'desc' }
+        });
+        return avaliacoes;
     }
 }

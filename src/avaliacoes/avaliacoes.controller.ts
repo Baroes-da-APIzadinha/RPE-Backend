@@ -1,5 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
-import { Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AvaliacoesService } from './avaliacoes.service';
 
 interface LancarAvaliacaoDto {
@@ -27,6 +27,13 @@ export class AvaliacoesController {
     @Get('comite')
     async listarAvaliacoesComite() {
         return this.service.listarAvaliacoesComite();
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('historico-lider')
+    async historicoComoLider(@Req() req) {
+        const userId = req.user.userId;
+        return this.service.historicoComoLider(userId);
     }
 
 }
