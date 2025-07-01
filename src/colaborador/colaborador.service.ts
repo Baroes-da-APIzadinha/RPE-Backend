@@ -284,4 +284,12 @@ export class ColaboradorService {
             tempoRestante,
         }));
     }
+
+    async getAvaliacoesRecebidas(idColaborador: string) {
+        // Conta todas as avaliações recebidas pelo colaborador
+        const quantidadeAvaliacoes = await this.prisma.avaliacao.count({
+            where: { idAvaliado: idColaborador },
+        });
+        return { quantidadeAvaliacoes };
+    }
 }
