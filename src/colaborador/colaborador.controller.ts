@@ -4,12 +4,14 @@ import { CreateColaboradorDto, UpdateColaboradorDto, AssociatePerfilDto } from '
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { Cargo, Trilha, Unidade } from './colaborador.constants';
+
 
 @Controller('colaborador')
 export class ColaboradorController {
-    constructor(private readonly colaboradorService: ColaboradorService) {}
+    constructor(private readonly colaboradorService: ColaboradorService) { }
 
-   
+
     @Post()
     async criarColaborador(@Body() data: CreateColaboradorDto) {
         return this.colaboradorService.criarColaborador(data);
@@ -29,6 +31,15 @@ export class ColaboradorController {
         return this.colaboradorService.getAllColaborador();
     }
 
+    @Get('constantes')
+    async getColaboradorConstantes() {
+        return {
+            trilhas: Object.values(Trilha),
+            cargos: Object.values(Cargo),
+            unidades: Object.values(Unidade),
+        };
+    }
+
 
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('ADMIN', 'COLABORADOR_COMUM')
@@ -37,6 +48,7 @@ export class ColaboradorController {
         return this.colaboradorService.getColaborador(id, req.user);
     }
 
+
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('ADMIN')
     @Put(':id')
@@ -44,10 +56,10 @@ export class ColaboradorController {
         return this.colaboradorService.updateColaborador(id, data);
     }
 
-   
+
     @Post('associar-perfil')
     async associarPerfil(@Body() data: AssociatePerfilDto) {
-        
+
         return this.colaboradorService.associarPerfilColaborador(data.idColaborador, data.tipoPerfil);
     }
 
