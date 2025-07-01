@@ -1,6 +1,5 @@
-
-import { Controller, Param, Query } from '@nestjs/common';
-import { Post, Body, Get } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Query, Param } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AvaliacoesService } from './avaliacoes.service';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 import { AvaliacaoColaboradorMentorDto, AvaliacaoParesDto, PreencherAuto_ou_Lider_Dto } from './avaliacoes.dto';
@@ -124,6 +123,13 @@ export class AvaliacoesController {
     @Get('comite')
     async listarAvaliacoesComite() {
         return this.service.listarAvaliacoesComite();
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('historico-lider')
+    async historicoComoLider(@Req() req) {
+        const userId = req.user.userId;
+        return this.service.historicoComoLider(userId);
     }
 
 }

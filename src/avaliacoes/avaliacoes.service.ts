@@ -853,4 +853,33 @@ export class AvaliacoesService {
         // Retorna como array
         return Object.values(agrupado);
     }
+    
+    /**
+     * Busca o histórico de avaliações em que o usuário é líder
+     */
+    async historicoComoLider(userId: string) {
+        // Busca todos os ciclos em que o usuário é líder
+        const liderancas = await this.prisma.liderColaborador.findMany({
+            where: { idLider: userId },
+            select: { idColaborador: true, idCiclo: true }
+        });
+        if (liderancas.length === 0) return [];
+        // Busca avaliações dos liderados nesses ciclos
+        const avaliacoes = await this.prisma.avaliacao.findMany({
+            where: {
+                tipoAvaliacao: avaliacaoTipo.LIDER_COLABORADOR,
+                OR: liderancas.map(l => ({
+                    idAvaliado: l.idColaborador,
+                    idCiclo: l.idCiclo
+                }))
+            },
+            include: {
+                avaliado: { select: { idColaborador: true, nomeCompleto: true } },
+                ciclo: { select: { idCiclo: true, nomeCiclo: true } },
+                avaliacaoLiderColaborador: true
+            },
+            orderBy: { idCiclo: 'desc' }
+        });
+        return avaliacoes;
+    }
 }
