@@ -381,4 +381,94 @@ export class ColaboradorService {
         });
         return !!perfil;
     }
+
+    async getHistoricoNotasPorCiclo(idColaborador: string) {
+        // Buscar todos os ciclos em que o colaborador participou
+        const colaboradorCiclos = await this.prisma.colaboradorCiclo.findMany({
+            where: { idColaborador },
+            include: { ciclo: true },
+        });
+
+        // Para cada ciclo, buscar avaliações do tipo LIDER_COLABORADOR para este colaborador
+        const historico = await Promise.all(colaboradorCiclos.map(async (cc) => {
+            const avaliacoesLider = await this.prisma.avaliacao.findMany({
+                where: {
+                    idCiclo: cc.idCiclo,
+                    idAvaliado: idColaborador,
+                    tipoAvaliacao: 'LIDER_COLABORADOR',
+                },
+                include: {
+                    avaliacaoLiderColaborador: {
+                        include: {
+                            cardAvaliacaoLiderColaborador: true
+                        }
+                    }
+                }
+            });
+
+            // Agrupar notas por pilar (nomeCriterio)
+            const pilarNotas: { pilarNome: string, pilarNota: number }[] = [];
+            for (const avaliacao of avaliacoesLider) {
+                const alc = avaliacao.avaliacaoLiderColaborador;
+                if (alc && alc.cardAvaliacaoLiderColaborador) {
+                    for (const card of alc.cardAvaliacaoLiderColaborador) {
+                        if (card.nomeCriterio && card.nota !== null && card.nota !== undefined) {
+                            pilarNotas.push({ pilarNome: card.nomeCriterio, pilarNota: Number(card.nota) });
+                        }
+                    }
+                }
+            }
+            return {
+                ciclo: cc.ciclo.nomeCiclo,
+                notas: pilarNotas
+            };
+        }));
+        return historico;
+    }
+
+    async getHistoricoMediaNotasPorCiclo(idColaborador: string) {
+        // Buscar todos os ciclos em que o colaborador participou
+        const colaboradorCiclos = await this.prisma.colaboradorCiclo.findMany({
+            where: { idColaborador },
+            include: { ciclo: true },
+        });
+
+        // Para cada ciclo, buscar avaliações do tipo LIDER_COLABORADOR para este colaborador
+        const historico = await Promise.all(colaboradorCiclos.map(async (cc) => {
+            const avaliacoesLider = await this.prisma.avaliacao.findMany({
+                where: {
+                    idCiclo: cc.idCiclo,
+                    idAvaliado: idColaborador,
+                    tipoAvaliacao: 'LIDER_COLABORADOR',
+                },
+                include: {
+                    avaliacaoLiderColaborador: {
+                        include: {
+                            cardAvaliacaoLiderColaborador: true
+                        }
+                    }
+                }
+            });
+
+            // Coletar todas as notas dos cards
+            const notas: number[] = [];
+            for (const avaliacao of avaliacoesLider) {
+                const alc = avaliacao.avaliacaoLiderColaborador;
+                if (alc && alc.cardAvaliacaoLiderColaborador) {
+                    for (const card of alc.cardAvaliacaoLiderColaborador) {
+                        if (card.nota !== null && card.nota !== undefined) {
+                            notas.push(Number(card.nota));
+                        }
+                    }
+                }
+            }
+            // Calcular média das notas do ciclo
+            const cicloNota = notas.length > 0 ? notas.reduce((a, b) => a + b, 0) / notas.length : null;
+            return {
+                cicloNome: cc.ciclo.nomeCiclo,
+                cicloNota
+            };
+        }));
+        return historico;
+    }
 }

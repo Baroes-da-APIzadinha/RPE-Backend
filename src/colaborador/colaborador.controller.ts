@@ -62,4 +62,14 @@ export class ColaboradorController {
         return this.colaboradorService.getAvaliacoesRecebidas(idColaborador);
     }
 
+    @Get('notas/historico/:idColaborador')
+    async getHistoricoNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
+        return this.colaboradorService.getHistoricoNotasPorCiclo(idColaborador);
+    }
+
+    @Get('pilar/historico/:idColaborador')
+    async getHistoricoMediaNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
+        return this.colaboradorService.getHistoricoMediaNotasPorCiclo(idColaborador);
+    }
+
 }
