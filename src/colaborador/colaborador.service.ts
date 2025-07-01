@@ -278,6 +278,15 @@ export class ColaboradorService {
         });
     }
 
+    async getAvaliacoesRecebidas(idColaborador: string) {
+        // Conta todas as avaliações recebidas pelo colaborador
+        const quantidadeAvaliacoes = await this.prisma.avaliacao.count({
+            where: { idAvaliado: idColaborador },
+        });
+        return { quantidadeAvaliacoes };
+      
+    }
+  
     async getAllColaborador() {
         // Busca todos os perfis COLABORADOR_COMUM
         const perfis = await this.prisma.colaboradorPerfil.findMany({

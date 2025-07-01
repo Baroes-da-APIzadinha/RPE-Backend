@@ -56,4 +56,14 @@ export class ColaboradorController {
         return this.colaboradorService.associarColaboradorCiclo(data.idColaborador, data.idCiclo);
     }
 
+    @Get('get-ativos')
+    async getColaboradoresAtivos() {
+        return this.colaboradorService.getColaboradoresAtivos();
+    }
+
+    @Get('avaliacoes-recebidas/:idColaborador')
+    async getAvaliacoesRecebidas(@Param('idColaborador') idColaborador: string) {
+        return this.colaboradorService.getAvaliacoesRecebidas(idColaborador);
+    }
+
 }
