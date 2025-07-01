@@ -816,4 +816,40 @@ export class AvaliacoesService {
     private toStrUndef(value?: string | null): string | undefined {
         return value || undefined;
     }
+
+    async listarAvaliacoesComite() {
+        // Busca todas as equalizações, agrupando por colaborador avaliado
+        const equalizacoes = await this.prisma.equalizacao.findMany({
+            include: {
+                alvo: {
+                    select: { idColaborador: true, nomeCompleto: true }
+                },
+                membroComite: {
+                    select: { idColaborador: true, nomeCompleto: true }
+                }
+            },
+            orderBy: { dataEqualizacao: 'desc' }
+        });
+
+        // Agrupa por colaborador avaliado
+        const agrupado: Record<string, any> = {};
+        for (const eq of equalizacoes) {
+            const id = eq.idAvaliado;
+            if (!agrupado[id]) {
+                agrupado[id] = {
+                    colaborador: eq.alvo,
+                    equalizacoes: []
+                };
+            }
+            agrupado[id].equalizacoes.push({
+                idEqualizacao: eq.idEqualizacao,
+                membroComite: eq.membroComite,
+                notaAjustada: eq.notaAjustada,
+                justificativa: eq.justificativa,
+                status: eq.status,
+                dataEqualizacao: eq.dataEqualizacao
+            });
+        }
+        // Retorna como array
+        return Object.values(agrupado);
 }

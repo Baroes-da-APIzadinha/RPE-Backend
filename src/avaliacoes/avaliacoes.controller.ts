@@ -1,3 +1,4 @@
+
 import { Controller, Param, Query } from '@nestjs/common';
 import { Post, Body, Get } from '@nestjs/common';
 import { AvaliacoesService } from './avaliacoes.service';
@@ -118,6 +119,11 @@ export class AvaliacoesController {
         const resultado = await this.service.lancarAvaliacaoColaboradorMentor(idCiclo);
         this.logger.log(`Relatório de lançamento de avaliações: ${JSON.stringify(resultado)}`);
         return { message: 'Avaliações colaborador-mentor lançadas com sucesso', relatorio: resultado };
+    }
+
+    @Get('comite')
+    async listarAvaliacoesComite() {
+        return this.service.listarAvaliacoesComite();
     }
 
 }
