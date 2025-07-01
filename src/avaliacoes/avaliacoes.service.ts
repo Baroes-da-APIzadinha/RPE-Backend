@@ -555,30 +555,30 @@ export class AvaliacoesService {
 
         let soma = 0;
         let soma_pesos = 0;
-        for(const criterio of criterios){
+        for (const criterio of criterios) {
             this.verificarNota(criterio.nota);
-            
+
             const card = await this.prisma.cardAutoAvaliacao.findFirst({
                 where: {
                     idAvaliacao: idAvaliacao,
                     nomeCriterio: criterio.nome
                 }
             });
-            
+
             if (!card) {
                 throw new HttpException(`Card não encontrado para critério: ${criterio.nome}`, HttpStatus.NOT_FOUND);
             }
 
             const criterioAvaliativo = await this.prisma.criterioAvaliativo.findFirst({
-                where : {
-                    nomeCriterio : criterio.nome
+                where: {
+                    nomeCriterio: criterio.nome
                 }
             })
 
             const peso = criterioAvaliativo?.peso ? criterioAvaliativo.peso.toNumber() : 1;
             soma += peso * criterio.nota;
             soma_pesos += peso;
-            
+
             await this.prisma.cardAutoAvaliacao.update({
                 where: { idCardAvaliacao: card.idCardAvaliacao },
                 data: {
@@ -587,17 +587,17 @@ export class AvaliacoesService {
                 }
             });
         }
-        
+
         await this.prisma.avaliacao.update({
             where: { idAvaliacao },
             data: { status: 'CONCLUIDA' },
         });
-        
+
         let nota_final = soma_pesos > 0 ? soma / soma_pesos : 0;
 
         await this.prisma.autoAvaliacao.update({
             where: { idAvaliacao },
-            data: {notaFinal: nota_final}
+            data: { notaFinal: nota_final }
         })
     }
 
@@ -613,29 +613,29 @@ export class AvaliacoesService {
 
         let soma = 0;
         let soma_pesos = 0;
-        for(const criterio of criterios){
+        for (const criterio of criterios) {
             this.verificarNota(criterio.nota);
-            
+
             const card = await this.prisma.cardAvaliacaoLiderColaborador.findFirst({
                 where: {
                     idAvaliacao: idAvaliacao,
                     nomeCriterio: criterio.nome
                 }
             });
-            
+
             if (!card) {
                 throw new HttpException(`Card não encontrado para critério: ${criterio.nome}`, HttpStatus.NOT_FOUND);
             }
-            
+
             const criterioAvaliativo = await this.prisma.criterioAvaliativo.findFirst({
-                where : {
-                    nomeCriterio : criterio.nome
+                where: {
+                    nomeCriterio: criterio.nome
                 }
             })
             const peso = criterioAvaliativo?.peso ? criterioAvaliativo.peso.toNumber() : 1;
             soma += peso * criterio.nota;
             soma_pesos += peso;
-            
+
             await this.prisma.cardAvaliacaoLiderColaborador.update({
                 where: { idCardAvaliacao: card.idCardAvaliacao },
                 data: {
@@ -644,17 +644,17 @@ export class AvaliacoesService {
                 }
             });
         }
-        
+
         await this.prisma.avaliacao.update({
             where: { idAvaliacao },
             data: { status: 'CONCLUIDA' },
         });
-        
+
         let nota_final = soma_pesos > 0 ? soma / soma_pesos : 0;
 
         await this.prisma.avaliacaoLiderColaborador.update({
             where: { idAvaliacao },
-            data: {notaFinal: nota_final}
+            data: { notaFinal: nota_final }
         })
     }
 
@@ -852,4 +852,5 @@ export class AvaliacoesService {
         }
         // Retorna como array
         return Object.values(agrupado);
+    }
 }
