@@ -1,4 +1,6 @@
-import { IsNotEmpty, IsString, IsUUID, MaxLength, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, MaxLength, IsOptional, IsEnum } from 'class-validator';
+import { TipoReferencia } from './referencias.constants';
+
 
 export class CriarReferenciaDto {
   @IsUUID()
@@ -13,7 +15,7 @@ export class CriarReferenciaDto {
   @IsNotEmpty()
   idIndicado: string;
 
-  @IsString()
+  @IsEnum(TipoReferencia)
   @IsNotEmpty()
   tipo: string; // 'TECNICA' ou 'CULTURAL'
 
@@ -24,14 +26,12 @@ export class CriarReferenciaDto {
 }
 
 export class AtualizarReferenciaDto {
-  @IsOptional()
-  @IsString()
+  @IsEnum(TipoReferencia)
   @IsNotEmpty()
-  tipo?: string; // 'TECNICA' ou 'CULTURAL'
+  tipo: string; // 'TECNICA' ou 'CULTURAL'
 
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(1000)
   justificativa?: string;
 } 

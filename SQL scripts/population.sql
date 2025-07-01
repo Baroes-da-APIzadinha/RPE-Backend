@@ -208,9 +208,9 @@ VALUES
     (uuid_generate_v4(), ciclo_2025_1_id, colaborador_gestor_id, colaborador_comum_id, 'TECNICA', 'Forte conhecimento técnico');
 
 -- Inserir Equalização
-INSERT INTO "Equalizacao" ("idEqualizacao", "idAvaliado", "idMembroComite", "notaAjustada", "justificativa", "status")
+INSERT INTO "Equalizacao" ("idEqualizacao", "idCiclo", "idAvaliado", "idMembroComite", "notaAjustada", "justificativa", "status")
 VALUES
-    (uuid_generate_v4(), colaborador_comum_id, colaborador_rh_id, 4, 'Desempenho consistente ao longo do ciclo', 'CONCLUIDA');
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_comum_id, colaborador_rh_id, 4, 'Desempenho consistente ao longo do ciclo', 'CONCLUIDA');
 
 END $$;
 
