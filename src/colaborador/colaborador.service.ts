@@ -9,11 +9,12 @@ export class ColaboradorService {
     constructor(private readonly prisma: PrismaService) {}
 
     async criarColaborador(data: CreateColaboradorDto) {
+        const { admin, colaboradorComum, gestor, rh, mentor, lider, membroComite, ...colaboradorData } = data;
         const salt = await bcrypt.genSalt();
-        const senhaHash = await bcrypt.hash(data.senha, salt);
+        const senhaHash = await bcrypt.hash(colaboradorData.senha, salt);
 
         const alredyExists = await this.prisma.colaborador.findUnique({
-            where: { email: data.email}
+            where: { email: colaboradorData.email}
         });
 
         if (alredyExists) {
@@ -23,12 +24,36 @@ export class ColaboradorService {
             }
         }
 
-        return this.prisma.colaborador.create({
+        const colaborador = await this.prisma.colaborador.create({
             data: {
-                ...data,
+                ...colaboradorData,
                 senha: senhaHash
             }
         });
+
+        if (admin) {
+            await this.associarPerfilColaborador(colaborador.idColaborador, 'ADMIN');
+        } 
+        if (colaboradorComum) {
+            await this.associarPerfilColaborador(colaborador.idColaborador, 'COLABORADOR_COMUM');
+        } 
+        if (gestor) {
+            await this.associarPerfilColaborador(colaborador.idColaborador, 'GESTOR');
+        } 
+        if (rh) {
+            await this.associarPerfilColaborador(colaborador.idColaborador, 'RH');
+        } 
+        if (mentor) {
+            await this.associarPerfilColaborador(colaborador.idColaborador, 'MENTOR');
+        } 
+        if (lider) {
+            await this.associarPerfilColaborador(colaborador.idColaborador, 'LIDER');
+        } 
+        if (membroComite) {
+            await this.associarPerfilColaborador(colaborador.idColaborador, 'MEMBRO_COMITE');
+        }
+
+        return colaborador;
     }
 
     async removerColaborador(id: string) {
@@ -251,5 +276,100 @@ export class ColaboradorService {
                 idCiclo
             }
         });
+    }
+
+    async getAllColaborador() {
+        // Busca todos os perfis COLABORADOR_COMUM
+        const perfis = await this.prisma.colaboradorPerfil.findMany({
+            where: { tipoPerfil: 'COLABORADOR_COMUM' },
+            select: { idColaborador: true }
+        });
+        const ids = perfis.map(p => p.idColaborador);
+        // Busca todos os colaboradores correspondentes, excluindo o campo senha
+        const colaboradores = await this.prisma.colaborador.findMany({
+            where: { idColaborador: { in: ids } },
+            select: {
+                idColaborador: true,
+                nomeCompleto: true,
+                email: true,
+                trilhaCarreira: true,
+                cargo: true,
+                unidade: true
+                // Adicione outros campos que deseja retornar, mas não inclua 'senha'
+            }
+        });
+        return colaboradores;
+    }
+
+    async isColaborador(idColaborador: string): Promise<boolean> {
+        const perfil = await this.prisma.colaboradorPerfil.findUnique({
+            where: {
+                idColaborador_tipoPerfil: {
+                    idColaborador,
+                    tipoPerfil: 'COLABORADOR_COMUM',
+                },
+            },
+        });
+        return !!perfil;
+    }
+
+    async isGestor(idColaborador: string): Promise<boolean> {
+        if (!this.isValidUUID(idColaborador)) {
+            return false;
+        }
+        const perfil = await this.prisma.colaboradorPerfil.findUnique({
+            where: {
+                idColaborador_tipoPerfil: {
+                    idColaborador,
+                    tipoPerfil: 'GESTOR',
+                },
+            },
+        });
+        return !!perfil;
+    }
+
+    async isRh(idColaborador: string): Promise<boolean> {
+        if (!this.isValidUUID(idColaborador)) {
+            return false;
+        }
+        const perfil = await this.prisma.colaboradorPerfil.findUnique({
+            where: {
+                idColaborador_tipoPerfil: {
+                    idColaborador,
+                    tipoPerfil: 'RH',
+                },
+            },
+        });
+        return !!perfil;
+    }
+
+    async isMembroComite(idColaborador: string): Promise<boolean> {
+        if (!this.isValidUUID(idColaborador)) {
+            return false;
+        }
+        const perfil = await this.prisma.colaboradorPerfil.findUnique({
+            where: {
+                idColaborador_tipoPerfil: {
+                    idColaborador,
+                    tipoPerfil: 'MEMBRO_COMITE',
+                },
+            },
+        });
+        return !!perfil;
+    }
+
+    async isAdmin(idColaborador: string): Promise<boolean> {
+        if (!this.isValidUUID(idColaborador)) {
+            return false;
+        }
+        const perfil = await this.prisma.colaboradorPerfil.findUnique({
+            where: {
+                idColaborador_tipoPerfil: {
+                    idColaborador,
+                    tipoPerfil: 'ADMIN',
+                },
+            },
+        });
+        return !!perfil;
     }
 }

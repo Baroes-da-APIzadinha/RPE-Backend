@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsUUID, IsEnum } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsUUID, IsEnum, IsBoolean } from 'class-validator';
 import { TRILHAS, CARGOS, UNIDADES } from './colaborador.constants';
 
 export class CreateColaboradorDto {
@@ -15,9 +15,32 @@ export class CreateColaboradorDto {
     senha: string;
 
     @IsOptional()
-    @IsString()
-    @IsEnum(CARGOS)
-    cargo?: string;
+    @IsBoolean()
+    admin?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    colaboradorComum?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    gestor?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    mentor?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    lider?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    rh?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    membroComite?: boolean;
 
     @IsOptional()
     @IsString()
@@ -28,6 +51,11 @@ export class CreateColaboradorDto {
     @IsString()
     @IsEnum(UNIDADES)
     unidade?: string;
+
+    @IsOptional()
+    @IsString()
+    @IsEnum(CARGOS)
+    cargo?: string;
 }
 
 export class UpdateColaboradorDto {

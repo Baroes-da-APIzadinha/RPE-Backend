@@ -4,19 +4,24 @@ Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYmNmM2QxNC03NWVmLTRjNDQtYjgwYy1jYmFhM2RjYzZmYTMiLCJlbWFpbCI6ImpvYW8ucmFiZWxsb0BleGFtcGxlLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc1MDc5ODQyNywiZXhwIjoxNzUwODg0ODI3fQ.nwNhdi_egLiU64lo4QaPgIUW7PyqRNolXPfz5OqskVc
 
 {
-    "nomeCompleto": "Sardinha ",
-    "email": "sardinha@example.com",
+    "nomeCompleto": "GESTOR ",
+    "email": "gestor@example.com",
     "senha": "senha123",
-    "cargo": "FINANCEIRO",
-    "trilhaCarreira": "FINANCEIRO",
-    "unidade": "RECIFE"
+    "colaboradorComum": true,
+    "gestor": true
+
 }
 
 ### Remover colaborador
-DELETE http://localhost:3000/colaborador/remover/9aa7e53a-0518-4c53-b03b-2cee1b8cbc87
+DELETE http://localhost:3000/colaborador/565a6f76-751e-4d01-bba3-a84f313c80bf
 ### Get colaborador
 
 GET http://localhost:3000/colaborador/get/9aa7e53a-0518-4c53-b03b-2cee1b8cbc87
+
+### Get all colaboradores
+GET http://localhost:3000/colaborador/get-all-colaboradores
+
+
 
 ### Atualizar colaborador
 PUT http://localhost:3000/colaborador/atualizar/c3ff70b4-1096-41aa-bba4-0cec649580da
@@ -42,7 +47,7 @@ POST http://localhost:3000/auth/login
 Content-Type: application/json
 
 {
-    "email": "joao.rabello@example.com",
+    "email": "admin@example.com",
     "senha": "senha123"
 }
 
