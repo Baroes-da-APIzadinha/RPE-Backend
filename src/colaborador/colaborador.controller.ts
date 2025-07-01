@@ -48,4 +48,9 @@ export class ColaboradorController {
         return this.colaboradorService.associarColaboradorCiclo(data.idColaborador, data.idCiclo);
     }
 
+    @Get('get-ativos')
+    async getColaboradoresAtivos() {
+        return this.colaboradorService.getColaboradoresAtivos();
+    }
+
 }

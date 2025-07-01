@@ -252,4 +252,36 @@ export class ColaboradorService {
             }
         });
     }
+
+    async getColaboradoresAtivos() {
+        // Buscar ciclo ativo
+        const cicloAtivo = await this.prisma.cicloAvaliacao.findFirst({
+            where: { status: 'EM_ANDAMENTO' },
+        });
+        if (!cicloAtivo) {
+            return {
+                status: 404,
+                mensagem: 'Nenhum ciclo em andamento',
+            };
+        }
+        // Buscar colaboradores participantes do ciclo ativo
+        const participantes = await this.prisma.colaboradorCiclo.findMany({
+            where: { idCiclo: cicloAtivo.idCiclo },
+            include: { colaborador: true },
+        });
+        // Calcular tempo restante
+        const dataFim = new Date(cicloAtivo.dataFim);
+        const agora = new Date();
+        const diffMs = dataFim.getTime() - agora.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+        const diffMinutes = Math.floor((diffMs / (1000 * 60)) % 60);
+        const tempoRestante = `${diffDays} dias, ${diffHours} horas, ${diffMinutes} minutos`;
+        // Montar resposta
+        return participantes.map((p) => ({
+            id: p.colaborador.idColaborador,
+            nome: p.colaborador.nomeCompleto,
+            tempoRestante,
+        }));
+    }
 }
