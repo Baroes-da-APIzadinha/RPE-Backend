@@ -73,4 +73,79 @@ export class ReferenciasService {
       throw new BadRequestException('Erro ao deletar referência: ' + error.message);
     }
   }
+
+  async getAllReferencias() {
+    try {
+      return await this.prisma.indicacaoReferencia.findMany({
+        include: {
+          ciclo: true,
+          indicador: true,
+          indicado: true,
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException('Erro ao listar referências: ' + error.message);
+    }
+  }
+
+  async getReferenciaByIndicador(idIndicador: string) {
+    try {
+      const referencias = await this.prisma.indicacaoReferencia.findMany({
+        where: { idIndicador },
+        include: {
+          ciclo: true,
+          indicado: true,
+        },
+      });
+
+      if (referencias.length === 0) {
+        throw new NotFoundException('Nenhuma referência encontrada para este indicador');
+      }
+
+      return referencias;
+    } catch (error) {
+      throw new BadRequestException('Erro ao buscar referências por indicador: ' + error.message);
+    }
+  }
+
+  async getReferenciaByIndicado(idIndicado: string) {
+    try {
+      const referencias = await this.prisma.indicacaoReferencia.findMany({
+        where: { idIndicado },
+        include: {
+          ciclo: true,
+          indicador: true,
+        },
+      });
+
+      if (referencias.length === 0) {
+        throw new NotFoundException('Nenhuma referência encontrada para este indicado');
+      }
+
+      return referencias;
+    } catch (error) {
+      throw new BadRequestException('Erro ao buscar referências por indicado: ' + error.message);
+    }
+  }
+
+  async getReferenciaById(idIndicacao: string) {
+    try {
+      const referencia = await this.prisma.indicacaoReferencia.findUnique({
+        where: { idIndicacao },
+        include: {
+          ciclo: true,
+          indicador: true,
+          indicado: true,
+        },
+      });
+
+      if (!referencia) {
+        throw new NotFoundException('Referência não encontrada');
+      }
+
+      return referencia;
+    } catch (error) {
+      throw new BadRequestException('Erro ao buscar referência: ' + error.message);
+    }
+  }
 } 

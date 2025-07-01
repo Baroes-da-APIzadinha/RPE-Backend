@@ -23,6 +23,14 @@ export class ColaboradorController {
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN')
+    @Get('get-all-colaboradores')
+    async getAllColaboradores() {
+        return this.colaboradorService.getAllColaborador();
+    }
+
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('ADMIN', 'COLABORADOR_COMUM')
     @Get(':id')
     async getColaborador(@Param('id') id: string, @Req() req) {
