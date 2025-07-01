@@ -16,10 +16,11 @@ import { EqualizacaoController } from './equalizacao/equalizacao.controller';
 import { EqualizacaoModule } from './equalizacao/equalizacao.module';
 import { ReferenciasModule } from './referencias/referencias.module';
 import { ImportacaoModule } from './importacao/importacao.module';
+import { RhModule } from './rh/rh.module';
 
 
 @Module({
-  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule],
   controllers: [AppController, AvaliacoesController, EqualizacaoController],
   providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService],
 })
