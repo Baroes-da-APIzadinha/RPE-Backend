@@ -15,6 +15,8 @@ datasource db {
 enum perfilTipo {
   COLABORADOR_COMUM
   GESTOR
+  MENTOR
+  LIDER
   RH
   MEMBRO_COMITE
   ADMIN
