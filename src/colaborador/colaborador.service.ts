@@ -3,6 +3,7 @@ import { PrismaService } from 'src/database/prismaService';
 import * as bcrypt from 'bcrypt';
 import { CreateColaboradorDto, UpdateColaboradorDto } from './colaborador.dto';
 import { perfilTipo } from '@prisma/client';
+import { validarPerfisColaborador } from './colaborador.constants';
 
 @Injectable()
 export class ColaboradorService {
@@ -24,6 +25,25 @@ export class ColaboradorService {
             }
         }
 
+        // Coletar perfis selecionados
+        const perfis: string[] = [];
+        if (admin) perfis.push('ADMIN');
+        if (colaboradorComum) perfis.push('COLABORADOR_COMUM');
+        if (gestor) perfis.push('GESTOR');
+        if (rh) perfis.push('RH');
+        if (mentor) perfis.push('MENTOR');
+        if (lider) perfis.push('LIDER');
+        if (membroComite) perfis.push('MEMBRO_COMITE');
+
+        // Validação centralizada
+        const erroValidacao = validarPerfisColaborador(perfis);
+        if (erroValidacao) {
+            return {
+                status: 400,
+                message: erroValidacao
+            }
+        }
+
         const colaborador = await this.prisma.colaborador.create({
             data: {
                 ...colaboradorData,
@@ -31,26 +51,8 @@ export class ColaboradorService {
             }
         });
 
-        if (admin) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'ADMIN');
-        } 
-        if (colaboradorComum) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'COLABORADOR_COMUM');
-        } 
-        if (gestor) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'GESTOR');
-        } 
-        if (rh) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'RH');
-        } 
-        if (mentor) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'MENTOR');
-        } 
-        if (lider) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'LIDER');
-        } 
-        if (membroComite) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'MEMBRO_COMITE');
+        for (const perfil of perfis) {
+            await this.associarPerfilColaborador(colaborador.idColaborador, perfil);
         }
 
         return colaborador;
