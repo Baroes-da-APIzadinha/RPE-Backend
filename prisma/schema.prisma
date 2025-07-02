@@ -81,6 +81,7 @@ model Colaborador {
   mentores            MentorColaborador[]  @relation("Mentor")
   mentoreados         MentorColaborador[]  @relation("ColaboradorMentor")
   colaboradoresCiclos ColaboradorCiclo[]
+  primeiroLogin       Boolean              @default(true)
 }
 
 model ColaboradorPerfil {

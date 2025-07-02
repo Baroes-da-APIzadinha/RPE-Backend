@@ -1,6 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, Req, Patch } from '@nestjs/common';
 import { ColaboradorService } from './colaborador.service';
-import { CreateColaboradorDto, UpdateColaboradorDto, AssociatePerfilDto } from './colaborador.dto';
+import { CreateColaboradorDto, UpdateColaboradorDto, AssociatePerfilDto, TrocarSenhaDto } from './colaborador.dto';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -44,7 +44,14 @@ export class ColaboradorController {
         return this.colaboradorService.updateColaborador(id, data);
     }
 
-   
+    @Patch(':id/trocar-senha')
+    async trocarSenhaPrimeiroLogin(
+      @Param('id') id: string,
+      @Body() dto: TrocarSenhaDto
+    ) {
+      return this.colaboradorService.trocarSenhaPrimeiroLogin(id, dto);
+    }
+
     @Post('associar-perfil')
     async associarPerfil(@Body() data: AssociatePerfilDto) {
         

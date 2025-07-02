@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { CreateColaboradorDto, UpdateColaboradorDto } from './colaborador.dto';
 import { perfilTipo } from '@prisma/client';
 import { validarPerfisColaborador } from './colaborador.constants';
+import { TrocarSenhaDto } from './colaborador.dto';
 
 @Injectable()
 export class ColaboradorService {
@@ -172,9 +173,15 @@ export class ColaboradorService {
             data.senha = await bcrypt.hash(data.senha, salt);
         }
 
+        // Permitir atualização do campo primeiroLogin
+        const updateData: any = { ...data };
+        if (typeof data.primeiroLogin !== 'undefined') {
+            updateData.primeiroLogin = data.primeiroLogin;
+        }
+
         return this.prisma.colaborador.update({
             where: { idColaborador: id },
-            data
+            data: updateData
         });
     }
 
@@ -472,5 +479,25 @@ export class ColaboradorService {
             };
         }));
         return historico;
+    }
+
+    async trocarSenhaPrimeiroLogin(id: string, dto: TrocarSenhaDto) {
+        const colaborador = await this.prisma.colaborador.findUnique({ 
+            where: { idColaborador: id },
+            select: { senha: true, primeiroLogin: true }
+        });
+        if (!colaborador || !colaborador.primeiroLogin) {
+            throw new Error('Usuário não está em primeiro login ou não existe');
+        }
+        const senhaCorreta = await bcrypt.compare(dto.senhaAtual, colaborador.senha);
+        if (!senhaCorreta) {
+            throw new Error('Senha atual incorreta');
+        }
+        const novaHash = await bcrypt.hash(dto.novaSenha, 10);
+        await this.prisma.colaborador.update({
+            where: { idColaborador: id },
+            data: { senha: novaHash, primeiroLogin: false }
+        });
+        return { message: 'Senha alterada com sucesso' };
     }
 }
