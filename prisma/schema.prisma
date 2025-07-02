@@ -25,6 +25,8 @@ enum perfilTipo {
 enum cicloStatus {
   AGENDADO
   EM_ANDAMENTO
+  EM_REVISAO
+  EM_EQUALIZAÇÃO
   FECHADO
 }
 
@@ -99,6 +101,12 @@ model CicloAvaliacao {
   dataFim              DateTime                 @db.Date
   status               cicloStatus              @default(EM_ANDAMENTO)
   avaliacoes           Avaliacao[]
+  updatedAt            DateTime @updatedAt
+
+  duracaoEmAndamentoDias    Int                       
+  duracaoEmRevisaoDias      Int                       
+  duracaoEmEqualizacaoDias  Int                       
+
   associacoesCriterio  AssociacaoCriterioCiclo[]
   indicacoesReferencia IndicacaoReferencia[]
   gestorColaboradores  GestorColaborador[]
