@@ -4,6 +4,7 @@ import { AvaliacoesService } from './avaliacoes.service';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 import { AvaliacaoColaboradorMentorDto, AvaliacaoParesDto, PreencherAuto_ou_Lider_Dto } from './avaliacoes.dto';
 import { Logger } from '@nestjs/common';
+import { RelatorioItem } from './avaliacoes.constants';
 
 interface LancarAvaliacaoDto {
     idCiclo: string;
@@ -130,6 +131,17 @@ export class AvaliacoesController {
     async historicoComoLider(@Req() req) {
         const userId = req.user.userId;
         return this.service.historicoComoLider(userId);
+    }
+
+    @Get('notasAvaliacoes/:idColaborador/:idCiclo')
+    async getNotasAvaliacoes(@Param('idColaborador') idColaborador: string, @Param('idCiclo') idCiclo: string) {
+        return this.service.discrepanciaColaborador(idColaborador, idCiclo);
+    }
+
+    @Get('notasCiclo/:idCiclo')
+    async getNotasCiclo(@Param('idCiclo') idCiclo: string): Promise<RelatorioItem[]> {
+        const resultado = await this.service.discrepanciaAllcolaboradores(idCiclo);
+        return resultado || []; // Return empty array if undefined
     }
 
 }
