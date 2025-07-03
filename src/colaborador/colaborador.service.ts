@@ -3,6 +3,8 @@ import { PrismaService } from 'src/database/prismaService';
 import * as bcrypt from 'bcrypt';
 import { CreateColaboradorDto, UpdateColaboradorDto } from './colaborador.dto';
 import { perfilTipo } from '@prisma/client';
+import { validarPerfisColaborador } from './colaborador.constants';
+import { TrocarSenhaDto } from './colaborador.dto';
 
 @Injectable()
 export class ColaboradorService {
@@ -24,6 +26,25 @@ export class ColaboradorService {
             }
         }
 
+        // Coletar perfis selecionados
+        const perfis: string[] = [];
+        if (admin) perfis.push('ADMIN');
+        if (colaboradorComum) perfis.push('COLABORADOR_COMUM');
+        if (gestor) perfis.push('GESTOR');
+        if (rh) perfis.push('RH');
+        if (mentor) perfis.push('MENTOR');
+        if (lider) perfis.push('LIDER');
+        if (membroComite) perfis.push('MEMBRO_COMITE');
+
+        // Validação centralizada
+        const erroValidacao = validarPerfisColaborador(perfis);
+        if (erroValidacao) {
+            return {
+                status: 400,
+                message: erroValidacao
+            }
+        }
+
         const colaborador = await this.prisma.colaborador.create({
             data: {
                 ...colaboradorData,
@@ -31,26 +52,8 @@ export class ColaboradorService {
             }
         });
 
-        if (admin) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'ADMIN');
-        } 
-        if (colaboradorComum) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'COLABORADOR_COMUM');
-        } 
-        if (gestor) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'GESTOR');
-        } 
-        if (rh) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'RH');
-        } 
-        if (mentor) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'MENTOR');
-        } 
-        if (lider) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'LIDER');
-        } 
-        if (membroComite) {
-            await this.associarPerfilColaborador(colaborador.idColaborador, 'MEMBRO_COMITE');
+        for (const perfil of perfis) {
+            await this.associarPerfilColaborador(colaborador.idColaborador, perfil);
         }
 
         return colaborador;
@@ -170,9 +173,15 @@ export class ColaboradorService {
             data.senha = await bcrypt.hash(data.senha, salt);
         }
 
+        // Permitir atualização do campo primeiroLogin
+        const updateData: any = { ...data };
+        if (typeof data.primeiroLogin !== 'undefined') {
+            updateData.primeiroLogin = data.primeiroLogin;
+        }
+
         return this.prisma.colaborador.update({
             where: { idColaborador: id },
-            data
+            data: updateData
         });
     }
 
@@ -380,5 +389,115 @@ export class ColaboradorService {
             },
         });
         return !!perfil;
+    }
+
+    async getHistoricoNotasPorCiclo(idColaborador: string) {
+        // Buscar todos os ciclos em que o colaborador participou
+        const colaboradorCiclos = await this.prisma.colaboradorCiclo.findMany({
+            where: { idColaborador },
+            include: { ciclo: true },
+        });
+
+        // Para cada ciclo, buscar avaliações do tipo LIDER_COLABORADOR para este colaborador
+        const historico = await Promise.all(colaboradorCiclos.map(async (cc) => {
+            const avaliacoesLider = await this.prisma.avaliacao.findMany({
+                where: {
+                    idCiclo: cc.idCiclo,
+                    idAvaliado: idColaborador,
+                    tipoAvaliacao: 'LIDER_COLABORADOR',
+                },
+                include: {
+                    avaliacaoLiderColaborador: {
+                        include: {
+                            cardAvaliacaoLiderColaborador: true
+                        }
+                    }
+                }
+            });
+
+            // Agrupar notas por pilar (nomeCriterio)
+            const pilarNotas: { pilarNome: string, pilarNota: number }[] = [];
+            for (const avaliacao of avaliacoesLider) {
+                const alc = avaliacao.avaliacaoLiderColaborador;
+                if (alc && alc.cardAvaliacaoLiderColaborador) {
+                    for (const card of alc.cardAvaliacaoLiderColaborador) {
+                        if (card.nomeCriterio && card.nota !== null && card.nota !== undefined) {
+                            pilarNotas.push({ pilarNome: card.nomeCriterio, pilarNota: Number(card.nota) });
+                        }
+                    }
+                }
+            }
+            return {
+                ciclo: cc.ciclo.nomeCiclo,
+                notas: pilarNotas
+            };
+        }));
+        return historico;
+    }
+
+    async getHistoricoMediaNotasPorCiclo(idColaborador: string) {
+        // Buscar todos os ciclos em que o colaborador participou
+        const colaboradorCiclos = await this.prisma.colaboradorCiclo.findMany({
+            where: { idColaborador },
+            include: { ciclo: true },
+        });
+
+        // Para cada ciclo, buscar avaliações do tipo LIDER_COLABORADOR para este colaborador
+        const historico = await Promise.all(colaboradorCiclos.map(async (cc) => {
+            const avaliacoesLider = await this.prisma.avaliacao.findMany({
+                where: {
+                    idCiclo: cc.idCiclo,
+                    idAvaliado: idColaborador,
+                    tipoAvaliacao: 'LIDER_COLABORADOR',
+                },
+                include: {
+                    avaliacaoLiderColaborador: {
+                        include: {
+                            cardAvaliacaoLiderColaborador: true
+                        }
+                    }
+                }
+            });
+
+            // Coletar todas as notas dos cards
+            const notas: number[] = [];
+            for (const avaliacao of avaliacoesLider) {
+                const alc = avaliacao.avaliacaoLiderColaborador;
+                if (alc && alc.cardAvaliacaoLiderColaborador) {
+                    for (const card of alc.cardAvaliacaoLiderColaborador) {
+                        if (card.nota !== null && card.nota !== undefined) {
+                            notas.push(Number(card.nota));
+                        }
+                    }
+                }
+            }
+            // Calcular média das notas do ciclo
+            const cicloNota = notas.length > 0 ? notas.reduce((a, b) => a + b, 0) / notas.length : null;
+            return {
+                cicloNome: cc.ciclo.nomeCiclo,
+                cicloNota
+            };
+        }));
+        return historico;
+    }
+
+    async trocarSenhaPrimeiroLogin(id: string, dto: TrocarSenhaDto) {
+        const colaborador = await this.prisma.colaborador.findUnique({ 
+            where: { idColaborador: id },
+            select: { senha: true, primeiroLogin: true }
+        });
+        if (!colaborador || !colaborador.primeiroLogin) {
+            throw new Error('Usuário não está em primeiro login ou não existe');
+        }
+        const senhaCorreta = await bcrypt.compare(dto.senhaAtual, colaborador.senha);
+        if (!senhaCorreta) {
+            throw new Error('Senha atual incorreta');
+        }
+        const novaHash = await bcrypt.hash(dto.novaSenha, 10);
+        await this.prisma.colaborador.update({
+            where: { idColaborador: id },
+            data: { senha: novaHash, primeiroLogin: false }
+        });
+        return { message: 'Senha alterada com sucesso' };
     }
 }

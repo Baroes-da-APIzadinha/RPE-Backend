@@ -1,10 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, Req, Patch } from '@nestjs/common';
 import { ColaboradorService } from './colaborador.service';
-import { CreateColaboradorDto, UpdateColaboradorDto, AssociatePerfilDto } from './colaborador.dto';
+import { CreateColaboradorDto, UpdateColaboradorDto, AssociatePerfilDto, TrocarSenhaDto } from './colaborador.dto';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { validarPerfisColaborador } from './colaborador.constants';
 import { Cargo, Trilha, Unidade } from './colaborador.constants';
+
 
 
 @Controller('colaborador')
@@ -57,6 +59,15 @@ export class ColaboradorController {
     }
 
 
+    @Patch(':id/trocar-senha')
+    async trocarSenhaPrimeiroLogin(
+      @Param('id') id: string,
+      @Body() dto: TrocarSenhaDto
+    ) {
+      return this.colaboradorService.trocarSenhaPrimeiroLogin(id, dto);
+    }
+
+
     @Post('associar-perfil')
     async associarPerfil(@Body() data: AssociatePerfilDto) {
 
@@ -72,6 +83,22 @@ export class ColaboradorController {
     @Get('avaliacoes-recebidas/:idColaborador')
     async getAvaliacoesRecebidas(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getAvaliacoesRecebidas(idColaborador);
+    }
+
+    @Get('notas/historico/:idColaborador')
+    async getHistoricoNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
+        return this.colaboradorService.getHistoricoNotasPorCiclo(idColaborador);
+    }
+
+    @Get('pilar/historico/:idColaborador')
+    async getHistoricoMediaNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
+        return this.colaboradorService.getHistoricoMediaNotasPorCiclo(idColaborador);
+    }
+
+    @Post('validar-perfis')
+    async validarPerfis(@Body('perfis') perfis: string[]) {
+        const resultado = validarPerfisColaborador(perfis);
+        return { valido: resultado === null, mensagem: resultado };
     }
 
 }
