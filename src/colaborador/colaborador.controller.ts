@@ -4,6 +4,7 @@ import { CreateColaboradorDto, UpdateColaboradorDto, AssociatePerfilDto, TrocarS
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { validarPerfisColaborador } from './colaborador.constants';
 
 @Controller('colaborador')
 export class ColaboradorController {
@@ -77,6 +78,12 @@ export class ColaboradorController {
     @Get('pilar/historico/:idColaborador')
     async getHistoricoMediaNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getHistoricoMediaNotasPorCiclo(idColaborador);
+    }
+
+    @Post('validar-perfis')
+    async validarPerfis(@Body('perfis') perfis: string[]) {
+        const resultado = validarPerfisColaborador(perfis);
+        return { valido: resultado === null, mensagem: resultado };
     }
 
 }
