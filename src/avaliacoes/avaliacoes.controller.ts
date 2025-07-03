@@ -4,6 +4,8 @@ import { AvaliacoesService } from './avaliacoes.service';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 import { AvaliacaoColaboradorMentorDto, AvaliacaoParesDto, PreencherAuto_ou_Lider_Dto } from './avaliacoes.dto';
 import { Logger } from '@nestjs/common';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 interface LancarAvaliacaoDto {
     idCiclo: string;
@@ -82,7 +84,9 @@ export class AvaliacoesController {
             idAvaliacao: dto.idAvaliacao
         };
     }
-
+    
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('LIDER')
     @Post('preencher-lider-colaborador')
     async preencherAvaliacaoLiderColaborador(@Body() dto: PreencherAuto_ou_Lider_Dto): Promise<{ message: string; idAvaliacao: string }> {
         await this.service.preencherAvaliacaoLiderColaborador(dto.idAvaliacao, dto.criterios);
