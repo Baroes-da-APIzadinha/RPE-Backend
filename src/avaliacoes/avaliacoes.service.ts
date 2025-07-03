@@ -3,6 +3,7 @@ import { PrismaService } from 'src/database/prismaService';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 import { Motivacao } from './avaliacoes.contants';
 import { Decimal } from '@prisma/client/runtime/library';
+import { RelatorioItem } from './avaliacoes.constants';
 
 @Injectable()
 export class AvaliacoesService {
@@ -658,6 +659,224 @@ export class AvaliacoesService {
         })
     }
 
+    async discrepanciaColaborador(idColaborador: string, idCiclo?: string) {
+        if (!this.isValidUUID(idColaborador)) {
+            return {
+                status: 400,
+                message: 'ID do colaborador inválido'
+            };
+        }
+
+        // Base do filtro
+        const whereClause: any = {
+            idAvaliado: idColaborador
+        };
+
+        // Adicionar filtro de ciclo se fornecido
+        if (idCiclo && this.isValidUUID(idCiclo)) {
+            whereClause.idCiclo = idCiclo;
+        }
+
+        try {
+            // Buscar autoavaliações
+            const autoAvaliacoes = await this.prisma.avaliacao.findMany({
+                where: {
+                    ...whereClause,
+                    tipoAvaliacao: 'AUTOAVALIACAO',
+                },
+                include: {
+                    autoAvaliacao: true
+                }
+            });
+
+            // Buscar avaliações de pares
+            const avaliacoesPares = await this.prisma.avaliacao.findMany({
+                where: {
+                    ...whereClause,
+                    tipoAvaliacao: 'AVALIACAO_PARES',
+                },
+                include: {
+                    avaliacaoPares: true
+                }
+            });
+
+            // Buscar avaliações líder-colaborador
+            const avaliacoesLider = await this.prisma.avaliacao.findMany({
+                where: {
+                    ...whereClause,
+                    tipoAvaliacao: 'LIDER_COLABORADOR',
+                },
+                include: {
+                    avaliacaoLiderColaborador: true
+                }
+            });
+
+            // Calcular médias
+            const mediaAutoAvaliacao = this.calcularMediaAutoAvaliacao(autoAvaliacoes);
+            const mediaAvaliacaoPares = this.calcularMediaAvaliacaoPares(avaliacoesPares);
+            const mediaAvaliacaoLider = this.calcularMediaAvaliacaoLider(avaliacoesLider);
+
+            // Verificar se há dados suficientes para calcular discrepância
+            const mediasValidas = [mediaAutoAvaliacao, mediaAvaliacaoPares, mediaAvaliacaoLider]
+                .filter(media => media !== null);
+
+            if (mediasValidas.length < 2) {
+                return {
+                    colaborador: idColaborador,
+                    ciclo: idCiclo || 'todos',
+                    avaliacoes: {
+                        autoAvaliacao: {
+                            quantidade: autoAvaliacoes.length,
+                            media: mediaAutoAvaliacao
+                        },
+                        avaliacaoPares: {
+                            quantidade: avaliacoesPares.length,
+                            media: mediaAvaliacaoPares
+                        },
+                        avaliacaoLider: {
+                            quantidade: avaliacoesLider.length,
+                            media: mediaAvaliacaoLider
+                        }
+                    },
+                    discrepancia: {
+                        calculada: false,
+                        motivo: 'Dados insuficientes para calcular discrepância (mínimo 2 tipos de avaliação)'
+                    }
+                };
+            }
+
+            // Calcular desvio padrão apenas com as médias válidas
+            let desvioPadrao = 0;
+            let nivelDiscrepancia = 'INDETERMINADO';
+
+            if (mediasValidas.length === 3) {
+                desvioPadrao = this.desvioPadrao(
+                    mediaAutoAvaliacao!,
+                    mediaAvaliacaoPares!,
+                    mediaAvaliacaoLider!
+                );
+            } else if (mediasValidas.length === 2) {
+                // Para duas notas, calcular diferença absoluta como métrica
+                const diferenca = Math.abs(mediasValidas[0] - mediasValidas[1]);
+                desvioPadrao = diferenca / Math.sqrt(2); // Normalizar para comparar com desvio padrão
+            }
+
+            // Classificar discrepância
+            if (desvioPadrao <= 0.5) {
+                nivelDiscrepancia = 'BAIXA';
+            } else if (desvioPadrao <= 1.0) {
+                nivelDiscrepancia = 'MÉDIA';
+            } else if (desvioPadrao <= 1.5) {
+                nivelDiscrepancia = 'ALTA';
+            } else {
+                nivelDiscrepancia = 'CRÍTICA';
+            }
+
+            return {
+                colaborador: idColaborador,
+                ciclo: idCiclo || 'todos',
+                avaliacoes: {
+                    autoAvaliacao: {
+                        quantidade: autoAvaliacoes.length,
+                        media: mediaAutoAvaliacao ? Number(mediaAutoAvaliacao.toFixed(2)) : null
+                    },
+                    avaliacaoPares: {
+                        quantidade: avaliacoesPares.length,
+                        media: mediaAvaliacaoPares ? Number(mediaAvaliacaoPares.toFixed(2)) : null
+                    },
+                    avaliacaoLider: {
+                        quantidade: avaliacoesLider.length,
+                        media: mediaAvaliacaoLider ? Number(mediaAvaliacaoLider.toFixed(2)) : null
+                    }
+                },
+                discrepancia: {
+                    calculada: true,
+                    desvioPadrao: Number(desvioPadrao.toFixed(4)),
+                    nivel: nivelDiscrepancia,
+                    descricao: this.getDescricaoDiscrepancia(nivelDiscrepancia),
+                    baseDados: `${mediasValidas.length} tipos de avaliação`
+                }
+            };
+
+        } catch (error) {
+            return {
+                status: 500,
+                message: 'Erro ao calcular discrepância: ' + error.message
+            };
+        }
+    }
+
+    async discrepanciaAllcolaboradores(idCiclo: string) {
+    try {
+        // Filtro base para colaboradores
+        const whereClause: any = {};
+        
+        if (idCiclo && this.isValidUUID(idCiclo)) {
+            whereClause.colaboradoresCiclos = {
+                some: { idCiclo: idCiclo }
+            };
+        }
+
+        // Buscar todos os colaboradores (sem includes pesados)
+        const colaboradores = await this.prisma.colaboradorCiclo.findMany({
+            where: { idCiclo: idCiclo },
+            include: {
+                colaborador: {
+                    select: {
+                        idColaborador: true,
+                        nomeCompleto: true,
+                        cargo: true,
+                        trilhaCarreira: true,
+                        unidade: true
+                    }
+                }
+            }
+        });
+
+        // Processar cada colaborador usando a função existente
+        const relatorio: RelatorioItem[] = [];
+        
+            for (const colaborador of colaboradores) {
+                const resultadoDiscrepancia = await this.discrepanciaColaborador(
+                    colaborador.idColaborador, 
+                    idCiclo
+                );
+
+                // Verificar se o resultado tem erro
+                if (resultadoDiscrepancia.status) {
+                    this.logger.warn(`Erro ao calcular discrepância para ${colaborador.colaborador.nomeCompleto}: ${resultadoDiscrepancia.message}`);
+                    continue;
+                }
+
+                // Extrair dados das avaliações
+                const avaliacoes = resultadoDiscrepancia.avaliacoes;
+                const discrepancia = resultadoDiscrepancia.discrepancia;
+
+                if (avaliacoes && discrepancia) {
+                        relatorio.push({
+                            idColaborador: colaborador.idColaborador,
+                            nomeColaborador: colaborador.colaborador.nomeCompleto,
+                            cargoColaborador: colaborador.colaborador.cargo || 'Não informado',
+                            trilhaColaborador: colaborador.colaborador.trilhaCarreira || null,
+                            equipeColaborador: colaborador.colaborador.unidade || null,
+                            notas: {
+                                notaAuto: avaliacoes.autoAvaliacao?.media || null,
+                                nota360media: avaliacoes.avaliacaoPares?.media || null,
+                                notaGestor: avaliacoes.avaliacaoLider?.media || null,
+                                discrepancia: discrepancia.calculada ? discrepancia.desvioPadrao : null
+                            }
+                        });
+                }
+            }
+            return relatorio;
+
+        } catch (error) {
+            this.logger.error('Erro ao gerar relatório de discrepância de todos os colaboradores:', error);
+            throw new HttpException('Erro ao gerar relatório de discrepância: ' + error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
     // =================== MÉTODOS PRIVADOS ===================
 
     private async buscarCriteriosParaColaborador(
@@ -817,6 +1036,85 @@ export class AvaliacoesService {
         return value || undefined;
     }
 
+    private desvioPadrao(nota1: number, nota2: number, nota3: number): number {
+        const media = (nota1 + nota2 + nota3) / 3;
+        const variancia = (Math.pow(nota1 - media, 2) + Math.pow(nota2 - media, 2) + Math.pow(nota3 - media, 2)) / 3; 
+        return Math.sqrt(variancia);
+    }
+
+    private calcularMediaAutoAvaliacao(avaliacoes: any[]): number | null {
+        if (!avaliacoes || avaliacoes.length === 0) {
+            return null;
+        }
+
+        const notasValidas = avaliacoes
+            .filter(av => av.autoAvaliacao?.notaFinal !== null && av.autoAvaliacao?.notaFinal !== undefined)
+            .map(av => parseFloat(av.autoAvaliacao.notaFinal.toString()));
+
+        if (notasValidas.length === 0) {
+            return null;
+        }
+
+        const soma = notasValidas.reduce((acc, nota) => acc + nota, 0);
+        return soma / notasValidas.length;
+    }
+
+ 
+    private calcularMediaAvaliacaoPares(avaliacoes: any[]): number | null {
+        if (!avaliacoes || avaliacoes.length === 0) {
+            return null;
+        }
+
+        const notasValidas = avaliacoes
+            .filter(av => av.avaliacaoPares?.nota !== null && av.avaliacaoPares?.nota !== undefined)
+            .map(av => parseFloat(av.avaliacaoPares.nota.toString()));
+
+        if (notasValidas.length === 0) {
+            return null;
+        }
+
+        const soma = notasValidas.reduce((acc, nota) => acc + nota, 0);
+        return soma / notasValidas.length;
+    }
+
+
+    private calcularMediaAvaliacaoLider(avaliacoes: any[]): number | null {
+        if (!avaliacoes || avaliacoes.length === 0) {
+            return null;
+        }
+
+        const notasValidas = avaliacoes
+            .filter(av => av.avaliacaoLiderColaborador?.notaFinal !== null && av.avaliacaoLiderColaborador?.notaFinal !== undefined)
+            .map(av => parseFloat(av.avaliacaoLiderColaborador.notaFinal.toString()));
+
+        if (notasValidas.length === 0) {
+            return null;
+        }
+
+        const soma = notasValidas.reduce((acc, nota) => acc + nota, 0);
+        return soma / notasValidas.length;
+    }
+
+    private getDescricaoDiscrepancia(nivel: string): string {
+        switch (nivel) {
+            case 'BAIXA':
+                return 'Notas consistentes';
+            case 'MÉDIA':
+                return 'Diferenças moderadas entre as notas';
+            case 'ALTA':
+                return 'Diferenças significativas entre as notas';
+            case 'CRÍTICA':
+                return 'Diferenças extremas entre as notas';
+            default:
+                return 'Nível de discrepância não identificado';
+        }
+    }
+
+    private isValidUUID(uuid: string): boolean {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(uuid);
+    }
+
     async listarAvaliacoesComite() {
         // Busca todas as equalizações, agrupando por colaborador avaliado
         const equalizacoes = await this.prisma.equalizacao.findMany({
@@ -883,3 +1181,17 @@ export class AvaliacoesService {
         return avaliacoes;
     }
 }
+
+/*interface RelatorioItem {
+    idColaborador: string;
+    nomeColaborador: string;
+    cargoColaborador: string;
+    trilhaColaborador: string | null;
+    equipeColaborador: string | null;
+    notas: {
+        notaAuto: number | null;
+        nota360media: number | null;
+        notaGestor: number | null;
+        discrepancia: number | null | undefined;
+    };
+} */
