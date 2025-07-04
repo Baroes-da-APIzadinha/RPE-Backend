@@ -38,6 +38,9 @@ DECLARE
     colaborador_gestor_id UUID := '33333333-3333-3333-3333-333333333333';
     colaborador_comum_id UUID := '44444444-4444-4444-4444-444444444444';
     colaborador_mentor_id UUID := '99999999-9999-9999-9999-999999999999';
+    colaborador_qa_id UUID := 'aaaaaaaa-1111-1111-1111-111111111111';
+    colaborador_ux_id UUID := 'bbbbbbbb-2222-2222-2222-222222222222';
+    colaborador_marketing_id UUID := 'cccccccc-3333-3333-3333-333333333333';
     
     -- Ciclos de Avaliação
     ciclo_2024_2_id UUID := '55555555-5555-5555-5555-555555555555';
@@ -73,11 +76,14 @@ BEGIN
 -- Inserir Colaboradores
 INSERT INTO "Colaborador" ("idColaborador", "nomeCompleto", "email", "senha", "cargo", "trilhaCarreira", "unidade", "dataCriacao")
 VALUES
-    (colaborador_admin_id,'Administrador Sistema', 'admin@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'Administrador', 'TI', 'Matriz', CURRENT_TIMESTAMP),
-    (colaborador_rh_id, 'RH Manager', 'rh@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'Analista RH', 'RH', 'Matriz', CURRENT_TIMESTAMP),
-    (colaborador_gestor_id, 'Gestor Tech', 'gestor@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'Tech Lead', 'Tecnologia', 'Matriz', CURRENT_TIMESTAMP),
-    (colaborador_comum_id, 'Desenvolvedor Junior', 'dev@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'Desenvolvedor', 'Tecnologia', 'Filial', CURRENT_TIMESTAMP),
-    (colaborador_mentor_id, 'Mentor Senior', 'mentor@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'Senior Developer', 'Tecnologia', 'Matriz', CURRENT_TIMESTAMP);
+    (colaborador_admin_id,'Administrador Sistema', 'admin@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'DESENVOLVEDOR', 'GERENCIAMENTO', 'RECIFE', CURRENT_TIMESTAMP),
+    (colaborador_rh_id, 'RH Manager', 'rh@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'RH', 'RH', 'RECIFE', CURRENT_TIMESTAMP),
+    (colaborador_gestor_id, 'Gestor Tech', 'gestor@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'DESENVOLVEDOR', 'DESENVOLVIMENTO', 'RECIFE', CURRENT_TIMESTAMP),
+    (colaborador_comum_id, 'Desenvolvedor Junior', 'dev@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'DESENVOLVEDOR', 'DESENVOLVIMENTO', 'SAO PAULO', CURRENT_TIMESTAMP),
+    (colaborador_mentor_id, 'Mentor Senior', 'mentor@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'DESENVOLVEDOR', 'DESENVOLVIMENTO', 'RECIFE', CURRENT_TIMESTAMP),
+    (colaborador_qa_id, 'Analista QA', 'qa@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'QA', 'QA', 'FLORIANOPOLIS', CURRENT_TIMESTAMP),
+    (colaborador_ux_id, 'Designer UX', 'ux@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'UX', 'UX', 'SAO PAULO', CURRENT_TIMESTAMP),
+    (colaborador_marketing_id, 'Analista Marketing', 'marketing@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'MARKETING', 'MARKETING', 'RECIFE', CURRENT_TIMESTAMP);
 
 -- Inserir Perfis dos Colaboradores
 INSERT INTO "ColaboradorPerfil" ("idColaborador", "tipoPerfil")
@@ -88,8 +94,11 @@ VALUES
     (colaborador_gestor_id, 'GESTOR'),
     (colaborador_gestor_id, 'LIDER'),
     (colaborador_comum_id, 'COLABORADOR_COMUM'),
+    (colaborador_mentor_id, 'GESTOR'),
     (colaborador_mentor_id, 'MENTOR'),
-    (colaborador_mentor_id, 'COLABORADOR_COMUM');
+    (colaborador_qa_id, 'COLABORADOR_COMUM'),
+    (colaborador_ux_id, 'COLABORADOR_COMUM'),
+    (colaborador_marketing_id, 'COLABORADOR_COMUM');
 
 -- Inserir Ciclos de Avaliação
 INSERT INTO "CicloAvaliacao" ("idCiclo", "nomeCiclo", "dataInicio", "dataFim", "status")
@@ -156,12 +165,18 @@ VALUES
 -- Inserir Relação Gestor-Colaborador
 INSERT INTO "GestorColaborador" ("idGestorColaborador", "idGestor", "idColaborador", "idCiclo")
 VALUES
-    (uuid_generate_v4(), colaborador_gestor_id, colaborador_comum_id, ciclo_2025_1_id);
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_comum_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_qa_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_ux_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_marketing_id, ciclo_2025_1_id);
 
 -- Inserir Relação Líder-Colaborador
 INSERT INTO "LiderColaborador" ("idLiderColaborador", "idLider", "idColaborador", "idCiclo")
 VALUES
-    (uuid_generate_v4(), colaborador_gestor_id, colaborador_comum_id, ciclo_2025_1_id);
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_comum_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_qa_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_ux_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_marketing_id, ciclo_2025_1_id);
 
 -- Inserir Colaboradores no Ciclo
 INSERT INTO "ColaboradorCiclo" ("id", "idColaborador", "idCiclo")
@@ -170,20 +185,29 @@ VALUES
     (uuid_generate_v4(), colaborador_comum_id, ciclo_2024_2_id),
     (uuid_generate_v4(), colaborador_gestor_id, ciclo_2024_2_id),
     (uuid_generate_v4(), colaborador_mentor_id, ciclo_2024_2_id),
+    (uuid_generate_v4(), colaborador_qa_id, ciclo_2024_2_id),
+    (uuid_generate_v4(), colaborador_ux_id, ciclo_2024_2_id),
+    (uuid_generate_v4(), colaborador_marketing_id, ciclo_2024_2_id),
     -- Ciclo 2025.1 (em andamento)
     (uuid_generate_v4(), colaborador_comum_id, ciclo_2025_1_id),
     (uuid_generate_v4(), colaborador_gestor_id, ciclo_2025_1_id),
-    (uuid_generate_v4(), colaborador_mentor_id, ciclo_2025_1_id);
+    (uuid_generate_v4(), colaborador_mentor_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_qa_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_ux_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_marketing_id, ciclo_2025_1_id);
 
 -- Inserir Relação Mentor-Colaborador
 INSERT INTO "MentorColaborador" ("idMentorColaborador", "idMentor", "idColaborador", "idCiclo")
 VALUES
-    (uuid_generate_v4(), colaborador_mentor_id, colaborador_comum_id, ciclo_2025_1_id);
+    (uuid_generate_v4(), colaborador_mentor_id, colaborador_comum_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_mentor_id, colaborador_qa_id, ciclo_2025_1_id);
 
 -- Inserir Pares
 INSERT INTO "Pares" ("idPar", "idColaborador1", "idColaborador2", "idCiclo")
 VALUES
-    (uuid_generate_v4(), colaborador_comum_id, colaborador_gestor_id, ciclo_2025_1_id);
+    (uuid_generate_v4(), colaborador_comum_id, colaborador_qa_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_ux_id, colaborador_marketing_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_mentor_id, ciclo_2025_1_id);
 
 -- Inserir Avaliações
 INSERT INTO "Avaliacao" ("idAvaliacao", "idCiclo", "idAvaliador", "idAvaliado", "tipoAvaliacao", "status")
