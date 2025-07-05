@@ -57,21 +57,20 @@ POST http://localhost:3000/ciclo
 Content-Type: application/json
 
 {
-    "nome": "2025.4",
+    "nome": "2025.8",
     "dataInicioAno": 2025,
     "dataInicioMes": 6,
-    "dataInicioDia": 5,
+    "dataInicioDia": 10,
     "dataFimAno": 2025,
     "dataFimMes": 7,
-    "dataFimDia": 5,
-    "duracaoEmAndamentoDias": 10,
-    "duracaoEmRevisaoDias": 10,
-    "duracaoEmEqualizacaoDias": 10
+    "dataFimDia": 3,
+    "duracaoEmAndamentoDias": 22,
+    "duracaoEmRevisaoDias": 1,
+    "duracaoEmEqualizacaoDias": 2
 }
 
 ### Remover ciclo
-DELETE http://localhost:3000/ciclo/49a329d2-3b7e-428d-b78e-7800d115a45f
-
+DELETE http://localhost:3000/ciclo/d18b8e43-5535-425e-bc73-88f393286fbc
 ### Get ciclo
 GET http://localhost:3000/ciclo/get/b55004c9-4656-42ab-8b61-ebcd701fd2d6
 

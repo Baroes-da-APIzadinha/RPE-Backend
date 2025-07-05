@@ -20,15 +20,18 @@ export class CiclosStatus {
     });
   }
 
-  @Cron('1 17 * * *', {
+  @Cron('00 00 * * *', {
     timeZone: 'America/Sao_Paulo'
   })
   async handleCron() {
     this.logger.debug('Verificando status dos ciclos...');
     const ciclos = await this.findAll();
     const now = new Date();
-    now.setHours(now.getHours() - 3);
-    console.log('Data atual (SP):', now);
+    console.log('Data atual UTC:', now);
+
+    // Criar variável 'hoje' apenas com data (sem horas)
+    const hoje = new Date(now.getFullYear(), now.getMonth(), now.getDate(), -3, 0, 0, 0);
+    console.log('Hoje (apenas data):', hoje);
 
     for (const ciclo of ciclos) {
       const inicio = new Date(ciclo.dataInicio);
@@ -53,15 +56,15 @@ export class CiclosStatus {
       let newStatus: cicloStatus = ciclo.status; // Mantém o status atual por padrão
 
       // Lógica de transição de status
-      if (now < inicio) {
+      if (hoje < inicio) {
         newStatus = cicloStatus.AGENDADO;
-      } else if (now >= inicio && now <= fimAndamento) {
+      } else if (hoje >= inicio && hoje <= fimAndamento) {
         newStatus = cicloStatus.EM_ANDAMENTO;
-      } else if (now >= inicioRevisao && now <= fimRevisao) {
+      } else if (hoje >= inicioRevisao && hoje <= fimRevisao) {
         newStatus = cicloStatus.EM_REVISAO;
-      } else if (now >= inicioEqualizacao && now <= fimEqualizacao) {
+      } else if (hoje >= inicioEqualizacao && hoje <= fimEqualizacao) {
         newStatus = cicloStatus.EM_EQUALIZAÇÃO;
-      } else if (now > fim) {
+      } else if (hoje > fim) {
         newStatus = cicloStatus.FECHADO;
       }
 
