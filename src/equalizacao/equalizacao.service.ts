@@ -122,16 +122,24 @@ export class EqualizacaoService {
     });
   }
 
+  // Função utilitária para calcular o desvio padrão
+  private calcularDesvioPadrao(notas: number[]): number {
+    if (notas.length === 0) return 0;
+    const media = notas.reduce((a, b) => a + b, 0) / notas.length;
+    const variancia = notas.reduce((acc, n) => acc + Math.pow(n - media, 2), 0) / notas.length;
+    return Math.sqrt(variancia);
+  }
+
   async findByComite(idMembroComite: string) {
     this.logger.log(`Buscando equalizações realizadas pelo membro do comitê: ${idMembroComite}`);
-    
-    return this.prisma.equalizacao.findMany({
+    const equalizacoes = await this.prisma.equalizacao.findMany({
       where: {
         idMembroComite,
       },
       include: {
         alvo: {
           select: {
+            idColaborador: true,
             nomeCompleto: true,
             cargo: true,
           },
@@ -141,6 +149,48 @@ export class EqualizacaoService {
         dataEqualizacao: 'desc',
       },
     });
+
+    // Para cada equalização, calcular a média e o desvio padrão das notas recebidas pelo avaliado
+    const result: any[] = [];
+    for (const eq of equalizacoes) {
+      // Buscar todas as avaliações recebidas pelo avaliado no mesmo ciclo
+      const avaliacoes = await this.prisma.avaliacao.findMany({
+        where: {
+          idAvaliado: eq.idAvaliado,
+          idCiclo: eq.idCiclo,
+        },
+        select: {
+          autoAvaliacao: { select: { notaFinal: true } },
+          avaliacaoPares: { select: { nota: true } },
+          avaliacaoColaboradorMentor: { select: { nota: true } },
+          avaliacaoLiderColaborador: { select: { notaFinal: true } },
+        },
+      });
+      // Extrair todas as notas possíveis
+      const notas: number[] = [];
+      for (const av of avaliacoes) {
+        if (av.autoAvaliacao?.notaFinal != null) notas.push(Number(av.autoAvaliacao.notaFinal));
+        if (av.avaliacaoPares?.nota != null) notas.push(Number(av.avaliacaoPares.nota));
+        if (av.avaliacaoColaboradorMentor?.nota != null) notas.push(Number(av.avaliacaoColaboradorMentor.nota));
+        if (av.avaliacaoLiderColaborador?.notaFinal != null) notas.push(Number(av.avaliacaoLiderColaborador.notaFinal));
+      }
+      if (notas.length === 0) continue;
+      const mediaNotas = notas.reduce((a, b) => a + b, 0) / notas.length;
+      const desvioPadrao = this.calcularDesvioPadrao(notas);
+      const notaAjustada = eq.notaAjustada != null ? Number(eq.notaAjustada) : null;
+      if (notaAjustada == null) continue;
+      const discrepancia = Math.abs(notaAjustada - mediaNotas);
+      // Considera discrepância alta se for maior que 1 desvio padrão
+      if (discrepancia > desvioPadrao) {
+        result.push({
+          ...eq,
+          mediaNotas,
+          desvioPadrao,
+          discrepancia,
+        });
+      }
+    }
+    return result;
   }
 
   async findOne(idEqualizacao: string) {
