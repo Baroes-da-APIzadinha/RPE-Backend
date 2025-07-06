@@ -31,11 +31,13 @@ export class AvaliacoesService {
     }
 
     async lancarAvaliaçãoPares(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
+        this.logger.log(`Iniciando lançamento de avaliações de pares para ciclo ${idCiclo}`);
         const where = { idCiclo };
         const pares = await this.prisma.pares.findMany({
             where,
             select: { idColaborador1: true, idColaborador2: true, idCiclo: true }
         });
+        this.logger.log(`Total de pares encontrados para o ciclo ${idCiclo}: ${pares.length}`);
 
         // Buscar todas as avaliações de pares já existentes para o ciclo
         const avaliacoesExistentes = await this.prisma.avaliacao.findMany({
@@ -99,13 +101,15 @@ export class AvaliacoesService {
             }
         });
 
+        this.logger.log(`Resumo do lançamento de avaliações de pares para ciclo ${idCiclo}: Lancadas: ${lancadas}, Existentes: ${existentes}, Erros: ${erros}`);
         return { lancadas, existentes, erros };
     }
 
-    async lancarAutoAvaliacoes(cicloId: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
+    async lancarAutoAvaliacoes(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
+        this.logger.log(`Iniciando lançamento de autoavaliaçõess para ciclo ${idCiclo}`);
         const participantesDoCiclo = await this.prisma.colaboradorCiclo.findMany({
             where: {
-                idCiclo: cicloId
+                idCiclo: idCiclo
             },
             include: {
                 colaborador: {
@@ -134,7 +138,7 @@ export class AvaliacoesService {
         // Buscar todas as autoavaliações já existentes para o ciclo
         const avaliacoesExistentes = await this.prisma.avaliacao.findMany({
             where: {
-                idCiclo: cicloId,
+                idCiclo: idCiclo,
                 tipoAvaliacao: 'AUTOAVALIACAO'
             },
             select: { idAvaliado: true }
@@ -152,7 +156,7 @@ export class AvaliacoesService {
             }
             try {
                 const criterios = await this.buscarCriteriosParaColaborador(
-                    cicloId,
+                    idCiclo,
                     this.toStrUndef(colaborador.cargo),
                     this.toStrUndef(colaborador.trilhaCarreira),
                     this.toStrUndef(colaborador.unidade)
@@ -170,7 +174,7 @@ export class AvaliacoesService {
 
                 await this.prisma.avaliacao.create({
                     data: {
-                        idCiclo: cicloId,
+                        idCiclo: idCiclo,
                         idAvaliado: colaborador.idColaborador,
                         idAvaliador: colaborador.idColaborador,
                         tipoAvaliacao: 'AUTOAVALIACAO',
