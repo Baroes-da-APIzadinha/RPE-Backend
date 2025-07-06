@@ -143,7 +143,7 @@ export class CiclosStatus {
                     // Continua com a atualização de status mesmo se houver erro nas avaliações
                     await this.updateStatus(ciclo.idCiclo, newStatus);
                     this.logger.log(
-                        `Ciclo ${ciclo.idCiclo} - "${ciclo.nomeCiclo}" teve o status alterado para: ${newStatus}`,
+                        `Apesar de algum erro, o ciclo ${ciclo.idCiclo} - "${ciclo.nomeCiclo}" teve o status alterado para: ${newStatus}`,
                     );
                 }
             }
