@@ -3,12 +3,17 @@ import { cicloStatus, CicloAvaliacao, Prisma } from '@prisma/client';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AvaliacoesService } from 'src/avaliacoes/avaliacoes.service';
+import { EqualizacaoService } from 'src/equalizacao/equalizacao.service';
+import { CreateEqualizacaoDto } from 'src/equalizacao/equalizacao.dto';
+
+
 
 @Injectable()
 export class CiclosStatus {
     constructor(
         private prisma: PrismaService,
-        private avaliacoesService: AvaliacoesService
+        private avaliacoesService: AvaliacoesService,
+        private equelizacoesService: EqualizacaoService
     ) { }
 
     private readonly logger = new Logger(CiclosStatus.name);
@@ -24,7 +29,7 @@ export class CiclosStatus {
         });
     }
 
-    @Cron('20 1 * * *', {
+    @Cron('46 1 * * *', {
         timeZone: 'America/Sao_Paulo'
     })
     async handleCron() {
@@ -108,7 +113,11 @@ export class CiclosStatus {
                             tipo: 'Avaliação Líder-Colaborador',
                             resultado: relatorio_AvaliacaoLider
                         });
-                    }
+                    } else if (newStatus === cicloStatus.EM_EQUALIZAÇÃO) {
+                        
+                        await this.equelizacoesService.create({ idCiclo: ciclo.idCiclo });
+                        
+                    } 
                     
                     await this.updateStatus(ciclo.idCiclo, newStatus);
                     
@@ -130,9 +139,12 @@ export class CiclosStatus {
                     );
                     
                 } catch (error) {
-                    this.logger.error(`Erro ao processar avaliações para o ciclo ${ciclo.nomeCiclo}:`, error);
+                    this.logger.error(`Erro ao processar avaliações/equalizações para o ciclo ${ciclo.nomeCiclo}:`, error);
                     // Continua com a atualização de status mesmo se houver erro nas avaliações
                     await this.updateStatus(ciclo.idCiclo, newStatus);
+                    this.logger.log(
+                        `Ciclo ${ciclo.idCiclo} - "${ciclo.nomeCiclo}" teve o status alterado para: ${newStatus}`,
+                    );
                 }
             }
         }

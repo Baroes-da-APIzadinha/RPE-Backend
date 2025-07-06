@@ -57,16 +57,16 @@ POST http://localhost:3000/ciclo
 Content-Type: application/json
 
 {
-    "nome": "2026.9",
+    "nome": "2026.2",
     "dataInicioAno": 2025,
     "dataInicioMes": 7,
-    "dataInicioDia": 5,
+    "dataInicioDia": 4,
     "dataFimAno": 2025,
     "dataFimMes": 7,
     "dataFimDia": 10,
     "duracaoEmAndamentoDias": 1,
-    "duracaoEmRevisaoDias": 2,
-    "duracaoEmEqualizacaoDias": 2
+    "duracaoEmRevisaoDias": 1,
+    "duracaoEmEqualizacaoDias": 5
 }
 
 ### Remover ciclo
