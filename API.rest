@@ -354,3 +354,6 @@ GET http://localhost:3000/avaliacoes/notasAvaliacoes/996e4e19-cfca-4414-ac93-0a2
 
 ### Get all notas
 GET http://localhost:3000/avaliacoes/notasCiclo/4e4b287f-bddd-47c7-83ff-a663720f2ba3
+
+### Get resumo IA
+GET http://localhost:3000/ia/avaliar/996e4e19-cfca-4414-ac93-0a274a417c7e/4e4b287f-bddd-47c7-83ff-a663720f2ba3
