@@ -29,7 +29,7 @@ export class CiclosStatus {
         });
     }
 
-    @Cron('46 1 * * *', {
+    @Cron('0 0 * * *', {
         timeZone: 'America/Sao_Paulo'
     })
     async handleCron() {
