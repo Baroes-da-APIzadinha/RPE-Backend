@@ -135,13 +135,22 @@ export class CicloService {
     async getCiclosAtivos() {
         const ciclos = await this.prisma.cicloAvaliacao.findMany({
             where: {
-                status: 'EM_ANDAMENTO',
+                status: {
+                    in: [
+                        cicloStatus.AGENDADO,
+                        cicloStatus.EM_ANDAMENTO,
+                        cicloStatus.EM_REVISAO,
+                        cicloStatus.EM_EQUALIZAÇÃO
+                    ]
+                }
             },
         });
-
+        console.log(agoraEmBrasilia)
         return ciclos.map((ciclo) => {
+
             const dataFim = new Date(ciclo.dataFim);
-            const diffMs = dataFim.getTime() - hoje.getTime();
+            dataFim.setDate(dataFim.getDate() + 1); // Adiciona 1 dia à data de fim
+            const diffMs = dataFim.getTime() - agoraEmBrasilia.getTime();
 
             // Converter para dias, horas, minutos
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -151,7 +160,9 @@ export class CicloService {
             return {
                 id: ciclo.idCiclo,
                 nome: ciclo.nomeCiclo,
-                tempoRestante: `${diffDays} dias, ${diffHours} horas, ${diffMinutes} minutos`,
+                status: ciclo.status,
+                dataFim: ciclo.dataFim,
+                tempoRestante: `${diffDays} dias, ${diffHours} horas, ${diffMinutes} minutos`
             };
         });
     }
