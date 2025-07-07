@@ -105,9 +105,9 @@ model CicloAvaliacao {
   avaliacoes           Avaliacao[]
   updatedAt            DateTime @updatedAt
 
-  duracaoEmAndamentoDias    Int                       
-  duracaoEmRevisaoDias      Int                       
-  duracaoEmEqualizacaoDias  Int                       
+  duracaoEmAndamentoDias    Int   @default(0)
+  duracaoEmRevisaoDias      Int   @default(0)
+  duracaoEmEqualizacaoDias  Int   @default(0)
 
   associacoesCriterio  AssociacaoCriterioCiclo[]
   indicacoesReferencia IndicacaoReferencia[]
@@ -308,7 +308,7 @@ model ColaboradorCiclo {
 
 model Projeto {
   idProjeto   String                       @id @default(uuid()) @db.Uuid
-  nomeProjeto String                       @db.VarChar(255)
+  nomeProjeto String                       @unique @db.VarChar(255) 
   cliente     String?                      @db.VarChar(255)
   dataInicio  DateTime?                    @db.Date
   dataFim     DateTime?                    @db.Date

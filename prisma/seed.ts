@@ -84,6 +84,7 @@ async function processarPlanilha(filePath: string) {
 
   const ciclo = await prisma.cicloAvaliacao.findFirst({ where: { nomeCiclo: cicloNome } });
   let cicloId: string;
+  let cicloObj;
   if (!ciclo) {
     let ano = '2024';
     const match = cicloNome.match(/(\d{4})/);
@@ -100,8 +101,10 @@ async function processarPlanilha(filePath: string) {
       },
     });
     cicloId = novoCiclo.idCiclo;
+    cicloObj = novoCiclo;
   } else {
     cicloId = ciclo.idCiclo;
+    cicloObj = ciclo;
   }
   console.log(`  - Ciclo: ${cicloId} [OK]`);
 
@@ -134,7 +137,16 @@ async function processarPlanilha(filePath: string) {
           senha: 'senha123', 
         },
       });
-      await criarAvaliacaoDePares(cicloId, avaliado.idColaborador, colaborador.idColaborador, avaliacoesPorAvaliado[emailAvaliado]);
+      const dadosAvaliacao = avaliacoesPorAvaliado[emailAvaliado];
+      for (const linha of dadosAvaliacao) {
+        const nomeProjeto = linha['PROJETO EM QUE ATUARAM JUNTOS - OBRIGATÓRIO TEREM ATUADOS JUNTOS'];
+        if (nomeProjeto && cicloObj) {
+          const projeto = await upsertProjeto(nomeProjeto);
+          await upsertAlocacao(avaliado.idColaborador, projeto.idProjeto, cicloObj.dataInicio, cicloObj.dataFim);
+          await upsertAlocacao(colaborador.idColaborador, projeto.idProjeto, cicloObj.dataInicio, cicloObj.dataFim);
+        }
+      }
+      await criarAvaliacaoDePares(cicloId, avaliado.idColaborador, colaborador.idColaborador, dadosAvaliacao);
       console.log(`  - Avaliação 360 para ${emailAvaliado} importada.`);
     }
   }
@@ -185,11 +197,6 @@ async function processarPlanilha(filePath: string) {
     }
     console.log(`  - ✔️ ${refsCriadas} Indicações de Referência importadas.`);
   }
-}
-
-function extrairDadosDaAba(workbook: xlsx.WorkBook, nomeAba: string): any[] {
-  const sheet = workbook.Sheets[nomeAba];
-  return sheet ? xlsx.utils.sheet_to_json(sheet) : [];
 }
 
 async function seedCriterios() {
@@ -253,7 +260,39 @@ const MAPA_CRITERIOS_ANTIGOS_PARA_NOVOS = {
   'Novos Produtos ou Serviços**': 'Evolução da Rocket Corp',
 };
 
+// --- FUNÇÕES AUXILIARES ---
 
+function extrairDadosDaAba(workbook: xlsx.WorkBook, nomeAba: string): any[] {
+  const sheet = workbook.Sheets[nomeAba];
+  return sheet ? xlsx.utils.sheet_to_json(sheet) : [];
+}
+
+async function upsertProjeto(nomeProjeto: string) {
+  return prisma.projeto.upsert({
+    where: { nomeProjeto }, // nomeProjeto é @unique no schema.prisma
+    update: {},
+    create: {
+      nomeProjeto,
+      status: 'CONCLUIDO', // ou outro status padrão
+    },
+  });
+}
+
+async function upsertAlocacao(idColaborador: string, idProjeto: string, dataEntrada: Date, dataFim: Date) {
+  const alocacaoExistente = await prisma.alocacaoColaboradorProjeto.findFirst({
+    where: { idColaborador, idProjeto },
+  });
+  if (!alocacaoExistente) {
+    await prisma.alocacaoColaboradorProjeto.create({
+      data: {
+        idColaborador,
+        idProjeto,
+        dataEntrada,
+        dataSaida: dataFim,
+      },
+    });
+  }
+}
 
 async function criarAutoAvaliacaoComCards(cicloId: string, colaboradorId: string, linhasDaPlanilha: any[]) {
   try {
