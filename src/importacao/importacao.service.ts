@@ -56,7 +56,16 @@ export class ImportacaoService {
               senha: 'senha123',
             },
           });
-          await this.criarAvaliacaoDePares(ciclo.idCiclo, avaliado.idColaborador, colaborador.idColaborador, avaliacoesPorAvaliado[emailAvaliado]);
+          const dadosAvaliacao = avaliacoesPorAvaliado[emailAvaliado];
+          for (const linha of dadosAvaliacao) {
+            const nomeProjeto = linha['PROJETO EM QUE ATUARAM JUNTOS - OBRIGATÓRIO TEREM ATUADOS JUNTOS'];
+            if (nomeProjeto && ciclo) {
+              const projeto = await this.upsertProjeto(nomeProjeto);
+              await this.upsertAlocacao(avaliado.idColaborador, projeto.idProjeto, ciclo.dataInicio, ciclo.dataFim);
+              await this.upsertAlocacao(colaborador.idColaborador, projeto.idProjeto, ciclo.dataInicio, ciclo.dataFim);
+            }
+          }
+          await this.criarAvaliacaoDePares(ciclo.idCiclo, avaliado.idColaborador, colaborador.idColaborador, dadosAvaliacao);
           this.logger.log(`Avaliação 360 para ${emailAvaliado} importada.`);
         }
       }
@@ -263,5 +272,32 @@ export class ImportacaoService {
       acc[valorChave].push(obj);
       return acc;
     }, {});
+  }
+
+  private async upsertProjeto(nomeProjeto: string) {
+    return this.prisma.projeto.upsert({
+      where: { nomeProjeto },
+      update: {},
+      create: {
+        nomeProjeto,
+        status: 'CONCLUIDO',
+      },
+    });
+  }
+
+  private async upsertAlocacao(idColaborador: string, idProjeto: string, dataEntrada: Date, dataFim: Date) {
+    const alocacaoExistente = await this.prisma.alocacaoColaboradorProjeto.findFirst({
+      where: { idColaborador, idProjeto },
+    });
+    if (!alocacaoExistente) {
+      await this.prisma.alocacaoColaboradorProjeto.create({
+        data: {
+          idColaborador,
+          idProjeto,
+          dataEntrada,
+          dataSaida: dataFim,
+        },
+      });
+    }
   }
 }
