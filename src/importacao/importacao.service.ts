@@ -145,6 +145,9 @@ export class ImportacaoService {
           dataInicio: new Date(`${ano}-01-01`),
           dataFim: new Date(`${ano}-03-31`),
           status: 'FECHADO',
+          duracaoEmAndamentoDias: 30,
+          duracaoEmRevisaoDias: 30,
+          duracaoEmEqualizacaoDias: 30,
         },
       });
     }

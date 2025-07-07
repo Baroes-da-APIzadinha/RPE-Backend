@@ -9,7 +9,7 @@ import { PrismaService } from 'src/database/prismaService';
 import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
 import { cicloStatus, CicloAvaliacao, Prisma } from '@prisma/client';
 
-const TEMPO_MINIMO_DIAS = 2;
+const TEMPO_MINIMO_DIAS = 30;
 const TEMPO_MAXIMO_DIAS = 180;
 
 // Pega o momento atual em UTC
@@ -25,7 +25,7 @@ const hoje = new Date(
         agoraEmBrasilia.getUTCFullYear(),
         agoraEmBrasilia.getUTCMonth(),
         agoraEmBrasilia.getUTCDate(),
-        3, 0, 0, 0,
+        0, 0, 0, 0,
     ),
 );
 
@@ -41,17 +41,19 @@ export class CicloService {
             data.dataInicioMes,
             data.dataInicioDia,
         );
+        console.log(dataInicio)
         const dataFim = this._createData(
             data.dataFimAno,
             data.dataFimMes,
-            data.dataFimDia,
-            true,
+            data.dataFimDia
         );
+        console.log(dataFim)
+        console.log(hoje)
+        console.log(agoraEmBrasilia)
 
-        await this._validarDatas(dataInicio, dataFim);
+        await this._validarDatas(dataInicio, dataFim, data.duracaoEmAndamentoDias, data.duracaoEmRevisaoDias, data.duracaoEmEqualizacaoDias);
         this._validarPadraoNomeCiclo(data.nome);
         await this._validarNomeUnico(data.nome);
-
         const status = this._isSameDay(dataInicio, hoje)
             ? cicloStatus.EM_ANDAMENTO
             : cicloStatus.AGENDADO;
@@ -62,6 +64,9 @@ export class CicloService {
                 dataInicio,
                 dataFim,
                 status,
+                duracaoEmAndamentoDias: data.duracaoEmAndamentoDias,
+                duracaoEmRevisaoDias: data.duracaoEmRevisaoDias,
+                duracaoEmEqualizacaoDias: data.duracaoEmEqualizacaoDias,
             },
         });
     }
@@ -86,12 +91,11 @@ export class CicloService {
                 ? this._createData(
                       data.dataFimAno,
                       data.dataFimMes,
-                      data.dataFimDia,
-                      true,
+                      data.dataFimDia
                   )
                 : cicloExistente.dataFim;
 
-        await this._validarDatas(dataInicio, dataFim);
+      
 
         if (data.nome && data.nome !== cicloExistente.nomeCiclo) {
             this._validarPadraoNomeCiclo(data.nome);
@@ -134,13 +138,22 @@ export class CicloService {
     async getCiclosAtivos() {
         const ciclos = await this.prisma.cicloAvaliacao.findMany({
             where: {
-                status: 'EM_ANDAMENTO',
+                status: {
+                    in: [
+                        cicloStatus.AGENDADO,
+                        cicloStatus.EM_ANDAMENTO,
+                        cicloStatus.EM_REVISAO,
+                        cicloStatus.EM_EQUALIZAÇÃO
+                    ]
+                }
             },
         });
-
+        console.log(agoraEmBrasilia)
         return ciclos.map((ciclo) => {
+
             const dataFim = new Date(ciclo.dataFim);
-            const diffMs = dataFim.getTime() - hoje.getTime();
+            dataFim.setDate(dataFim.getDate() + 1); // Adiciona 1 dia à data de fim
+            const diffMs = dataFim.getTime() - agoraEmBrasilia.getTime();
 
             // Converter para dias, horas, minutos
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -150,7 +163,9 @@ export class CicloService {
             return {
                 id: ciclo.idCiclo,
                 nome: ciclo.nomeCiclo,
-                tempoRestante: `${diffDays} dias, ${diffHours} horas, ${diffMinutes} minutos`,
+                status: ciclo.status,
+                dataFim: ciclo.dataFim,
+                tempoRestante: `${diffDays} dias, ${diffHours} horas, ${diffMinutes} minutos`
             };
         });
     }
@@ -188,6 +203,9 @@ export class CicloService {
     private async _validarDatas(
         dataInicio: Date,
         dataFim: Date,
+        duracaoEmAndamentoDias: number,
+        duracaoEmRevisaoDias: number,
+        duracaoEmEqualizacaoDias: number,
     ): Promise<void> {
         if (!dataInicio || !dataFim) {
             throw new BadRequestException('Data de início ou fim inválida.');
@@ -199,12 +217,12 @@ export class CicloService {
         }
         if (dataInicio.getTime() < hoje.getTime()) {
             throw new BadRequestException(
-                'Data de início não pode ser menor que o dia atual.',
+                `Data de início ${dataInicio} não pode ser menor que o dia atual ${hoje}.`,
             );
         }
 
         const diffMs = dataFim.getTime() - dataInicio.getTime();
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        const diffDays = (diffMs / (1000 * 60 * 60 * 24)) + 1;
 
         if (diffDays < TEMPO_MINIMO_DIAS) {
             throw new BadRequestException(
@@ -213,9 +231,18 @@ export class CicloService {
         }
         if (diffDays > TEMPO_MAXIMO_DIAS) {
             throw new BadRequestException(
-                `O ciclo não pode ter mais de ${TEMPO_MAXIMO_DIAS} dias de duração.`,
+                `O ciclo não pode ter mais de ${TEMPO_MAXIMO_DIAS} dias de duração.`
             );
         }
+
+        const somaDuracoes = duracaoEmAndamentoDias + duracaoEmRevisaoDias + duracaoEmEqualizacaoDias;
+        if (somaDuracoes !== diffDays) {
+            throw new BadRequestException(
+                `soma das durações dos status do ciclo (${somaDuracoes} dias) deve ser igual ao número total de dias do ciclo ${diffDays} diffDays`
+            );
+        }
+
+        // Validação: soma das durações dos status deve ser igual ao total de dias do ci
     }
 
     private async _validarNomeUnico(nome: string): Promise<void> {
@@ -263,21 +290,12 @@ export class CicloService {
         ano: number,
         mes: number,
         dia: number,
-        isDataFim: boolean = false,
     ): Date {
         if (!this._isDataValida(ano, mes, dia)) {
             throw new BadRequestException(`Data inválida fornecida: ${dia}/${mes}/${ano}`);
         }
-
-        if (isDataFim) {
-            // Cria a data no final do dia em Brasília (23:59:59.999), que é 02:59:59.999 do dia seguinte em UTC
-            return new Date(
-                Date.UTC(ano, mes - 1, dia, 23, 59, 59, 999) +
-                    3 * 60 * 60 * 1000,
-            );
-        }
         // Cria a data no início do dia em Brasília (00:00:00), que é 03:00:00 em UTC
-        return new Date(Date.UTC(ano, mes - 1, dia, 3, 0, 0, 0));
+        return new Date(Date.UTC(ano, mes -1, dia, 0, 0, 0, 0));
     }
 
     private _validarPadraoNomeCiclo(nome: string): void {
