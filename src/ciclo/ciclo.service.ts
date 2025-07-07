@@ -41,15 +41,17 @@ export class CicloService {
             data.dataInicioMes,
             data.dataInicioDia,
         );
-        console.log(dataInicio)
+        
         const dataFim = this._createData(
             data.dataFimAno,
             data.dataFimMes,
             data.dataFimDia
         );
-        console.log(dataFim)
-        console.log(hoje)
-        console.log(agoraEmBrasilia)
+        
+        console.log('Data de início:', dataInicio);
+        console.log('Data de fim:', dataFim);
+        console.log('Hoje (Brasília, 00:00:00):', hoje);
+        console.log('Agora em Brasília:', agoraEmBrasilia);
 
         await this._validarDatas(dataInicio, dataFim, data.duracaoEmAndamentoDias, data.duracaoEmRevisaoDias, data.duracaoEmEqualizacaoDias);
         this._validarPadraoNomeCiclo(data.nome);
@@ -240,6 +242,24 @@ export class CicloService {
             throw new BadRequestException(
                 `soma das durações dos status do ciclo (${somaDuracoes} dias) deve ser igual ao número total de dias do ciclo ${diffDays} diffDays`
             );
+        }
+
+        // Verifica se já existe algum ciclo com datas sobrepostas
+        const ciclosExistentes = await this.prisma.cicloAvaliacao.findMany({
+            select: { idCiclo: true, dataInicio: true, dataFim: true }
+        });
+
+        for (const ciclo of ciclosExistentes) {
+            // Se o novo ciclo começa antes do fim de um ciclo existente
+            // e termina depois do início de um ciclo existente, há sobreposição
+            if (
+                (dataInicio <= ciclo.dataFim) &&
+                (dataFim >= ciclo.dataInicio)
+            ) {
+                throw new ConflictException(
+                    `O período informado (${dataInicio.toLocaleDateString()} a ${dataFim.toLocaleDateString()}) sobrepõe o ciclo existente de ${new Date(ciclo.dataInicio).toLocaleDateString()} a ${new Date(ciclo.dataFim).toLocaleDateString()}.`
+                );
+            }
         }
 
         // Validação: soma das durações dos status deve ser igual ao total de dias do ci
