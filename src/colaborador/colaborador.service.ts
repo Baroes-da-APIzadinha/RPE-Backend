@@ -8,6 +8,7 @@ import { TrocarSenhaDto } from './colaborador.dto';
 import { AvaliacoesService } from '../avaliacoes/avaliacoes.service';
 import { CicloService } from '../ciclo/ciclo.service';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
+import { CriteriosService } from '../criterios/criterios.service';
 
 @Injectable()
 export class ColaboradorService {
@@ -15,6 +16,7 @@ export class ColaboradorService {
         private readonly prisma: PrismaService,
         private readonly avaliacoesService: AvaliacoesService,
         private readonly cicloService: CicloService,
+        private readonly criteriosService: CriteriosService,
     ) {}
 
     async criarColaborador(data: CreateColaboradorDto) {
@@ -405,6 +407,10 @@ export class ColaboradorService {
             include: { ciclo: true },
         });
 
+        // Buscar todos os critérios para mapear nomeCriterio -> pilar
+        const criterios = await this.prisma.criterioAvaliativo.findMany();
+        const criterioToPilar = Object.fromEntries(criterios.map(c => [c.nomeCriterio, c.pilar]));
+
         // Para cada ciclo, buscar avaliações do tipo LIDER_COLABORADOR para este colaborador
         const historico = await Promise.all(colaboradorCiclos.map(async (cc) => {
             const avaliacoesLider = await this.prisma.avaliacao.findMany({
@@ -422,18 +428,25 @@ export class ColaboradorService {
                 }
             });
 
-            // Agrupar notas por pilar (nomeCriterio)
-            const pilarNotas: { pilarNome: string, pilarNota: number }[] = [];
+            // Agrupar notas por pilar
+            const pilarNotasMap: Record<string, number[]> = {};
             for (const avaliacao of avaliacoesLider) {
                 const alc = avaliacao.avaliacaoLiderColaborador;
                 if (alc && alc.cardAvaliacaoLiderColaborador) {
                     for (const card of alc.cardAvaliacaoLiderColaborador) {
                         if (card.nomeCriterio && card.nota !== null && card.nota !== undefined) {
-                            pilarNotas.push({ pilarNome: card.nomeCriterio, pilarNota: Number(card.nota) });
+                            const pilar = criterioToPilar[card.nomeCriterio] || 'Outro';
+                            if (!pilarNotasMap[pilar]) pilarNotasMap[pilar] = [];
+                            pilarNotasMap[pilar].push(Number(card.nota));
                         }
                     }
                 }
             }
+            // Calcular média por pilar
+            const pilarNotas = Object.entries(pilarNotasMap).map(([pilarNome, notas]) => ({
+                pilarNome,
+                pilarNota: notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : null
+            }));
             return {
                 ciclo: cc.ciclo.nomeCiclo,
                 notas: pilarNotas
