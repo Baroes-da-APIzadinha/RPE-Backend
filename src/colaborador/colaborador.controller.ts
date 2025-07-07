@@ -27,7 +27,7 @@ export class ColaboradorController {
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
+    @Roles('ADMIN', 'RH')
     @Get('get-all-colaboradores')
     async getAllColaboradores() {
         return this.colaboradorService.getAllColaborador();
@@ -44,7 +44,7 @@ export class ColaboradorController {
 
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN', 'COLABORADOR_COMUM')
+    @Roles('ADMIN', 'COLABORADOR_COMUM', 'RH')
     @Get(':id')
     async getColaborador(@Param('id') id: string, @Req() req) {
         return this.colaboradorService.getColaborador(id, req.user);

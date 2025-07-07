@@ -33,6 +33,18 @@ export class CreateCicloDto {
     @IsOptional()
     @IsString()
     status?: cicloStatus;
+
+    @IsNotEmpty()
+    @IsNumber()
+    duracaoEmAndamentoDias: number;
+
+    @IsNotEmpty()
+    @IsNumber()
+    duracaoEmRevisaoDias: number;
+
+    @IsNotEmpty()
+    @IsNumber()
+    duracaoEmEqualizacaoDias: number;
 }
 
 export class UpdateCicloDto {
