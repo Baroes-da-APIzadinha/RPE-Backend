@@ -25,7 +25,7 @@ const hoje = new Date(
         agoraEmBrasilia.getUTCFullYear(),
         agoraEmBrasilia.getUTCMonth(),
         agoraEmBrasilia.getUTCDate(),
-        3, 0, 0, 0,
+        0, 0, 0, 0,
     ),
 );
 
@@ -41,16 +41,19 @@ export class CicloService {
             data.dataInicioMes,
             data.dataInicioDia,
         );
+        console.log(dataInicio)
         const dataFim = this._createData(
             data.dataFimAno,
             data.dataFimMes,
             data.dataFimDia
         );
+        console.log(dataFim)
+        console.log(hoje)
+        console.log(agoraEmBrasilia)
 
         await this._validarDatas(dataInicio, dataFim, data.duracaoEmAndamentoDias, data.duracaoEmRevisaoDias, data.duracaoEmEqualizacaoDias);
         this._validarPadraoNomeCiclo(data.nome);
         await this._validarNomeUnico(data.nome);
-
         const status = this._isSameDay(dataInicio, hoje)
             ? cicloStatus.EM_ANDAMENTO
             : cicloStatus.AGENDADO;
@@ -292,7 +295,7 @@ export class CicloService {
             throw new BadRequestException(`Data inválida fornecida: ${dia}/${mes}/${ano}`);
         }
         // Cria a data no início do dia em Brasília (00:00:00), que é 03:00:00 em UTC
-        return new Date(Date.UTC(ano, mes - 1, dia, 0, 0, 0, 0));
+        return new Date(Date.UTC(ano, mes -1, dia, 0, 0, 0, 0));
     }
 
     private _validarPadraoNomeCiclo(nome: string): void {
