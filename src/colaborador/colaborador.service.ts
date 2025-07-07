@@ -5,10 +5,17 @@ import { CreateColaboradorDto, UpdateColaboradorDto } from './colaborador.dto';
 import { perfilTipo } from '@prisma/client';
 import { validarPerfisColaborador } from './colaborador.constants';
 import { TrocarSenhaDto } from './colaborador.dto';
+import { AvaliacoesService } from '../avaliacoes/avaliacoes.service';
+import { CicloService } from '../ciclo/ciclo.service';
+import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 
 @Injectable()
 export class ColaboradorService {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly avaliacoesService: AvaliacoesService,
+        private readonly cicloService: CicloService,
+    ) {}
 
     async criarColaborador(data: CreateColaboradorDto) {
         const { admin, colaboradorComum, gestor, rh, mentor, lider, membroComite, ...colaboradorData } = data;
@@ -499,5 +506,63 @@ export class ColaboradorService {
             data: { senha: novaHash, primeiroLogin: false }
         });
         return { message: 'Senha alterada com sucesso' };
+    }
+
+    async getProgressoAtual(idColaborador: string) {
+        // 1. Buscar ciclos EM_ANDAMENTO em que o colaborador está associado
+        const colaboradorCiclos = await this.prisma.colaboradorCiclo.findMany({
+            where: { idColaborador },
+            include: { ciclo: true },
+        });
+        const cicloAtual = colaboradorCiclos
+            .map(cc => cc.ciclo)
+            .find(c => c.status === 'EM_ANDAMENTO');
+        if (!cicloAtual) return [];
+        const idCiclo = cicloAtual.idCiclo;
+
+        // 2. Buscar avaliações do colaborador no ciclo atual
+        // Autoavaliação
+        const auto = await this.prisma.avaliacao.findMany({
+            where: {
+                idCiclo,
+                idAvaliador: idColaborador,
+                tipoAvaliacao: 'AUTOAVALIACAO',
+            },
+        });
+        // 360 (pares)
+        const pares = await this.prisma.avaliacao.findMany({
+            where: {
+                idCiclo,
+                idAvaliador: idColaborador,
+                tipoAvaliacao: 'AVALIACAO_PARES',
+            },
+        });
+        // Lider/mentor
+        const lider = await this.prisma.avaliacao.findMany({
+            where: {
+                idCiclo,
+                idAvaliador: idColaborador,
+                tipoAvaliacao: 'LIDER_COLABORADOR',
+            },
+        });
+        const mentor = await this.prisma.avaliacao.findMany({
+            where: {
+                idCiclo,
+                idAvaliador: idColaborador,
+                tipoAvaliacao: 'COLABORADOR_MENTOR',
+            },
+        });
+
+        // 3. Calcular porcentagem de preenchimento
+        function calc(arr: any[]) {
+            if (!arr.length) return 0;
+            const concluidas = arr.filter(a => a.status === 'CONCLUIDA').length;
+            return Math.round((concluidas / arr.length) * 100);
+        }
+        return [
+            { TipoAvaliacao: 'auto', porcentagemPreenchimento: calc(auto) },
+            { TipoAvaliacao: '360', porcentagemPreenchimento: calc(pares) },
+            { TipoAvaliacao: 'Lider/mentor', porcentagemPreenchimento: calc([...lider, ...mentor]) },
+        ];
     }
 }

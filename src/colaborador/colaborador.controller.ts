@@ -101,4 +101,9 @@ export class ColaboradorController {
         return { valido: resultado === null, mensagem: resultado };
     }
 
+    @Get('progresso-atual/:idColaborador')
+    async getProgressoAtual(@Param('idColaborador') idColaborador: string) {
+        return this.colaboradorService.getProgressoAtual(idColaborador);
+    }
+
 }
