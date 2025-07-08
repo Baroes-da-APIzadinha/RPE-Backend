@@ -19,6 +19,8 @@ export class AvaliacoesController {
     constructor(private readonly service: AvaliacoesService) { }
 
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN', 'RH')
     @Post()
     async lancarAvaliacoes(@Body('idCiclo') idCiclo: string) {
         const resultado = await this.service.lancarAvaliacoes(idCiclo);
@@ -27,6 +29,7 @@ export class AvaliacoesController {
     }
 
 
+    @UseGuards(JwtAuthGuard)
     @Get('tipo/usuario/:idColaborador')
     async getAvaliacoesPorUsuarioTipo(
         @Param('idColaborador') idColaborador: string,
@@ -47,6 +50,7 @@ export class AvaliacoesController {
         };
     }
 
+    @UseGuards(JwtAuthGuard)
     @Get('status/:idCiclo')
     async getAvaliacoesPorCicloStatus(
         @Param('idCiclo') idCiclo: string,
@@ -64,18 +68,21 @@ export class AvaliacoesController {
         };
     }
 
+    @UseGuards(JwtAuthGuard)
     @Post('preencher-avaliacao-pares')
     async preencherAvaliacaoPares(@Body() dto: AvaliacaoParesDto) {
         await this.service.preencherAvaliacaoPares(dto.idAvaliacao, dto.nota, dto.motivacao, dto.pontosFortes, dto.pontosFracos);
         return { message: 'Avaliação preenchida com sucesso!' };
     }
 
+    @UseGuards(JwtAuthGuard)
     @Post('preencher-avaliacao-colaborador-mentor')
     async preencherAvaliacaoColaboradorMentor(@Body() dto: AvaliacaoColaboradorMentorDto) {
         await this.service.preencherAvaliacaoColaboradorMentor(dto.idAvaliacao, dto.nota, dto.justificativa);
         return { message: 'Avaliação preenchida com sucesso!' };
     }
 
+    @UseGuards(JwtAuthGuard)
     @Post('preencher-auto-avaliacao')
     async preencherAutoAvaliacao(@Body() dto: PreencherAuto_ou_Lider_Dto): Promise<{ message: string; idAvaliacao: string }> {
         await this.service.preencherAutoAvaliacao(dto.idAvaliacao, dto.criterios);
@@ -96,6 +103,8 @@ export class AvaliacoesController {
         };
     }
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN')
     @Post('lancar-auto-avaliacoes')
     async lancarAutoAvaliacao(@Body() dto: LancarAvaliacaoDto) {
         const resultado = await this.service.lancarAutoAvaliacoes(dto.idCiclo);
@@ -103,6 +112,8 @@ export class AvaliacoesController {
         return { message: 'Autoavaliações lançadas com sucesso', relatorio: resultado };
     }
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN', 'RH')
     @Post('lancar-pares')
     async lancarAvaliaçãoPares(@Body('idCiclo') idCiclo: string) {
         const resultado = await this.service.lancarAvaliaçãoPares(idCiclo);
@@ -110,6 +121,8 @@ export class AvaliacoesController {
         return { message: 'Avaliações de pares lançadas com sucesso', relatorio: resultado };
     }
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN', 'RH')
     @Post('lancar-lider-colaborador')
     async lancarAvaliacaoLiderColaborador(@Body('idCiclo') idCiclo: string) {
         const resultado = await this.service.lancarAvaliacaoLiderColaborador(idCiclo);
@@ -117,6 +130,8 @@ export class AvaliacoesController {
         return { message: 'Avaliações lider-colaborador lançadas com sucesso', relatorio: resultado };
     }
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN', 'RH')
     @Post('lancar-colaborador-mentor')
     async lancarAvaliacaoColaboradorMentor(@Body('idCiclo') idCiclo: string) {
         const resultado = await this.service.lancarAvaliacaoColaboradorMentor(idCiclo);
@@ -124,6 +139,7 @@ export class AvaliacoesController {
         return { message: 'Avaliações colaborador-mentor lançadas com sucesso', relatorio: resultado };
     }
 
+    @UseGuards(JwtAuthGuard)
     @Get('comite')
     async listarAvaliacoesComite() {
         return this.service.listarAvaliacoesComite();

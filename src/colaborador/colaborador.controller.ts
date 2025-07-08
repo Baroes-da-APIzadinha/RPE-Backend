@@ -14,6 +14,8 @@ export class ColaboradorController {
     constructor(private readonly colaboradorService: ColaboradorService) { }
 
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN', 'RH')
     @Post()
     async criarColaborador(@Body() data: CreateColaboradorDto) {
         return this.colaboradorService.criarColaborador(data);
@@ -68,33 +70,44 @@ export class ColaboradorController {
     }
 
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN')
     @Post('associar-perfil')
     async associarPerfil(@Body() data: AssociatePerfilDto) {
-
         return this.colaboradorService.associarPerfilColaborador(data.idColaborador, data.tipoPerfil);
     }
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN')
     @Post('associar-ciclo')
     async associarCiclo(@Body() data: any) {
         return this.colaboradorService.associarColaboradorCiclo(data.idColaborador, data.idCiclo);
     }
 
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('RH')
     @Get('avaliacoes-recebidas/:idColaborador')
     async getAvaliacoesRecebidas(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getAvaliacoesRecebidas(idColaborador);
     }
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('RH')
     @Get('notas/historico/:idColaborador')
     async getHistoricoNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getHistoricoNotasPorCiclo(idColaborador);
     }
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('RH')
     @Get('pilar/historico/:idColaborador')
     async getHistoricoMediaNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getHistoricoMediaNotasPorCiclo(idColaborador);
     }
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('RH')
     @Post('validar-perfis')
     async validarPerfis(@Body('perfis') perfis: string[]) {
         const resultado = validarPerfisColaborador(perfis);

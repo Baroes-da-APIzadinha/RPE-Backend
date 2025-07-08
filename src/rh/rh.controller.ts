@@ -1,7 +1,9 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { RhService } from './rh.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@Controller('rh')
+@UseGuards(JwtAuthGuard)
+@Controller('RH')
 export class RhController {
   constructor(private readonly rhService: RhService) {}
 

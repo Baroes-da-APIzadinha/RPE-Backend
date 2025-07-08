@@ -1,15 +1,18 @@
-import { Controller, Post, UseInterceptors, UploadedFile, ParseFilePipe, MaxFileSizeValidator } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFile, ParseFilePipe, MaxFileSizeValidator, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ImportacaoService } from './importacao.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 // Importe seus Guards de autenticação e roles aqui
 
 @Controller('importacao')
-// @UseGuards(AuthGuard, RolesGuard) // Proteja todo o controller
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN', 'RH')
 export class ImportacaoController {
   constructor(private readonly importacaoService: ImportacaoService) {}
 
   @Post('avaliacoes')
-  // @Roles('RH', 'ADMIN') // Apenas usuários com estas roles podem acessar
   @UseInterceptors(FileInterceptor('file')) // 'file' é o nome do campo no formulário
   async importarAvaliacoes(
     @UploadedFile(
