@@ -57,13 +57,13 @@ POST http://localhost:3000/ciclo
 Content-Type: application/json
 
 {
-    "nome": "2029.2",
+    "nome": "2021.2",
     "dataInicioAno": 2025,
     "dataInicioMes": 7,
-    "dataInicioDia": 7,
+    "dataInicioDia": 8,
     "dataFimAno": 2025,
     "dataFimMes": 8,
-    "dataFimDia": 5,
+    "dataFimDia": 6,
     "duracaoEmAndamentoDias": 10,
     "duracaoEmRevisaoDias": 10,
     "duracaoEmEqualizacaoDias": 10
@@ -83,12 +83,29 @@ GET http://localhost:3000/ciclo/get-ativos
 ### Get historico ciclos
 GET http://localhost:3000/ciclo/get-historico
 
-### Atualizar ciclo
-PUT http://localhost:3000/ciclo/5fb2b328-edd7-4734-ac2a-cae9c3d18bf1
+### Atualizar ciclo (PUT - atualização completa)
+PUT http://localhost:3000/ciclo/e81819cd-d018-4af9-a69f-92250e46f7e7
 Content-Type: application/json
 
 {
-    "nome": "2025.28"
+    "nome": "2029.1",
+    "dataInicioAno": 2029,
+    "dataInicioMes": 7,
+    "dataInicioDia": 1,
+    "dataFimAno": 2029,
+    "dataFimMes": 7,
+    "dataFimDia": 31,
+    "duracaoEmAndamentoDias": 11,
+    "duracaoEmRevisaoDias": 10,
+    "duracaoEmEqualizacaoDias": 10
+}
+
+### Atualizar ciclo (PATCH - atualização parcial)
+PATCH http://localhost:3000/ciclo/e81819cd-d018-4af9-a69f-92250e46f7e7
+Content-Type: application/json
+
+{
+    "duracaoEmAndamentoDias": 11
 }
 
 ### Criar criterio

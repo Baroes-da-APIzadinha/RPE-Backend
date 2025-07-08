@@ -41,15 +41,17 @@ export class CicloService {
             data.dataInicioMes,
             data.dataInicioDia,
         );
-        console.log(dataInicio)
+        
         const dataFim = this._createData(
             data.dataFimAno,
             data.dataFimMes,
             data.dataFimDia
         );
-        console.log(dataFim)
-        console.log(hoje)
-        console.log(agoraEmBrasilia)
+        
+        console.log('Data de início:', dataInicio);
+        console.log('Data de fim:', dataFim);
+        console.log('Hoje (Brasília, 00:00:00):', hoje);
+        console.log('Agora em Brasília:', agoraEmBrasilia);
 
         await this._validarDatas(dataInicio, dataFim, data.duracaoEmAndamentoDias, data.duracaoEmRevisaoDias, data.duracaoEmEqualizacaoDias);
         this._validarPadraoNomeCiclo(data.nome);
@@ -95,7 +97,25 @@ export class CicloService {
                   )
                 : cicloExistente.dataFim;
 
-      
+        // Usar valores existentes se não fornecidos no update
+        const duracaoEmAndamentoDias = data.duracaoEmAndamentoDias ?? cicloExistente.duracaoEmAndamentoDias;
+        const duracaoEmRevisaoDias = data.duracaoEmRevisaoDias ?? cicloExistente.duracaoEmRevisaoDias;
+        const duracaoEmEqualizacaoDias = data.duracaoEmEqualizacaoDias ?? cicloExistente.duracaoEmEqualizacaoDias;
+
+        // Logs de debug (consistente com createCiclo)
+        console.log('Data de início:', dataInicio);
+        console.log('Data de fim:', dataFim);
+        console.log('Hoje (Brasília, 00:00:00):', hoje);
+        console.log('Agora em Brasília:', agoraEmBrasilia);
+
+        // Validar datas apenas se foram fornecidas no update
+        const datasFornecidas = data.dataInicioAno || data.dataFimAno;
+        const duracoesFornecidas = data.duracaoEmAndamentoDias || data.duracaoEmRevisaoDias || data.duracaoEmEqualizacaoDias;
+        
+        // Só validar se pelo menos uma data ou duração foi fornecida
+        if (datasFornecidas || duracoesFornecidas) {
+            await this._validarDatas(dataInicio, dataFim, duracaoEmAndamentoDias, duracaoEmRevisaoDias, duracaoEmEqualizacaoDias);
+        }
 
         if (data.nome && data.nome !== cicloExistente.nomeCiclo) {
             this._validarPadraoNomeCiclo(data.nome);
@@ -106,14 +126,34 @@ export class CicloService {
             ? cicloStatus.EM_ANDAMENTO
             : cicloStatus.AGENDADO;
 
+        // Construir objeto de dados para atualização apenas com campos fornecidos
+        const updateData: any = {};
+        
+        if (data.nome !== undefined) {
+            updateData.nomeCiclo = data.nome;
+        }
+        if (data.dataInicioAno !== undefined) {
+            updateData.dataInicio = dataInicio;
+        }
+        if (data.dataFimAno !== undefined) {
+            updateData.dataFim = dataFim;
+        }
+        if (data.duracaoEmAndamentoDias !== undefined) {
+            updateData.duracaoEmAndamentoDias = data.duracaoEmAndamentoDias;
+        }
+        if (data.duracaoEmRevisaoDias !== undefined) {
+            updateData.duracaoEmRevisaoDias = data.duracaoEmRevisaoDias;
+        }
+        if (data.duracaoEmEqualizacaoDias !== undefined) {
+            updateData.duracaoEmEqualizacaoDias = data.duracaoEmEqualizacaoDias;
+        }
+        
+        // Status é sempre atualizado baseado na data de início
+        updateData.status = status;
+
         return this.prisma.cicloAvaliacao.update({
             where: { idCiclo: id },
-            data: {
-                nomeCiclo: data.nome,
-                dataInicio,
-                dataFim,
-                status,
-            },
+            data: updateData,
         });
     }
 
@@ -240,6 +280,24 @@ export class CicloService {
             throw new BadRequestException(
                 `soma das durações dos status do ciclo (${somaDuracoes} dias) deve ser igual ao número total de dias do ciclo ${diffDays} diffDays`
             );
+        }
+
+        // Verifica se já existe algum ciclo com datas sobrepostas
+        const ciclosExistentes = await this.prisma.cicloAvaliacao.findMany({
+            select: { idCiclo: true, dataInicio: true, dataFim: true }
+        });
+
+        for (const ciclo of ciclosExistentes) {
+            // Se o novo ciclo começa antes do fim de um ciclo existente
+            // e termina depois do início de um ciclo existente, há sobreposição
+            if (
+                (dataInicio <= ciclo.dataFim) &&
+                (dataFim >= ciclo.dataInicio)
+            ) {
+                throw new ConflictException(
+                    `O período informado (${dataInicio.toLocaleDateString()} a ${dataFim.toLocaleDateString()}) sobrepõe o ciclo existente de ${new Date(ciclo.dataInicio).toLocaleDateString()} a ${new Date(ciclo.dataFim).toLocaleDateString()}.`
+                );
+            }
         }
 
         // Validação: soma das durações dos status deve ser igual ao total de dias do ci
