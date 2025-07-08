@@ -97,7 +97,25 @@ export class CicloService {
                   )
                 : cicloExistente.dataFim;
 
-      
+        // Usar valores existentes se não fornecidos no update
+        const duracaoEmAndamentoDias = data.duracaoEmAndamentoDias ?? cicloExistente.duracaoEmAndamentoDias;
+        const duracaoEmRevisaoDias = data.duracaoEmRevisaoDias ?? cicloExistente.duracaoEmRevisaoDias;
+        const duracaoEmEqualizacaoDias = data.duracaoEmEqualizacaoDias ?? cicloExistente.duracaoEmEqualizacaoDias;
+
+        // Logs de debug (consistente com createCiclo)
+        console.log('Data de início:', dataInicio);
+        console.log('Data de fim:', dataFim);
+        console.log('Hoje (Brasília, 00:00:00):', hoje);
+        console.log('Agora em Brasília:', agoraEmBrasilia);
+
+        // Validar datas apenas se foram fornecidas no update
+        const datasFornecidas = data.dataInicioAno || data.dataFimAno;
+        const duracoesFornecidas = data.duracaoEmAndamentoDias || data.duracaoEmRevisaoDias || data.duracaoEmEqualizacaoDias;
+        
+        // Só validar se pelo menos uma data ou duração foi fornecida
+        if (datasFornecidas || duracoesFornecidas) {
+            await this._validarDatas(dataInicio, dataFim, duracaoEmAndamentoDias, duracaoEmRevisaoDias, duracaoEmEqualizacaoDias);
+        }
 
         if (data.nome && data.nome !== cicloExistente.nomeCiclo) {
             this._validarPadraoNomeCiclo(data.nome);
@@ -108,14 +126,34 @@ export class CicloService {
             ? cicloStatus.EM_ANDAMENTO
             : cicloStatus.AGENDADO;
 
+        // Construir objeto de dados para atualização apenas com campos fornecidos
+        const updateData: any = {};
+        
+        if (data.nome !== undefined) {
+            updateData.nomeCiclo = data.nome;
+        }
+        if (data.dataInicioAno !== undefined) {
+            updateData.dataInicio = dataInicio;
+        }
+        if (data.dataFimAno !== undefined) {
+            updateData.dataFim = dataFim;
+        }
+        if (data.duracaoEmAndamentoDias !== undefined) {
+            updateData.duracaoEmAndamentoDias = data.duracaoEmAndamentoDias;
+        }
+        if (data.duracaoEmRevisaoDias !== undefined) {
+            updateData.duracaoEmRevisaoDias = data.duracaoEmRevisaoDias;
+        }
+        if (data.duracaoEmEqualizacaoDias !== undefined) {
+            updateData.duracaoEmEqualizacaoDias = data.duracaoEmEqualizacaoDias;
+        }
+        
+        // Status é sempre atualizado baseado na data de início
+        updateData.status = status;
+
         return this.prisma.cicloAvaliacao.update({
             where: { idCiclo: id },
-            data: {
-                nomeCiclo: data.nome,
-                dataInicio,
-                dataFim,
-                status,
-            },
+            data: updateData,
         });
     }
 
