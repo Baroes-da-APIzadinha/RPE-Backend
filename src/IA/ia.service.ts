@@ -6,12 +6,12 @@ import { AvaliacoesService } from '../avaliacoes/avaliacoes.service';
 
 @Injectable()
 export class IaService {
-     constructor(
+    constructor(
         private readonly prisma: PrismaService,
         private readonly avaliacoesService: AvaliacoesService
-    ) {}
+    ) { }
 
-     async avaliarColaborador(idColaborador: string, idCiclo: string): Promise<string> {
+    async avaliarColaborador(idColaborador: string, idCiclo: string): Promise<string> {
 
         const dadosColaborador = await this.avaliacoesService.discrepanciaColaborador(idColaborador, idCiclo);
 
@@ -62,5 +62,23 @@ export class IaService {
             console.error('Erro ao avaliar colaborador:', error);
             throw error;
         }
+    }
+
+    async getAvaliacoesIA(idColaborador: string, idCiclo: string) {
+        const avaliacoes = await this.prisma.avaliacao.findMany({
+            where: {
+                idAvaliado: idColaborador,
+                idCiclo: idCiclo
+            },
+            include: {
+
+                autoAvaliacao: {include: { cardAutoAvaliacoes: true }},
+
+                avaliacaoPares: true,
+
+                avaliacaoLiderColaborador: { include: { cardAvaliacaoLiderColaborador: true } }
+            }
+        });
+        return avaliacoes;
     }
 }

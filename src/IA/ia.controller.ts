@@ -16,4 +16,12 @@ export class IaController {
         }
     }
 
+    @Get('avaliacoes/:idColaborador/:idCiclo')
+    async getAvaliacoesIA(
+        @Param('idColaborador') idColaborador: string,
+        @Param('idCiclo') idCiclo: string
+    ): Promise<any[]> {
+        return this.iaService.getAvaliacoesIA(idColaborador, idCiclo);
+    }
+
 }
