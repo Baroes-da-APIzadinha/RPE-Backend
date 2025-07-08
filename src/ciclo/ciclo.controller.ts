@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Patch, HttpCode, HttpStatus, Inject, forwardRef } from '@nestjs/common';
 import { CicloService } from './ciclo.service';
-import { CreateCicloDto, UpdateCicloDto, PatchCicloDto } from './ciclo.dto';
+import { CreateCicloDto, UpdateCicloDto} from './ciclo.dto';
 
 @Controller('ciclo')
 export class CicloController {
@@ -25,7 +25,7 @@ export class CicloController {
     }
 
     @Patch(':id')
-    async atualizarCicloParcial(@Param('id') id: string, @Body() data: PatchCicloDto) {
+    async atualizarCicloParcial(@Param('id') id: string, @Body() data: UpdateCicloDto) {
         return this.cicloService.updateCiclo(id, data);
     }
 

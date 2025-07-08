@@ -105,7 +105,7 @@ PATCH http://localhost:3000/ciclo/e81819cd-d018-4af9-a69f-92250e46f7e7
 Content-Type: application/json
 
 {
-    "nome": "2029.3"
+    "duracaoEmAndamentoDias": 11
 }
 
 ### Criar criterio
