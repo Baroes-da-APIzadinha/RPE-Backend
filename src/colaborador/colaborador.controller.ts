@@ -6,13 +6,14 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { validarPerfisColaborador } from './colaborador.constants';
 import { Cargo, Trilha, Unidade } from './colaborador.constants';
-
-
+import { AuditoriaService } from '../auditoria/auditoria.service';
 
 @Controller('colaborador')
 export class ColaboradorController {
-    constructor(private readonly colaboradorService: ColaboradorService) { }
-
+    constructor(
+        private readonly colaboradorService: ColaboradorService,
+        private readonly auditoriaService: AuditoriaService,
+    ) { }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('ADMIN', 'RH')
@@ -24,8 +25,16 @@ export class ColaboradorController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('ADMIN', 'RH')
     @Delete(':id')
-    async removerColaborador(@Param('id') id: string) {
-        return this.colaboradorService.removerColaborador(id);
+    async removerColaborador(@Param('id') id: string, @Req() req) {
+        const result = await this.colaboradorService.removerColaborador(id);
+        await this.auditoriaService.log({
+            userId: req.user?.idColaborador,
+            action: 'delete',
+            resource: 'Colaborador',
+            details: { deletedId: id },
+            ip: req.ip,
+        });
+        return result;
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
@@ -44,13 +53,11 @@ export class ColaboradorController {
         };
     }
 
-
     @UseGuards(JwtAuthGuard)
     @Get(':id')
     async getColaborador(@Param('id') id: string, @Req() req) {
         return this.colaboradorService.getColaborador(id, req.user);
     }
-
 
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('ADMIN')
@@ -59,7 +66,6 @@ export class ColaboradorController {
         return this.colaboradorService.updateColaborador(id, data);
     }
 
-
     @Patch(':id/trocar-senha')
     async trocarSenhaPrimeiroLogin(
       @Param('id') id: string,
@@ -67,7 +73,6 @@ export class ColaboradorController {
     ) {
       return this.colaboradorService.trocarSenhaPrimeiroLogin(id, dto);
     }
-
 
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('ADMIN')
@@ -82,7 +87,6 @@ export class ColaboradorController {
     async associarCiclo(@Body() data: any) {
         return this.colaboradorService.associarColaboradorCiclo(data.idColaborador, data.idCiclo);
     }
-
 
     @UseGuards(JwtAuthGuard)
     @Get('avaliacoes-recebidas/:idColaborador')
@@ -109,5 +113,4 @@ export class ColaboradorController {
     async getProgressoAtual(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getProgressoAtual(idColaborador);
     }
-
 }
