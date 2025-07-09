@@ -140,10 +140,35 @@ async function processarPlanilha(filePath: string) {
       const dadosAvaliacao = avaliacoesPorAvaliado[emailAvaliado];
       for (const linha of dadosAvaliacao) {
         const nomeProjeto = linha['PROJETO EM QUE ATUARAM JUNTOS - OBRIGATÓRIO TEREM ATUADOS JUNTOS'];
+        const periodo = linha['PERÍODO'];
+        let diasTrabalhadosJuntos = 0;
+        if (periodo && typeof periodo === 'string') {
+          // Espera-se formato tipo "45 dias" ou só número
+          const match = periodo.match(/(\d+)/);
+          if (match) diasTrabalhadosJuntos = parseInt(match[1], 10);
+        }
         if (nomeProjeto && cicloObj) {
           const projeto = await upsertProjeto(nomeProjeto);
           await upsertAlocacao(avaliado.idColaborador, projeto.idProjeto, cicloObj.dataInicio, cicloObj.dataFim);
           await upsertAlocacao(colaborador.idColaborador, projeto.idProjeto, cicloObj.dataInicio, cicloObj.dataFim);
+          // Cria ou atualiza o par com diasTrabalhadosJuntos
+          await prisma.pares.upsert({
+            where: {
+              idColaborador1_idColaborador2_idCiclo: {
+                idColaborador1: colaborador.idColaborador,
+                idColaborador2: avaliado.idColaborador,
+                idCiclo: cicloId,
+              },
+            },
+            update: { idProjeto: projeto.idProjeto, diasTrabalhadosJuntos },
+            create: {
+              idColaborador1: colaborador.idColaborador,
+              idColaborador2: avaliado.idColaborador,
+              idCiclo: cicloId,
+              idProjeto: projeto.idProjeto,
+              diasTrabalhadosJuntos,
+            },
+          });
         }
       }
       await criarAvaliacaoDePares(cicloId, avaliado.idColaborador, colaborador.idColaborador, dadosAvaliacao);

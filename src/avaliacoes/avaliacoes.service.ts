@@ -33,6 +33,8 @@ export class AvaliacoesService {
 
     async lancarAvaliaçãoPares(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
         this.logger.log(`Iniciando lançamento de avaliações de pares para ciclo ${idCiclo}`);
+        // Gera os pares automaticamente antes de lançar avaliações
+        await this.gerarParesPorProjetos(idCiclo);
         const where = { idCiclo };
         const pares = await this.prisma.pares.findMany({
             where,
@@ -1183,5 +1185,58 @@ export class AvaliacoesService {
             orderBy: { idCiclo: 'desc' }
         });
         return avaliacoes;
+    }
+
+    async gerarParesPorProjetos(idCiclo: string): Promise<{ criados: number, existentes: number }> {
+        this.logger.log(`Iniciando geração de pares para o ciclo ${idCiclo} considerando convivência mínima de 30 dias em projetos.`);
+        let criados = 0, existentes = 0;
+        const projetos = await this.prisma.projeto.findMany({
+            include: {
+                alocacoes: true
+            }
+        });
+        for (const projeto of projetos) {
+            const alocacoes = projeto.alocacoes;
+            for (let i = 0; i < alocacoes.length; i++) {
+                for (let j = i + 1; j < alocacoes.length; j++) {
+                    const a = alocacoes[i];
+                    const b = alocacoes[j];
+                    const entradaMax = new Date(Math.max(new Date(a.dataEntrada).getTime(), new Date(b.dataEntrada).getTime()));
+                    const saidaMin = new Date(Math.min(
+                        new Date(a.dataSaida ?? new Date()).getTime(),
+                        new Date(b.dataSaida ?? new Date()).getTime()
+                    ));
+                    const diffMs = saidaMin.getTime() - entradaMax.getTime();
+                    const diasJuntos = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    if (diasJuntos >= 30) {
+                        const [idColaborador1, idColaborador2] = [a.idColaborador, b.idColaborador].sort();
+                        const parExistente = await this.prisma.pares.findFirst({
+                            where: {
+                                idColaborador1,
+                                idColaborador2,
+                                idCiclo,
+                                idProjeto: projeto.idProjeto
+                            }
+                        });
+                        if (parExistente) {
+                            existentes++;
+                        } else {
+                            await this.prisma.pares.create({
+                                data: {
+                                    idColaborador1,
+                                    idColaborador2,
+                                    idCiclo,
+                                    idProjeto: projeto.idProjeto,
+                                    diasTrabalhadosJuntos: diasJuntos
+                                }
+                            });
+                            criados++;
+                        }
+                    }
+                }
+            }
+        }
+        this.logger.log(`Geração de pares concluída: ${criados} criados, ${existentes} já existiam.`);
+        return { criados, existentes };
     }
 }

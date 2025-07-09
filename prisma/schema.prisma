@@ -264,9 +264,12 @@ model Pares {
   idColaborador1 String?      @db.Uuid
   idColaborador2 String?      @db.Uuid
   idCiclo       String?      @db.Uuid
+  idProjeto     String?      @db.Uuid 
+  diasTrabalhadosJuntos Int  @default(0)
   colaborador1  Colaborador? @relation("Par1", fields: [idColaborador1], references: [idColaborador])
   colaborador2  Colaborador? @relation("Par2", fields: [idColaborador2], references: [idColaborador])
   ciclo         CicloAvaliacao? @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
+  projeto       Projeto?     @relation(fields: [idProjeto], references: [idProjeto])
 
   @@unique([idColaborador1, idColaborador2, idCiclo])
 }
@@ -276,9 +279,12 @@ model LiderColaborador {
   idLider            String       @db.Uuid
   idColaborador      String       @db.Uuid
   idCiclo            String       @db.Uuid
+  idProjeto          String?      @db.Uuid
+
   lider              Colaborador  @relation("Lider", fields: [idLider], references: [idColaborador])
   colaborador        Colaborador  @relation("ColaboradorLider", fields: [idColaborador], references: [idColaborador])
   ciclo              CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo])
+  projeto            Projeto?     @relation(fields: [idProjeto], references: [idProjeto])
 
   @@unique([idLider, idColaborador, idCiclo])
 }
@@ -316,6 +322,8 @@ model Projeto {
 
   // Relação inversa: um projeto pode ter várias alocações
   alocacoes   AlocacaoColaboradorProjeto[]
+  pares       Pares[]                      // relação inversa com Pares
+  liderColaboradores LiderColaborador[]    // relação inversa com LiderColaborador
 
   @@map("projetos") // Mapeia o nome do modelo para o nome da tabela no banco
 }
