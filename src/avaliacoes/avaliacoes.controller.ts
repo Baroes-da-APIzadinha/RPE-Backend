@@ -164,4 +164,16 @@ export class AvaliacoesController {
         return resultado || []; // Return empty array if undefined
     }
 
+    @UseGuards(JwtAuthGuard)
+    @Get('forms-autoavaliacao/:idAvaliacao')
+    async getFormsAutoAvaliacao(@Param('idAvaliacao') idAvaliacao: string) {
+        return this.service.getFormsAvaliacao(idAvaliacao);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('forms-lider-colaborador/:idAvaliacao')
+    async getFormsLiderColaborador(@Param('idAvaliacao') idAvaliacao: string) {
+        return this.service.getFormsLiderColaborador(idAvaliacao);
+    }
+
 }

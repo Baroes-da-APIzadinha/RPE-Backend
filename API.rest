@@ -326,6 +326,12 @@ Content-Type: application/json
     ]
 }
 
+### Buscar forms de autoavaliação agrupados por pilar
+GET http://localhost:3000/avaliacoes/forms-autoavaliacao/7532e589-7d34-4026-8ea2-6b30178634ac
+
+### Buscar forms de autoavaliação agrupados por pilar
+GET http://localhost:3000/avaliacoes/forms-lider-colaborador/4ba9ef95-aecd-4da3-8d0a-e8bcc7778675
+
 ### Relacionar Líder-Colaborador
 POST http://localhost:3000/colaborador/relacionar-lider-colaborador
 Content-Type: application/json
@@ -354,3 +360,5 @@ GET http://localhost:3000/avaliacoes/notasAvaliacoes/996e4e19-cfca-4414-ac93-0a2
 
 ### Get all notas
 GET http://localhost:3000/avaliacoes/notasCiclo/4e4b287f-bddd-47c7-83ff-a663720f2ba3
+
+
