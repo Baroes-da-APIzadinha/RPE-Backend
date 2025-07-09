@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
 import ai from './init';
-import { generationConfig } from './config';
+import { generationConfig, MiniConfig } from './config';
 import { AvaliacoesService } from '../avaliacoes/avaliacoes.service';
-import { max } from 'class-validator';
 
 @Injectable()
 export class IaService {
@@ -21,7 +20,19 @@ export class IaService {
         }
 
         const dadosProcessados = this.processarAvaliacoes(avaliacoes);
-        const prompt = this.criarPromptDetalhado(dadosProcessados);
+        let prompt_base = this.criarPromptDetalhado(dadosProcessados);
+        prompt_base += `        
+        === FORMATO DA RESPOSTA ===
+
+        **Nota Final Sugerida:** X/5
+
+        **Análise Detalhada:**
+        [Análise explicando o raciocínio, incluindo comparação entre múltiplos líderes se aplicável]
+
+        **Resumo Executivo:**
+        [Resumo conciso para relatórios]`
+
+        const prompt = prompt_base
         console.log('=== PROMPT ENVIADO PARA IA ===');
         console.log(prompt);
 
@@ -34,7 +45,8 @@ export class IaService {
                     temperature: generationConfig.temperature,
                     topP: generationConfig.topP,
                     maxOutputTokens: generationConfig.maxOutputTokens,
-                    responseMimeType: generationConfig.responseMimeType
+                    responseMimeType: generationConfig.responseMimeType,
+                    thinkingConfig: generationConfig.thinkingConfig
                 }
             });
 
@@ -210,15 +222,6 @@ export class IaService {
         - Compare avaliações de múltiplos líderes quando disponível
         - Identifique pontos de convergência e divergência
         - Explique o raciocínio por trás da nota sugerida
-
-        === FORMATO DA RESPOSTA ===
-        **Nota Final Sugerida:** X/5
-
-        **Análise Detalhada:**
-        [Análise explicando o raciocínio, incluindo comparação entre múltiplos líderes se aplicável]
-
-        **Resumo Executivo:**
-        [Resumo conciso para relatórios]
         `;
 
         return prompt;
@@ -295,5 +298,49 @@ export class IaService {
         }
 
         return analise;
+    }
+
+    async miniAvaliarColaborador(idColaborador: string, idCiclo: string): Promise<string> {
+        
+        const avaliacoes = await this.getAvaliacoesIA(idColaborador, idCiclo);
+
+        if (!avaliacoes || avaliacoes.length === 0) {
+            throw new Error('Nenhuma avaliação encontrada para este colaborador neste ciclo');
+        }
+
+        const dadosProcessados = this.processarAvaliacoes(avaliacoes);
+        let prompt_base = this.criarPromptDetalhado(dadosProcessados);
+        prompt_base += `
+        === FORMATO DA RESPOSTA ===
+
+        **Nota Final Sugerida:** X/5
+
+        **Justificativa:**
+        [Resumo conciso para relatórios]`
+
+        const prompt = prompt_base
+        console.log('=== PROMPT ENVIADO PARA IA ===');
+        console.log(prompt);
+
+        try {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    systemInstruction: MiniConfig.systemInstruction,
+                    temperature: MiniConfig.temperature,
+                    topP: MiniConfig.topP,
+                    maxOutputTokens: MiniConfig.maxOutputTokens,
+                    responseMimeType: MiniConfig.responseMimeType,
+                    thinkingConfig: MiniConfig.thinkingConfig
+                }
+            });
+
+            console.log('Resposta da IA:', response.text);
+            return response.text || 'Erro na geração de resposta pela IA';
+        } catch (error) {
+            console.error('Erro ao avaliar colaborador:', error);
+            throw error;
+        }
     }
 }

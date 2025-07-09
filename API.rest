@@ -190,7 +190,7 @@ POST http://localhost:3000/avaliacoes/preencher-avaliacao-pares
 Content-Type: application/json
 
 {
-    "idAvaliacao": "5a905c86-966c-4cca-b5a4-60a4d12730e6",
+    "idAvaliacao": "06ac1a70-59bb-4b25-9300-04f2308d281e",
     "nota": 3,
     "motivacao": "Discordo Parcialmente",
     "pontosFortes": "Se adapta bem a mudanças e é muito empenhado em suas tarefas",
@@ -212,7 +212,7 @@ POST http://localhost:3000/avaliacoes/preencher-auto-avaliacao
 Content-Type: application/json
 
 {
-    "idAvaliacao": "36a987fc-7372-407d-a3a8-6d98585ffbdc",
+    "idAvaliacao": "6983ee45-51f2-4aef-8862-a8758851a4f1",
     "criterios": [
         {
             "nome": "Comunicação",
@@ -268,7 +268,7 @@ POST http://localhost:3000/avaliacoes/preencher-lider-colaborador
 Content-Type: application/json
 
 {
-"idAvaliacao": "b0546e00-19f9-41a4-be3d-471f5ff1421c",
+"idAvaliacao": "b7a28ef4-be19-43a7-9e56-1657ca4ed548",
 "criterios": [
 {
 "nome": "Comunicação",
@@ -352,3 +352,6 @@ GET http://localhost:3000/ia/avaliar/cccccccc-3333-3333-3333-333333333333/555555
 
 ### Get Avaliacoes completas
 GET http://localhost:3000/ia/avaliacoes/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
+
+### Get Mini-resumo IA
+GET http://localhost:3000/ia/miniavaliar/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666

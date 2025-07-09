@@ -24,4 +24,15 @@ export class IaController {
         return this.iaService.getAvaliacoesIA(idColaborador, idCiclo);
     }
 
+    @Get('miniavaliar/:idColaborador/:idCiclo')
+    async miniAvaliarColaborador(@Param('idColaborador') idColaborador: string, @Param('idCiclo') idCiclo: string): Promise<string> {
+        try {
+            const resultado = await this.iaService.miniAvaliarColaborador(idColaborador, idCiclo);
+            return resultado;
+        } catch (error) {
+            console.error('Erro ao avaliar colaborador:', error);
+            throw error;
+        }
+    }
+
 }
