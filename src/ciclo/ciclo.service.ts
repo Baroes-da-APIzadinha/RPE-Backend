@@ -9,7 +9,7 @@ import { PrismaService } from 'src/database/prismaService';
 import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
 import { cicloStatus, CicloAvaliacao, Prisma } from '@prisma/client';
 
-const TEMPO_MINIMO_DIAS = 2;
+const TEMPO_MINIMO_DIAS = 30;
 const TEMPO_MAXIMO_DIAS = 180;
 
 // Pega o momento atual em UTC
@@ -25,7 +25,7 @@ const hoje = new Date(
         agoraEmBrasilia.getUTCFullYear(),
         agoraEmBrasilia.getUTCMonth(),
         agoraEmBrasilia.getUTCDate(),
-        3, 0, 0, 0,
+        0, 0, 0, 0,
     ),
 );
 
@@ -41,17 +41,21 @@ export class CicloService {
             data.dataInicioMes,
             data.dataInicioDia,
         );
+        
         const dataFim = this._createData(
             data.dataFimAno,
             data.dataFimMes,
-            data.dataFimDia,
-            true,
+            data.dataFimDia
         );
+        
+        console.log('Data de início:', dataInicio);
+        console.log('Data de fim:', dataFim);
+        console.log('Hoje (Brasília, 00:00:00):', hoje);
+        console.log('Agora em Brasília:', agoraEmBrasilia);
 
-        await this._validarDatas(dataInicio, dataFim);
+        await this._validarDatas(dataInicio, dataFim, data.duracaoEmAndamentoDias, data.duracaoEmRevisaoDias, data.duracaoEmEqualizacaoDias);
         this._validarPadraoNomeCiclo(data.nome);
         await this._validarNomeUnico(data.nome);
-
         const status = this._isSameDay(dataInicio, hoje)
             ? cicloStatus.EM_ANDAMENTO
             : cicloStatus.AGENDADO;
@@ -62,6 +66,9 @@ export class CicloService {
                 dataInicio,
                 dataFim,
                 status,
+                duracaoEmAndamentoDias: data.duracaoEmAndamentoDias,
+                duracaoEmRevisaoDias: data.duracaoEmRevisaoDias,
+                duracaoEmEqualizacaoDias: data.duracaoEmEqualizacaoDias,
             },
         });
     }
@@ -86,12 +93,29 @@ export class CicloService {
                 ? this._createData(
                       data.dataFimAno,
                       data.dataFimMes,
-                      data.dataFimDia,
-                      true,
+                      data.dataFimDia
                   )
                 : cicloExistente.dataFim;
 
-        await this._validarDatas(dataInicio, dataFim);
+        // Usar valores existentes se não fornecidos no update
+        const duracaoEmAndamentoDias = data.duracaoEmAndamentoDias ?? cicloExistente.duracaoEmAndamentoDias;
+        const duracaoEmRevisaoDias = data.duracaoEmRevisaoDias ?? cicloExistente.duracaoEmRevisaoDias;
+        const duracaoEmEqualizacaoDias = data.duracaoEmEqualizacaoDias ?? cicloExistente.duracaoEmEqualizacaoDias;
+
+        // Logs de debug (consistente com createCiclo)
+        console.log('Data de início:', dataInicio);
+        console.log('Data de fim:', dataFim);
+        console.log('Hoje (Brasília, 00:00:00):', hoje);
+        console.log('Agora em Brasília:', agoraEmBrasilia);
+
+        // Validar datas apenas se foram fornecidas no update
+        const datasFornecidas = data.dataInicioAno || data.dataFimAno;
+        const duracoesFornecidas = data.duracaoEmAndamentoDias || data.duracaoEmRevisaoDias || data.duracaoEmEqualizacaoDias;
+        
+        // Só validar se pelo menos uma data ou duração foi fornecida
+        if (datasFornecidas || duracoesFornecidas) {
+            await this._validarDatas(dataInicio, dataFim, duracaoEmAndamentoDias, duracaoEmRevisaoDias, duracaoEmEqualizacaoDias);
+        }
 
         if (data.nome && data.nome !== cicloExistente.nomeCiclo) {
             this._validarPadraoNomeCiclo(data.nome);
@@ -102,14 +126,34 @@ export class CicloService {
             ? cicloStatus.EM_ANDAMENTO
             : cicloStatus.AGENDADO;
 
+        // Construir objeto de dados para atualização apenas com campos fornecidos
+        const updateData: any = {};
+        
+        if (data.nome !== undefined) {
+            updateData.nomeCiclo = data.nome;
+        }
+        if (data.dataInicioAno !== undefined) {
+            updateData.dataInicio = dataInicio;
+        }
+        if (data.dataFimAno !== undefined) {
+            updateData.dataFim = dataFim;
+        }
+        if (data.duracaoEmAndamentoDias !== undefined) {
+            updateData.duracaoEmAndamentoDias = data.duracaoEmAndamentoDias;
+        }
+        if (data.duracaoEmRevisaoDias !== undefined) {
+            updateData.duracaoEmRevisaoDias = data.duracaoEmRevisaoDias;
+        }
+        if (data.duracaoEmEqualizacaoDias !== undefined) {
+            updateData.duracaoEmEqualizacaoDias = data.duracaoEmEqualizacaoDias;
+        }
+        
+        // Status é sempre atualizado baseado na data de início
+        updateData.status = status;
+
         return this.prisma.cicloAvaliacao.update({
             where: { idCiclo: id },
-            data: {
-                nomeCiclo: data.nome,
-                dataInicio,
-                dataFim,
-                status,
-            },
+            data: updateData,
         });
     }
 
@@ -134,13 +178,22 @@ export class CicloService {
     async getCiclosAtivos() {
         const ciclos = await this.prisma.cicloAvaliacao.findMany({
             where: {
-                status: 'EM_ANDAMENTO',
+                status: {
+                    in: [
+                        cicloStatus.AGENDADO,
+                        cicloStatus.EM_ANDAMENTO,
+                        cicloStatus.EM_REVISAO,
+                        cicloStatus.EM_EQUALIZAÇÃO
+                    ]
+                }
             },
         });
-
+        console.log(agoraEmBrasilia)
         return ciclos.map((ciclo) => {
+
             const dataFim = new Date(ciclo.dataFim);
-            const diffMs = dataFim.getTime() - hoje.getTime();
+            dataFim.setDate(dataFim.getDate() + 1); // Adiciona 1 dia à data de fim
+            const diffMs = dataFim.getTime() - agoraEmBrasilia.getTime();
 
             // Converter para dias, horas, minutos
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -150,7 +203,9 @@ export class CicloService {
             return {
                 id: ciclo.idCiclo,
                 nome: ciclo.nomeCiclo,
-                tempoRestante: `${diffDays} dias, ${diffHours} horas, ${diffMinutes} minutos`,
+                status: ciclo.status,
+                dataFim: ciclo.dataFim,
+                tempoRestante: `${diffDays} dias, ${diffHours} horas, ${diffMinutes} minutos`
             };
         });
     }
@@ -188,6 +243,9 @@ export class CicloService {
     private async _validarDatas(
         dataInicio: Date,
         dataFim: Date,
+        duracaoEmAndamentoDias: number,
+        duracaoEmRevisaoDias: number,
+        duracaoEmEqualizacaoDias: number,
     ): Promise<void> {
         if (!dataInicio || !dataFim) {
             throw new BadRequestException('Data de início ou fim inválida.');
@@ -199,12 +257,12 @@ export class CicloService {
         }
         if (dataInicio.getTime() < hoje.getTime()) {
             throw new BadRequestException(
-                'Data de início não pode ser menor que o dia atual.',
+                `Data de início ${dataInicio} não pode ser menor que o dia atual ${hoje}.`,
             );
         }
 
         const diffMs = dataFim.getTime() - dataInicio.getTime();
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        const diffDays = (diffMs / (1000 * 60 * 60 * 24)) + 1;
 
         if (diffDays < TEMPO_MINIMO_DIAS) {
             throw new BadRequestException(
@@ -213,9 +271,36 @@ export class CicloService {
         }
         if (diffDays > TEMPO_MAXIMO_DIAS) {
             throw new BadRequestException(
-                `O ciclo não pode ter mais de ${TEMPO_MAXIMO_DIAS} dias de duração.`,
+                `O ciclo não pode ter mais de ${TEMPO_MAXIMO_DIAS} dias de duração.`
             );
         }
+
+        const somaDuracoes = duracaoEmAndamentoDias + duracaoEmRevisaoDias + duracaoEmEqualizacaoDias;
+        if (somaDuracoes !== diffDays) {
+            throw new BadRequestException(
+                `soma das durações dos status do ciclo (${somaDuracoes} dias) deve ser igual ao número total de dias do ciclo ${diffDays} diffDays`
+            );
+        }
+
+        // Verifica se já existe algum ciclo com datas sobrepostas
+        const ciclosExistentes = await this.prisma.cicloAvaliacao.findMany({
+            select: { idCiclo: true, dataInicio: true, dataFim: true }
+        });
+
+        for (const ciclo of ciclosExistentes) {
+            // Se o novo ciclo começa antes do fim de um ciclo existente
+            // e termina depois do início de um ciclo existente, há sobreposição
+            if (
+                (dataInicio <= ciclo.dataFim) &&
+                (dataFim >= ciclo.dataInicio)
+            ) {
+                throw new ConflictException(
+                    `O período informado (${dataInicio.toLocaleDateString()} a ${dataFim.toLocaleDateString()}) sobrepõe o ciclo existente de ${new Date(ciclo.dataInicio).toLocaleDateString()} a ${new Date(ciclo.dataFim).toLocaleDateString()}.`
+                );
+            }
+        }
+
+        // Validação: soma das durações dos status deve ser igual ao total de dias do ci
     }
 
     private async _validarNomeUnico(nome: string): Promise<void> {
@@ -263,21 +348,12 @@ export class CicloService {
         ano: number,
         mes: number,
         dia: number,
-        isDataFim: boolean = false,
     ): Date {
         if (!this._isDataValida(ano, mes, dia)) {
             throw new BadRequestException(`Data inválida fornecida: ${dia}/${mes}/${ano}`);
         }
-
-        if (isDataFim) {
-            // Cria a data no final do dia em Brasília (23:59:59.999), que é 02:59:59.999 do dia seguinte em UTC
-            return new Date(
-                Date.UTC(ano, mes - 1, dia, 23, 59, 59, 999) +
-                    3 * 60 * 60 * 1000,
-            );
-        }
         // Cria a data no início do dia em Brasília (00:00:00), que é 03:00:00 em UTC
-        return new Date(Date.UTC(ano, mes - 1, dia, 3, 0, 0, 0));
+        return new Date(Date.UTC(ano, mes -1, dia, 0, 0, 0, 0));
     }
 
     private _validarPadraoNomeCiclo(nome: string): void {

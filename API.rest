@@ -57,18 +57,20 @@ POST http://localhost:3000/ciclo
 Content-Type: application/json
 
 {
-    "nome": "2025.2",
+    "nome": "2021.2",
     "dataInicioAno": 2025,
-    "dataInicioMes": 6,
-    "dataInicioDia": 25,
+    "dataInicioMes": 7,
+    "dataInicioDia": 8,
     "dataFimAno": 2025,
-    "dataFimMes": 7,
-    "dataFimDia":19
+    "dataFimMes": 8,
+    "dataFimDia": 6,
+    "duracaoEmAndamentoDias": 10,
+    "duracaoEmRevisaoDias": 10,
+    "duracaoEmEqualizacaoDias": 10
 }
 
 ### Remover ciclo
-DELETE http://localhost:3000/ciclo/remover/d7087ccd-575e-4586-aeb7-c8454d4f2ea3
-
+DELETE http://localhost:3000/ciclo/c157da75-cd84-4bf8-8598-d7d768cdf404
 ### Get ciclo
 GET http://localhost:3000/ciclo/get/b55004c9-4656-42ab-8b61-ebcd701fd2d6
 
@@ -81,12 +83,29 @@ GET http://localhost:3000/ciclo/get-ativos
 ### Get historico ciclos
 GET http://localhost:3000/ciclo/get-historico
 
-### Atualizar ciclo
-PUT http://localhost:3000/ciclo/5fb2b328-edd7-4734-ac2a-cae9c3d18bf1
+### Atualizar ciclo (PUT - atualização completa)
+PUT http://localhost:3000/ciclo/e81819cd-d018-4af9-a69f-92250e46f7e7
 Content-Type: application/json
 
 {
-    "nome": "2025.28"
+    "nome": "2029.1",
+    "dataInicioAno": 2029,
+    "dataInicioMes": 7,
+    "dataInicioDia": 1,
+    "dataFimAno": 2029,
+    "dataFimMes": 7,
+    "dataFimDia": 31,
+    "duracaoEmAndamentoDias": 11,
+    "duracaoEmRevisaoDias": 10,
+    "duracaoEmEqualizacaoDias": 10
+}
+
+### Atualizar ciclo (PATCH - atualização parcial)
+PATCH http://localhost:3000/ciclo/e81819cd-d018-4af9-a69f-92250e46f7e7
+Content-Type: application/json
+
+{
+    "duracaoEmAndamentoDias": 11
 }
 
 ### Criar criterio
@@ -329,3 +348,9 @@ Content-Type: application/json
 
 ### Get constantes
 GET http://localhost:3000/colaborador/constantes
+
+### Get notas
+GET http://localhost:3000/avaliacoes/notasAvaliacoes/996e4e19-cfca-4414-ac93-0a274a417c7e/4e4b287f-bddd-47c7-83ff-a663720f2ba3
+
+### Get all notas
+GET http://localhost:3000/avaliacoes/notasCiclo/4e4b287f-bddd-47c7-83ff-a663720f2ba3
