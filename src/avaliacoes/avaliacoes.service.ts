@@ -1184,4 +1184,78 @@ export class AvaliacoesService {
         });
         return avaliacoes;
     }
+
+    async getFormsAvaliacao(idAvaliacao: string) {
+        // Buscar todos os cards de autoavaliação associados à avaliação
+        const cardsAuto = await this.prisma.cardAutoAvaliacao.findMany({ where: { idAvaliacao } });
+
+        // Buscar todos os critérios distintos pelos nomes encontrados nos cards
+        const nomesCriterios = Array.from(new Set(cardsAuto.map(card => card.nomeCriterio)));
+        const criterios = await this.prisma.criterioAvaliativo.findMany({
+            where: { nomeCriterio: { in: nomesCriterios } }
+        });
+
+        // Mapear nomeCriterio => { pilar, descricao }
+        const criterioInfo: Record<string, { pilar: string, descricao: string }> = {};
+        for (const criterio of criterios) {
+            criterioInfo[criterio.nomeCriterio] = {
+                pilar: criterio.pilar || 'Outro',
+                descricao: criterio.descricao || ''
+            };
+        }
+
+        // Agrupar apenas nomeCriterio e descricao por pilar
+        const resultado: Record<string, { nomeCriterio: string, descricao: string }[]> = {};
+        for (const card of cardsAuto) {
+            const info = criterioInfo[card.nomeCriterio] || { pilar: 'Outro', descricao: '' };
+            const pilar = info.pilar;
+            if (!resultado[pilar]) resultado[pilar] = [];
+            // Evitar duplicidade de critérios no mesmo pilar
+            if (!resultado[pilar].some(c => c.nomeCriterio === card.nomeCriterio)) {
+                resultado[pilar].push({
+                    nomeCriterio: card.nomeCriterio,
+                    descricao: info.descricao
+                });
+            }
+        }
+
+        return resultado;
+    }
+
+    async getFormsLiderColaborador(idAvaliacao: string) {
+        // Buscar todos os cards de autoavaliação associados à avaliação
+        const cards = await this.prisma.cardAvaliacaoLiderColaborador.findMany({ where: { idAvaliacao } });
+
+        // Buscar todos os critérios distintos pelos nomes encontrados nos cards
+        const nomesCriterios = Array.from(new Set(cards.map(card => card.nomeCriterio)));
+        const criterios = await this.prisma.criterioAvaliativo.findMany({
+            where: { nomeCriterio: { in: nomesCriterios } }
+        });
+
+        // Mapear nomeCriterio => { pilar, descricao }
+        const criterioInfo: Record<string, { pilar: string, descricao: string }> = {};
+        for (const criterio of criterios) {
+            criterioInfo[criterio.nomeCriterio] = {
+                pilar: criterio.pilar || 'Outro',
+                descricao: criterio.descricao || ''
+            };
+        }
+
+        // Agrupar apenas nomeCriterio e descricao por pilar
+        const resultado: Record<string, { nomeCriterio: string, descricao: string }[]> = {};
+        for (const card of cards) {
+            const info = criterioInfo[card.nomeCriterio] || { pilar: 'Outro', descricao: '' };
+            const pilar = info.pilar;
+            if (!resultado[pilar]) resultado[pilar] = [];
+            // Evitar duplicidade de critérios no mesmo pilar
+            if (!resultado[pilar].some(c => c.nomeCriterio === card.nomeCriterio)) {
+                resultado[pilar].push({
+                    nomeCriterio: card.nomeCriterio,
+                    descricao: info.descricao
+                });
+            }
+        }
+
+        return resultado;
+    }
 }
