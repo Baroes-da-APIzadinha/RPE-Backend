@@ -52,7 +52,7 @@ export class EqualizacaoController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'COMITE')
   @Post()
   async create(@Body() createEqualizacaoDto: CreateEqualizacaoDto) {
     this.logger.log('Recebida requisição para criar nova equalização');
@@ -60,7 +60,7 @@ export class EqualizacaoController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'COMITE')
   @Patch(':idEqualizacao')
   async update(@Param('idEqualizacao') idEqualizacao: string, @Body() updateEqualizacaoDto: UpdateEqualizacaoDto) {
     this.logger.log(`Recebida requisição para atualizar equalização: ${idEqualizacao}`);
@@ -68,7 +68,7 @@ export class EqualizacaoController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'COMITE')
   @Delete(':idEqualizacao')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('idEqualizacao') idEqualizacao: string) {

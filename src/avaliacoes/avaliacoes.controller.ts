@@ -104,7 +104,7 @@ export class AvaliacoesController {
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
+    @Roles('ADMIN', 'RH')
     @Post('lancar-auto-avaliacoes')
     async lancarAutoAvaliacao(@Body() dto: LancarAvaliacaoDto) {
         const resultado = await this.service.lancarAutoAvaliacoes(dto.idCiclo);

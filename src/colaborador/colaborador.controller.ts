@@ -22,14 +22,14 @@ export class ColaboradorController {
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
+    @Roles('ADMIN', 'RH')
     @Delete(':id')
     async removerColaborador(@Param('id') id: string) {
         return this.colaboradorService.removerColaborador(id);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
+    @Roles('ADMIN', 'RH')
     @Get('get-all-colaboradores')
     async getAllColaboradores() {
         return this.colaboradorService.getAllColaborador();
@@ -45,8 +45,7 @@ export class ColaboradorController {
     }
 
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN', 'COLABORADOR_COMUM')
+    @UseGuards(JwtAuthGuard)
     @Get(':id')
     async getColaborador(@Param('id') id: string, @Req() req) {
         return this.colaboradorService.getColaborador(id, req.user);
@@ -85,35 +84,27 @@ export class ColaboradorController {
     }
 
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('RH')
+    @UseGuards(JwtAuthGuard)
     @Get('avaliacoes-recebidas/:idColaborador')
     async getAvaliacoesRecebidas(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getAvaliacoesRecebidas(idColaborador);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('RH')
+    @Roles('RH', 'COLABORADOR_COMUM')
     @Get('notas/historico/:idColaborador')
     async getHistoricoNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getHistoricoNotasPorCiclo(idColaborador);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('RH')
+    @Roles('RH', 'COLABORADOR_COMUM')
     @Get('pilar/historico/:idColaborador')
     async getHistoricoMediaNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getHistoricoMediaNotasPorCiclo(idColaborador);
     }
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('RH')
-    @Post('validar-perfis')
-    async validarPerfis(@Body('perfis') perfis: string[]) {
-        const resultado = validarPerfisColaborador(perfis);
-        return { valido: resultado === null, mensagem: resultado };
-    }
-
+    @UseGuards(JwtAuthGuard)
     @Get('progresso-atual/:idColaborador')
     async getProgressoAtual(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getProgressoAtual(idColaborador);
