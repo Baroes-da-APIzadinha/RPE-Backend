@@ -16,7 +16,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYmNmM2QxN
 DELETE http://localhost:3000/colaborador/565a6f76-751e-4d01-bba3-a84f313c80bf
 ### Get colaborador
 
-GET http://localhost:3000/colaborador/get/9aa7e53a-0518-4c53-b03b-2cee1b8cbc87
+GET http://localhost:3000/colaborador/cccccccc-3333-3333-3333-333333333333
 
 ### Get all colaboradores
 GET http://localhost:3000/colaborador/get-all-colaboradores
@@ -47,7 +47,7 @@ POST http://localhost:3000/auth/login
 Content-Type: application/json
 
 {
-    "email": "admin@example.com",
+    "email": "juliana.rocha@empresa.com",
     "senha": "senha123"
 }
 
