@@ -46,9 +46,15 @@ export class ColaboradorController {
 
 
     @UseGuards(JwtAuthGuard)
+    @Get('/gestor/:id')
+    async getGestorColaborador(@Param('id') id: string, @Req() req) {
+        return this.colaboradorService.getGestorColaborador(id, req.user);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Get(':id')
-    async getColaborador(@Param('id') id: string, @Req() req) {
-        return this.colaboradorService.getColaborador(id, req.user);
+    async getProfile(@Param('id') idColaborador: string) {
+        return this.colaboradorService.getProfile(idColaborador);
     }
 
 

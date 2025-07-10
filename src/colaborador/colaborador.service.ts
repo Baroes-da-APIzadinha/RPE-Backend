@@ -92,14 +92,14 @@ export class ColaboradorService {
         });
     }
 
-    async getColaborador(id: string, user?: any) {
-        if (!this.isValidUUID(id)) {
-            return {
-                status: 400,
-                message: 'ID do colaborador inválido'
-            }
-        }
+    async getProfile (idColaborador :string){
+        const colaborador = await this.prisma.colaborador.findUnique({
+            where: { idColaborador}
+        })
+        return colaborador
+    }
 
+    async getGestorColaborador(id: string, user?: any) {
         // Se for ADMIN, retorna normalmente
         if (user && user.roles && user.roles.includes('ADMIN')) {
             const colaborador = await this.prisma.colaborador.findUnique({
