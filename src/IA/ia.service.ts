@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
 import ai from './init';
 import { generationConfig, MiniConfig } from './config';
@@ -74,6 +74,20 @@ export class IaService {
             }
         });
         return avaliacoes;
+    }
+
+    async getAllColaborador(idColaborador: string, idCiclo: string) {
+        const avaliacoes = await this.getAvaliacoesIA(idColaborador, idCiclo);
+        const equalizacao = await this.prisma.equalizacao.findFirst({
+            where: {
+                idAvaliado: idColaborador,
+                idCiclo: idCiclo
+            }
+        });
+        return {
+            avaliacoes,
+            equalizacao
+        };
     }
 
     private processarAvaliacoes(avaliacoes: any[]) {
@@ -342,5 +356,97 @@ export class IaService {
             console.error('Erro ao avaliar colaborador:', error);
             throw error;
         }
+    }
+
+    async gerarBrutalFacts(idColaborador: string, idCiclo: string): Promise<string> {
+        const logger = new Logger('IaService');
+        logger.log(`Iniciando geração do Brutal Facts para idColaborador=${idColaborador}, idCiclo=${idCiclo}`);
+        // Busca avaliações e equalização
+        const { avaliacoes, equalizacao } = await this.getAllColaborador(idColaborador, idCiclo);
+        logger.log(`Avaliações encontradas: ${avaliacoes ? avaliacoes.length : 0}`);
+        logger.log(`Equalização encontrada: ${!!equalizacao}`);
+        if (!avaliacoes || avaliacoes.length === 0) {
+            logger.warn('Nenhuma avaliação encontrada para este colaborador neste ciclo');
+            throw new Error('Nenhuma avaliação encontrada para este colaborador neste ciclo');
+        }
+        // Processa avaliações para formato detalhado
+        const dadosProcessados = this.processarAvaliacoes(avaliacoes);
+        logger.debug(`Dados processados para prompt: ${JSON.stringify(dadosProcessados)}`);
+        // Monta prompt para brutal facts
+        let prompt = this.criarPromptBrutalFacts(dadosProcessados, equalizacao);
+        logger.debug(`Prompt gerado para IA:\n${prompt}`);
+        // Chama IA
+        try {
+            const { brutalFactsConfig } = await import('./config');
+            logger.log('Enviando prompt para IA...');
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    systemInstruction: brutalFactsConfig.systemInstruction,
+                    temperature: brutalFactsConfig.temperature,
+                    topP: brutalFactsConfig.topP,
+                    maxOutputTokens: brutalFactsConfig.maxOutputTokens,
+                    responseMimeType: brutalFactsConfig.responseMimeType
+                }
+            });
+            logger.debug(`Resposta completa da IA: ${JSON.stringify(response)}`);
+            // Tenta acessar o texto em diferentes campos conhecidos
+            let texto = response.text;
+            if (!texto && typeof response === 'object') {
+                if ('candidates' in response && Array.isArray(response.candidates) && response.candidates[0]?.content?.parts) {
+                    texto = response.candidates[0].content.parts.map((p: any) => p.text).join('\n');
+                }
+            }
+            logger.debug(`Texto da IA: ${texto}`);
+            return texto || 'Erro na geração de resposta pela IA. Veja o log para detalhes da resposta.';
+        } catch (error) {
+            logger.error('Erro ao gerar Brutal Facts', error.stack || error.message || error);
+            throw error;
+        }
+    }
+
+    // Função auxiliar para montar prompt específico do brutal facts
+    private criarPromptBrutalFacts(dados: any, equalizacao: any): string {
+        let prompt = `=== DADOS PARA BRUTAL FACTS ===\n`;
+        // Autoavaliação
+        if (dados.autoAvaliacao) {
+            prompt += `\n=== AUTOAVALIAÇÃO ===\nNota Final: ${dados.autoAvaliacao.notaFinal || 'Não informada'}/5\nAvaliador: ${dados.autoAvaliacao.avaliador?.nomeCompleto || 'Não informado'}\nCritérios Avaliados:`;
+            dados.autoAvaliacao.criterios.forEach((criterio: any) => {
+                prompt += `\n• ${criterio.nomeCriterio}: ${criterio.nota || 'N/A'}/5\nJustificativa: \"${criterio.justificativa || 'Não informada'}\"`;
+            });
+        } else {
+            prompt += `\n=== AUTOAVALIAÇÃO ===\n❌ Autoavaliação não realizada`;
+        }
+        // Avaliações dos líderes
+        if (dados.avaliacoesLider && dados.avaliacoesLider.length > 0) {
+            prompt += `\n=== AVALIAÇÕES DOS LÍDERES (${dados.avaliacoesLider.length} avaliações) ===`;
+            dados.avaliacoesLider.forEach((lider: any, index: number) => {
+                prompt += `\n--- Avaliação do Líder ${index + 1} ---\nNota Final: ${lider.notaFinal || 'Não informada'}/5\nAvaliador: ${lider.avaliador?.nomeCompleto || 'Não informado'} (${lider.avaliador?.cargo || 'Cargo não informado'})\nCritérios Avaliados:`;
+                lider.criterios.forEach((criterio: any) => {
+                    prompt += `\n• ${criterio.nomeCriterio}: ${criterio.nota || 'N/A'}/5\nJustificativa: \"${criterio.justificativa || 'Não informada'}\"`;
+                });
+            });
+        } else {
+            prompt += `\n=== AVALIAÇÕES DOS LÍDERES ===\n❌ Nenhuma avaliação de líder realizada`;
+        }
+        // Avaliações dos pares
+        if (dados.avaliacoesPares.length > 0) {
+            prompt += `\n=== AVALIAÇÕES DOS PARES (${dados.avaliacoesPares.length} avaliações) ===`;
+            dados.avaliacoesPares.forEach((par: any, index: number) => {
+                prompt += `\nAvaliação ${index + 1} - Por: ${par.avaliador?.nomeCompleto || 'Não informado'}\n• Nota Geral: ${par.nota || 'N/A'}/5\n• Motivado a trabalhar novamente: ${par.motivadoTrabalharNovamente || 'Não informado'}\n• Pontos Fortes: \"${par.pontosFortes || 'Não informado'}\"\n• Pontos Fracos: \"${par.pontosFracos || 'Não informado'}\"`;
+            });
+        } else {
+            prompt += `\n=== AVALIAÇÕES DOS PARES ===\n❌ Nenhuma avaliação de pares realizada`;
+        }
+        // Equalização
+        if (equalizacao) {
+            prompt += `\n=== EQUALIZAÇÃO ===\nNota Final Equalizada: ${equalizacao.notaFinal || 'Não informada'}\nJustificativa do Comitê: \"${equalizacao.justificativa || 'Não informada'}\"`;
+        } else {
+            prompt += `\n=== EQUALIZAÇÃO ===\n❌ Equalização não realizada`;
+        }
+        // Instrução final
+        prompt += `\n\nAnalise os dados acima e siga as instruções do sistema para gerar o Brutal Facts.`;
+        return prompt;
     }
 }

@@ -164,6 +164,10 @@ const brutalFactsConfig = {
   systemInstruction: `
     ${generalProjectConfig.systemInstruction}
 
+
+    Você está inserido em um contexto corporativo de avaliação de desempenho de colaboradoes atuando como um agente de IA 
+    que representa o comitê de equalização da empresa.
+
     === SUA TAREFA: GERAR O BRUTAL FACTS ===
     Você deve criar o "Brutal Facts" de um colaborador ao final do ciclo avaliativo. O Brutal Facts é um resumo honesto, direto e construtivo, que sintetiza os principais pontos identificados nas avaliações recebidas (autoavaliação, líderes, pares) e no resultado da equalização.
 

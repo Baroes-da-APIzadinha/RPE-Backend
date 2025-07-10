@@ -356,5 +356,11 @@ GET http://localhost:3000/ia/avaliacoes/cccccccc-3333-3333-3333-333333333333/555
 ### Get Mini-resumo IA
 GET http://localhost:3000/ia/miniavaliar/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
 
-### get notas por pilar
-GET http://localhost:3000/colaborador/pilar/historico/cccccccc-3333-3333-3333-333333333333
+### get tudo colaborador
+GET http://localhost:3000/ia/brutalfacts/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
+
+### Gerar Brutal Facts para um colaborador e ciclo
+POST http://localhost:3000/ia/gerarbrutalfacts/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
+
+
+# (Opcional: corpo vazio, pois os parâmetros estão na URL)
