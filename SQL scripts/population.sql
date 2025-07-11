@@ -394,6 +394,8 @@ VALUES
 INSERT INTO "IndicacaoReferencia" ("idIndicacao", "idCiclo", "idIndicador", "idIndicado", "tipo", "justificativa")
 VALUES
     (uuid_generate_v4(), ciclo_2025_1_id, colaborador_gestor_id, colaborador_comum_id, 'TECNICA', 'Forte conhecimento técnico e boa capacidade de resolução de problemas'),
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_gestor_id, colaborador_comum_id, 'TECNICA', 'Excelente capacidade de entrega e comprometimento com prazos'),
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_gestor_id, colaborador_comum_id, 'CULTURAL', 'Colaborador que se alinha bem com os valores da empresa e demonstra espírito de equipe'),
     (uuid_generate_v4(), ciclo_2025_1_id, colaborador_mentor_id, colaborador_qa_id, 'CULTURAL', 'Profissional dedicado com potencial de crescimento');
 
 -- Inserir Equalização
