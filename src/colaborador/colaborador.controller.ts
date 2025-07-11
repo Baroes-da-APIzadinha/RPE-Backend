@@ -59,7 +59,6 @@ export class ColaboradorController {
 
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
     @Put(':id')
     async atualizarColaborador(@Param('id') id: string, @Body() data: UpdateColaboradorDto) {
         return this.colaboradorService.updateColaborador(id, data);

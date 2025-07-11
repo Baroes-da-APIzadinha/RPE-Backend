@@ -154,16 +154,20 @@ export class ColaboradorService {
                 message: 'ID do colaborador inválido'
             }
         }
-        const emailExists = await this.prisma.colaborador.findUnique({
-            where: { email: data.email}
-        });
 
-        if (emailExists) {
-            return {
+        if (data.email) {
+            const emailExists = await this.prisma.colaborador.findUnique({
+                where: { email: data.email }
+            });
+
+            if (emailExists && emailExists.idColaborador !== id) {
+                return {
                 status: 400,
                 message: 'Email já cadastrado'
+                };
             }
         }
+
 
         const colaborador = await this.prisma.colaborador.findUnique({
             where: { idColaborador: id }
