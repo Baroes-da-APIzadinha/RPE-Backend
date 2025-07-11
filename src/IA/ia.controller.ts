@@ -1,0 +1,38 @@
+import { Controller, Get, Param } from '@nestjs/common';
+import { IaService } from './ia.service';
+
+@Controller('ia')
+export class IaController {
+    constructor(private readonly iaService: IaService) {}
+
+    @Get('avaliar/:idColaborador/:idCiclo')
+    async avaliarColaborador(@Param('idColaborador') idColaborador: string, @Param('idCiclo') idCiclo: string): Promise<string> {
+        try {
+            const resultado = await this.iaService.avaliarColaborador(idColaborador, idCiclo);
+            return resultado;
+        } catch (error) {
+            console.error('Erro ao avaliar colaborador:', error);
+            throw error;
+        }
+    }
+
+    @Get('avaliacoes/:idColaborador/:idCiclo')
+    async getAvaliacoesIA(
+        @Param('idColaborador') idColaborador: string,
+        @Param('idCiclo') idCiclo: string
+    ): Promise<any[]> {
+        return this.iaService.getAvaliacoesIA(idColaborador, idCiclo);
+    }
+
+    @Get('miniavaliar/:idColaborador/:idCiclo')
+    async miniAvaliarColaborador(@Param('idColaborador') idColaborador: string, @Param('idCiclo') idCiclo: string): Promise<string> {
+        try {
+            const resultado = await this.iaService.miniAvaliarColaborador(idColaborador, idCiclo);
+            return resultado;
+        } catch (error) {
+            console.error('Erro ao avaliar colaborador:', error);
+            throw error;
+        }
+    }
+
+}
