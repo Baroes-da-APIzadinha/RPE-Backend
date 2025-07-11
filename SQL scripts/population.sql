@@ -342,12 +342,15 @@ VALUES
 -- Inserir AvaliacaoPares
 INSERT INTO "AvaliacaoPares" ("idAvaliacao", "nota", "motivadoTrabalharNovamente", "pontosFortes", "pontosFracos")
 VALUES
-    (avaliacao_pares_id, 4.5, 'Neutro', 'Comunicativo, proativo, técnico', 'Às vezes é perfeccionista demais');
+    (avaliacao_pares_id, 4.5, 'Neutro', 'Comunicativo, proativo, técnico', 'Às vezes é perfeccionista demais'),
+    (avaliacao_pares_2_id, 0, '', '', ''),
+    (avaliacao_pares_3_id, 0, '', '', '');
 
 -- Inserir AvaliacaoColaboradorMentor
 INSERT INTO "AvaliacaoColaboradorMentor" ("idAvaliacao", "nota", "justificativa")
 VALUES
-    (avaliacao_colaborador_mentor_id, 4.8, 'Excelente mentor, sempre disponível para ajudar e ensinar novas tecnologias');
+    (avaliacao_colaborador_mentor_id, 4.8, 'Excelente mentor, sempre disponível para ajudar e ensinar novas tecnologias'),
+    (avaliacao_colaborador_mentor_2_id, NULL, '');
 
 -- Inserir AvaliacaoLiderColaborador
 INSERT INTO "AvaliacaoLiderColaborador" ("idAvaliacao", "notaFinal")
@@ -391,7 +394,7 @@ VALUES
 INSERT INTO "IndicacaoReferencia" ("idIndicacao", "idCiclo", "idIndicador", "idIndicado", "tipo", "justificativa")
 VALUES
     (uuid_generate_v4(), ciclo_2025_1_id, colaborador_gestor_id, colaborador_comum_id, 'TECNICA', 'Forte conhecimento técnico e boa capacidade de resolução de problemas'),
-    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_mentor_id, colaborador_qa_id, 'GERAL', 'Profissional dedicado com potencial de crescimento');
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_mentor_id, colaborador_qa_id, 'CULTURAL', 'Profissional dedicado com potencial de crescimento');
 
 -- Inserir Equalização
 INSERT INTO "Equalizacao" ("idEqualizacao", "idCiclo", "idAvaliado", "idMembroComite", "notaAjustada", "justificativa", "status")
@@ -399,4 +402,5 @@ VALUES
     (uuid_generate_v4(), ciclo_2025_1_id, colaborador_comum_id, colaborador_rh_id, 4.2, 'Desempenho consistente ao longo do ciclo, demonstrando crescimento técnico', 'CONCLUIDA');
 
 END $$;
+
 
