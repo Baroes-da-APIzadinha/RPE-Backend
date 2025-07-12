@@ -16,7 +16,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYmNmM2QxN
 DELETE http://localhost:3000/colaborador/565a6f76-751e-4d01-bba3-a84f313c80bf
 ### Get colaborador
 
-GET http://localhost:3000/colaborador/get/9aa7e53a-0518-4c53-b03b-2cee1b8cbc87
+GET http://localhost:3000/colaborador/cccccccc-3333-3333-3333-333333333333
 
 ### Get all colaboradores
 GET http://localhost:3000/colaborador/get-all-colaboradores
@@ -47,7 +47,7 @@ POST http://localhost:3000/auth/login
 Content-Type: application/json
 
 {
-    "email": "admin@example.com",
+    "email": "juliana.rocha@empresa.com",
     "senha": "senha123"
 }
 
@@ -57,13 +57,13 @@ POST http://localhost:3000/ciclo
 Content-Type: application/json
 
 {
-    "nome": "2029.2",
+    "nome": "2021.2",
     "dataInicioAno": 2025,
     "dataInicioMes": 7,
-    "dataInicioDia": 7,
+    "dataInicioDia": 8,
     "dataFimAno": 2025,
     "dataFimMes": 8,
-    "dataFimDia": 5,
+    "dataFimDia": 6,
     "duracaoEmAndamentoDias": 10,
     "duracaoEmRevisaoDias": 10,
     "duracaoEmEqualizacaoDias": 10
@@ -83,12 +83,29 @@ GET http://localhost:3000/ciclo/get-ativos
 ### Get historico ciclos
 GET http://localhost:3000/ciclo/get-historico
 
-### Atualizar ciclo
-PUT http://localhost:3000/ciclo/5fb2b328-edd7-4734-ac2a-cae9c3d18bf1
+### Atualizar ciclo (PUT - atualização completa)
+PUT http://localhost:3000/ciclo/e81819cd-d018-4af9-a69f-92250e46f7e7
 Content-Type: application/json
 
 {
-    "nome": "2025.28"
+    "nome": "2029.1",
+    "dataInicioAno": 2029,
+    "dataInicioMes": 7,
+    "dataInicioDia": 1,
+    "dataFimAno": 2029,
+    "dataFimMes": 7,
+    "dataFimDia": 31,
+    "duracaoEmAndamentoDias": 11,
+    "duracaoEmRevisaoDias": 10,
+    "duracaoEmEqualizacaoDias": 10
+}
+
+### Atualizar ciclo (PATCH - atualização parcial)
+PATCH http://localhost:3000/ciclo/e81819cd-d018-4af9-a69f-92250e46f7e7
+Content-Type: application/json
+
+{
+    "duracaoEmAndamentoDias": 11
 }
 
 ### Criar criterio
@@ -173,11 +190,11 @@ POST http://localhost:3000/avaliacoes/preencher-avaliacao-pares
 Content-Type: application/json
 
 {
-    "idAvaliacao": "fb45d877-257c-4b93-a544-522a0647f650",
-    "nota": 5,
-    "motivacao": "Concordo Totalmente",
-    "pontosFortes": "Pontos Fortes",
-    "pontosFracos": "Pontos Fracos"
+    "idAvaliacao": "06ac1a70-59bb-4b25-9300-04f2308d281e",
+    "nota": 3,
+    "motivacao": "Discordo Parcialmente",
+    "pontosFortes": "Se adapta bem a mudanças e é muito empenhado em suas tarefas",
+    "pontosFracos": "Pode melhorar a comunicação em situações de pressão e ser mais proativo em projetos coletivos."
 }
 
 ### Preencher avaliação colaborador mentor
@@ -195,60 +212,53 @@ POST http://localhost:3000/avaliacoes/preencher-auto-avaliacao
 Content-Type: application/json
 
 {
-    "idAvaliacao": "4780304d-1d37-48c9-9721-10ccdbe54780",
+    "idAvaliacao": "6983ee45-51f2-4aef-8862-a8758851a4f1",
     "criterios": [
         {
             "nome": "Comunicação",
-            "nota": 5.0,
-            "justificativa": "Acredito que me comuniquei da melhor forma possivel"
+            "nota": 3.0,
+            "justificativa": "Me comuniquei de forma clara na maioria das situações, mas posso melhorar em reuniões grandes."
         },
         {
             "nome": "Trabalho em Equipe",
-            "nota": 5.0,
-            "justificativa": "Colaborei bem com o time em todos os projetos"
+            "nota": 3.5,
+            "justificativa": "Participei das atividades em grupo e ajudei colegas, mas em alguns momentos poderia ter colaborado mais."
         },
         {
             "nome": "Adaptabilidade",
-            "nota": 5.0,
-            "justificativa": "Me adaptei rapidamente às mudanças de escopo"
+            "nota": 3.0,
+            "justificativa": "Consegui me adaptar às mudanças, embora precise ser mais proativo em situações inesperadas."
         },
         {
             "nome": "Qualidade das Entregas",
-            "nota": 1.5,
-            "justificativa": "Entreguei todas as tarefas com alta qualidade"
+            "nota": 3.0,
+            "justificativa": "Minhas entregas atenderam aos requisitos, mas algumas poderiam ter mais atenção aos detalhes."
         },
         {
             "nome": "Cumprimento de Prazos",
-            "nota": 3.0,
-            "justificativa": "Cumpri todos os prazos estabelecidos"
+            "nota": 2.5,
+            "justificativa": "Cumpri a maioria dos prazos, mas tive dificuldades em alguns momentos de maior demanda."
         },
         {
             "nome": "Resolução de Problemas",
-            "nota": 2.0,
-            "justificativa": "Resolvi problemas complexos de forma eficiente"
+            "nota": 3.0,
+            "justificativa": "Resolvi problemas do dia a dia, mas em casos mais complexos precisei de apoio do time."
         },
         {
             "nome": "Gestão de Projetos",
-            "nota": 1.0,
-            "justificativa": "Gerenciei projetos de forma organizada"
+            "nota": 3.0,
+            "justificativa": "Contribuí para a organização dos projetos, mas posso evoluir no acompanhamento das tarefas."
         },
         {
             "nome": "Tomada de Decisão",
-            "nota": 4.0,
-            "justificativa": "Tomei decisões assertivas em situações críticas"
+            "nota": 3.0,
+            "justificativa": "Tomei decisões adequadas na maioria das vezes, mas em algumas situações hesitei."
         },
         {
             "nome": "Desenvolvimento de Equipe",
-            "nota": 1.0,
-            "justificativa": "Tomei decisões assertivas em situações críticas"
-        },
-        {
-            "nome": "Teste",
-            "nota": 5.0,
-            "justificativa": "Tomei decisões assertivas em situações críticas"
+            "nota": 3.0,
+            "justificativa": "Apoiei o desenvolvimento dos colegas, mas posso ser mais ativo em compartilhar conhecimento."
         }
-        
-
     ]
 }
 
@@ -258,56 +268,61 @@ POST http://localhost:3000/avaliacoes/preencher-lider-colaborador
 Content-Type: application/json
 
 {
-    "idAvaliacao": "2ffefec2-5f13-411b-9bf1-cb4d7e4603d2",
-    "criterios": [
-        {
-            "nome": "Comunicação",
-            "nota": 5.0,
-            "justificativa": "Acredito que me comuniquei da melhor forma possivel"
-        },
-        {
-            "nome": "Trabalho em Equipe",
-            "nota": 5.0,
-            "justificativa": "Colaborei bem com o time em todos os projetos"
-        },
-        {
-            "nome": "Adaptabilidade",
-            "nota": 4.0,
-            "justificativa": "Me adaptei rapidamente às mudanças de escopo"
-        },
-        {
-            "nome": "Qualidade das Entregas",
-            "nota": 5.0,
-            "justificativa": "Entreguei todas as tarefas com alta qualidade"
-        },
-        {
-            "nome": "Cumprimento de Prazos",
-            "nota": 5.0,
-            "justificativa": "Cumpri todos os prazos estabelecidos"
-        },
-        {
-            "nome": "Resolução de Problemas",
-            "nota": 5.0,
-            "justificativa": "Resolvi problemas complexos de forma eficiente"
-        },
-        {
-            "nome": "Gestão de Projetos",
-            "nota": 5.0,
-            "justificativa": "Gerenciei projetos de forma organizada"
-        },
-        {
-            "nome": "Tomada de Decisão",
-            "nota": 5.0,
-            "justificativa": "Tomei decisões assertivas em situações críticas"
-        },
-         {
-            "nome": "Desenvolvimento de Equipe",
-            "nota": 4.5,
-            "justificativa": "Tomei decisões assertivas em situações críticas"
-        }
-
-    ]
+"idAvaliacao": "b7a28ef4-be19-43a7-9e56-1657ca4ed548",
+"criterios": [
+{
+"nome": "Comunicação",
+"nota": 3.0,
+"justificativa": "O colaborador se comunica de forma clara no dia a dia, porém, percebo que ainda há espaço para melhorar a proatividade e a desenvoltura em reuniões maiores, contribuindo mais ativamente."
+},
+{
+"nome": "Trabalho em Equipe",
+"nota": 3.5,
+"justificativa": "Participa bem das atividades em grupo e é solícito ao ajudar os colegas. No entanto, em algumas ocasiões, a contribuição poderia ser mais aprofundada e colaborativa."
+},
+{
+"nome": "Adaptabilidade",
+"nota": 3.0,
+"justificativa": "Demonstra capacidade de se adaptar a mudanças, mas necessita desenvolver uma postura mais proativa na antecipação e reação a situações inesperadas."
+},
+{
+"nome": "Qualidade das Entregas",
+"nota": 3.0,
+"justificativa": "As entregas geralmente atendem aos requisitos. Contudo, é preciso maior atenção aos detalhes para elevar a qualidade geral e evitar retrabalhos pontuais."
+},
+{
+"nome": "Cumprimento de Prazos",
+"nota": 2.5,
+"justificativa": "A maioria dos prazos é cumprida. No entanto, em períodos de alta demanda ou projetos mais complexos, observa-se dificuldade em gerenciar o tempo, resultando em atrasos eventuais."
+},
+{
+"nome": "Resolução de Problemas",
+"nota": 3.0,
+"justificativa": "É capaz de resolver problemas rotineiros de forma eficaz. Em cenários mais complexos ou que exigem maior análise, ainda depende de um suporte mais direto da equipe ou liderança."
+},
+{
+"nome": "Gestão de Projetos",
+"nota": 3.0,
+"justificativa": "Colabora na organização dos projetos. O próximo passo é desenvolver mais autonomia no acompanhamento e na proatividade para identificar e resolver gargalos nas tarefas."
+},
+{
+"nome": "Tomada de Decisão",
+"nota": 3.0,
+"justificativa": "Toma decisões adequadas na maioria das situações, especialmente as de menor complexidade. Em momentos cruciais ou de maior impacto, ainda há uma certa hesitação que pode atrasar o processo."
+},
+{
+"nome": "Desenvolvimento de Equipe",
+"nota": 3.0,
+"justificativa": "Apoia o desenvolvimento dos colegas quando solicitado. Seria benéfico que fosse mais ativo na disseminação de conhecimento e melhores práticas de forma espontânea."
 }
+]
+}
+
+### Buscar forms de autoavaliação agrupados por pilar
+GET http://localhost:3000/avaliacoes/forms-autoavaliacao/7532e589-7d34-4026-8ea2-6b30178634ac
+
+### Buscar forms de autoavaliação agrupados por pilar
+GET http://localhost:3000/avaliacoes/forms-lider-colaborador/4ba9ef95-aecd-4da3-8d0a-e8bcc7778675
 
 ### Relacionar Líder-Colaborador
 POST http://localhost:3000/colaborador/relacionar-lider-colaborador
@@ -337,3 +352,13 @@ GET http://localhost:3000/avaliacoes/notasAvaliacoes/996e4e19-cfca-4414-ac93-0a2
 
 ### Get all notas
 GET http://localhost:3000/avaliacoes/notasCiclo/4e4b287f-bddd-47c7-83ff-a663720f2ba3
+
+### Get resumo IA
+GET http://localhost:3000/ia/avaliar/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
+
+### Get Avaliacoes completas
+GET http://localhost:3000/ia/avaliacoes/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
+
+### Get Mini-resumo IA
+GET http://localhost:3000/ia/miniavaliar/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
+

@@ -17,6 +17,9 @@ import { EqualizacaoModule } from './equalizacao/equalizacao.module';
 import { ReferenciasModule } from './referencias/referencias.module';
 import { ImportacaoModule } from './importacao/importacao.module';
 import { RhModule } from './rh/rh.module';
+import { IaService } from './IA/ia.service';
+import { IaController } from './IA/ia.controller';
+import { IaModule } from './IA/ia.module';
 import { ProjetosModule } from './projetos/projetos.module';
 import { ScheduleModule } from '@nestjs/schedule'; 
 import { HttpModule } from '@nestjs/axios';
@@ -24,8 +27,8 @@ import { SincronizacaoModule } from './sincronizacao/sincronizacao.module';
 
 
 @Module({
-  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, ProjetosModule, HttpModule, ScheduleModule.forRoot(), SincronizacaoModule],
-  controllers: [AppController, AvaliacoesController, EqualizacaoController],
-  providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, IaModule, ProjetosModule, HttpModule, ScheduleModule.forRoot(), SincronizacaoModule],
+  controllers: [AppController, AvaliacoesController, EqualizacaoController, IaController],
+  providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService, IaService],
 })
 export class AppModule {}

@@ -14,13 +14,15 @@ export class ColaboradorController {
     constructor(private readonly colaboradorService: ColaboradorService) { }
 
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN', 'RH')
     @Post()
     async criarColaborador(@Body() data: CreateColaboradorDto) {
         return this.colaboradorService.criarColaborador(data);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
+    @Roles('ADMIN', 'RH')
     @Delete(':id')
     async removerColaborador(@Param('id') id: string) {
         return this.colaboradorService.removerColaborador(id);
@@ -43,16 +45,20 @@ export class ColaboradorController {
     }
 
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN', 'COLABORADOR_COMUM', 'RH')
+    @UseGuards(JwtAuthGuard)
+    @Get('/gestor/:id')
+    async getGestorColaborador(@Param('id') id: string, @Req() req) {
+        return this.colaboradorService.getGestorColaborador(id, req.user);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Get(':id')
-    async getColaborador(@Param('id') id: string, @Req() req) {
-        return this.colaboradorService.getColaborador(id, req.user);
+    async getProfile(@Param('id') idColaborador: string) {
+        return this.colaboradorService.getProfile(idColaborador);
     }
 
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
     @Put(':id')
     async atualizarColaborador(@Param('id') id: string, @Body() data: UpdateColaboradorDto) {
         return this.colaboradorService.updateColaborador(id, data);
@@ -68,37 +74,45 @@ export class ColaboradorController {
     }
 
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN')
     @Post('associar-perfil')
     async associarPerfil(@Body() data: AssociatePerfilDto) {
-
         return this.colaboradorService.associarPerfilColaborador(data.idColaborador, data.tipoPerfil);
     }
 
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN')
     @Post('associar-ciclo')
     async associarCiclo(@Body() data: any) {
         return this.colaboradorService.associarColaboradorCiclo(data.idColaborador, data.idCiclo);
     }
 
 
+    @UseGuards(JwtAuthGuard)
     @Get('avaliacoes-recebidas/:idColaborador')
     async getAvaliacoesRecebidas(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getAvaliacoesRecebidas(idColaborador);
     }
 
-    @Get('notas/historico/:idColaborador')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('RH', 'COLABORADOR_COMUM')
+    @Get('pilar/historico/:idColaborador')
     async getHistoricoNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getHistoricoNotasPorCiclo(idColaborador);
     }
 
-    @Get('pilar/historico/:idColaborador')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('RH', 'COLABORADOR_COMUM')
+    @Get('notas/historico/:idColaborador')
     async getHistoricoMediaNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getHistoricoMediaNotasPorCiclo(idColaborador);
     }
 
-    @Post('validar-perfis')
-    async validarPerfis(@Body('perfis') perfis: string[]) {
-        const resultado = validarPerfisColaborador(perfis);
-        return { valido: resultado === null, mensagem: resultado };
+    @UseGuards(JwtAuthGuard)
+    @Get('progresso-atual/:idColaborador')
+    async getProgressoAtual(@Param('idColaborador') idColaborador: string) {
+        return this.colaboradorService.getProgressoAtual(idColaborador);
     }
 
 }
