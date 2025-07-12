@@ -1,10 +1,11 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prismaService';
 import { CriarReferenciaDto, AtualizarReferenciaDto } from './referencias.dto';
+import { HashService } from '../common/hash.service';
 
 @Injectable()
 export class ReferenciasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly hashService: HashService) {}
 
   async criarReferencia(dto: CriarReferenciaDto) {
     try {
@@ -14,7 +15,7 @@ export class ReferenciasService {
           idIndicador: dto.idIndicador,
           idIndicado: dto.idIndicado,
           tipo: dto.tipo,
-          justificativa: dto.justificativa,
+          justificativa: this.hashService.hash(dto.justificativa),
         },
       });
     } catch (error) {
@@ -36,7 +37,7 @@ export class ReferenciasService {
       // Preparar dados para atualização
       const dadosAtualizacao: any = {};
       if (dto.tipo !== undefined) dadosAtualizacao.tipo = dto.tipo;
-      if (dto.justificativa !== undefined) dadosAtualizacao.justificativa = dto.justificativa;
+      if (dto.justificativa !== undefined) dadosAtualizacao.justificativa = this.hashService.hash(dto.justificativa);
 
       return await this.prisma.indicacaoReferencia.update({
         where: { idIndicacao },
