@@ -37,6 +37,12 @@ export class EqualizacaoController {
     return this.equalizacaoService.findByAvaliado(idAvaliado);
   }
 
+  @Get('avaliado/:idAvaliado/:idCiclo')
+  async findByAvaliadoCiclo(@Param('idAvaliado') idAvaliado: string, @Param('idCiclo') idCiclo: string) {
+    this.logger.log(`Recebida requisição para buscar equalizações do avaliado: ${idAvaliado} e ciclo: ${idCiclo}`);
+    return this.equalizacaoService.findByAvaliadoCiclo(idAvaliado, idCiclo);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('comite/:idMembroComite')
   async findByComite(@Param('idMembroComite') idMembroComite: string) {

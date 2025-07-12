@@ -122,6 +122,28 @@ export class EqualizacaoService {
     });
   }
 
+  async findByAvaliadoCiclo(idAvaliado: string, idCiclo: string) {
+  this.logger.log(`Buscando equalizações para avaliado: ${idAvaliado} no ciclo ${idCiclo}`);
+    
+    return this.prisma.equalizacao.findMany({
+      where: {
+        idAvaliado,
+        idCiclo
+      },
+      include: {
+        alvo: {
+          select: {
+            nomeCompleto: true,
+            cargo: true,
+          },
+        },
+      },
+      orderBy: {
+        dataEqualizacao: 'desc',
+      },
+    });
+  }
+
   async findByComite(idMembroComite: string) {
     this.logger.log(`Buscando equalizações realizadas pelo membro do comitê: ${idMembroComite}`);
     
