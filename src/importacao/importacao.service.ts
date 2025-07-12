@@ -47,16 +47,25 @@ export class ImportacaoService {
         for (const emailAvaliado in avaliacoesPorAvaliado) {
           if (!emailAvaliado || emailAvaliado === 'undefined') continue;
           const avaliado = await this.prisma.colaborador.upsert({
-            where: { email: emailAvaliado },
+            where: { email: `${emailAvaliado}@empresa.com` },
             update: {},
             create: {
-              nomeCompleto: `Avaliado - ${emailAvaliado}`,
-              email: emailAvaliado,
-              unidade: 'Desconhecida',
+              nomeCompleto: emailAvaliado,
+              email: `${emailAvaliado}@empresa.com`,
+              unidade: perfil['Unidade'],
               senha: 'senha123',
             },
           });
-          await this.criarAvaliacaoDePares(ciclo.idCiclo, avaliado.idColaborador, colaborador.idColaborador, avaliacoesPorAvaliado[emailAvaliado]);
+          const dadosAvaliacao = avaliacoesPorAvaliado[emailAvaliado];
+          for (const linha of dadosAvaliacao) {
+            const nomeProjeto = linha['PROJETO EM QUE ATUARAM JUNTOS - OBRIGATÓRIO TEREM ATUADOS JUNTOS'];
+            if (nomeProjeto && ciclo) {
+              const projeto = await this.upsertProjeto(nomeProjeto);
+              await this.upsertAlocacao(avaliado.idColaborador, projeto.idProjeto, ciclo.dataInicio, ciclo.dataFim);
+              await this.upsertAlocacao(colaborador.idColaborador, projeto.idProjeto, ciclo.dataInicio, ciclo.dataFim);
+            }
+          }
+          await this.criarAvaliacaoDePares(ciclo.idCiclo, avaliado.idColaborador, colaborador.idColaborador, dadosAvaliacao);
           this.logger.log(`Avaliação 360 para ${emailAvaliado} importada.`);
         }
       }
@@ -72,13 +81,13 @@ export class ImportacaoService {
           if (!emailIndicado) continue;
           try {
             const indicado = await this.prisma.colaborador.upsert({
-              where: { email: emailIndicado },
+              where: { email: `${emailIndicado}@empresa.com` },
               update: {},
               create: {
-                nomeCompleto: `Indicado - ${emailIndicado}`,
-                email: emailIndicado,
-                unidade: 'Desconhecida',
-                senha: 'senha123',
+                nomeCompleto: emailIndicado,
+                email: `${emailIndicado}@empresa.com`,
+                unidade: perfil['Unidade'],
+                    senha: 'senha123',
               },
             });
             await this.prisma.indicacaoReferencia.create({
@@ -263,5 +272,32 @@ export class ImportacaoService {
       acc[valorChave].push(obj);
       return acc;
     }, {});
+  }
+
+  private async upsertProjeto(nomeProjeto: string) {
+    return this.prisma.projeto.upsert({
+      where: { nomeProjeto },
+      update: {},
+      create: {
+        nomeProjeto,
+        status: 'CONCLUIDO',
+      },
+    });
+  }
+
+  private async upsertAlocacao(idColaborador: string, idProjeto: string, dataEntrada: Date, dataFim: Date) {
+    const alocacaoExistente = await this.prisma.alocacaoColaboradorProjeto.findFirst({
+      where: { idColaborador, idProjeto },
+    });
+    if (!alocacaoExistente) {
+      await this.prisma.alocacaoColaboradorProjeto.create({
+        data: {
+          idColaborador,
+          idProjeto,
+          dataEntrada,
+          dataSaida: dataFim,
+        },
+      });
+    }
   }
 }

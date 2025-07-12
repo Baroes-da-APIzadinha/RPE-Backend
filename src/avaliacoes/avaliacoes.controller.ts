@@ -116,8 +116,8 @@ export class AvaliacoesController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('ADMIN', 'RH')
     @Post('lancar-pares')
-    async lancarAvaliaçãoPares(@Body('idCiclo') idCiclo: string) {
-        const resultado = await this.service.lancarAvaliaçãoPares(idCiclo);
+    async lancarAvaliacaoPares(@Body('idCiclo') idCiclo: string) {
+        const resultado = await this.service.lancarAvaliacaoPares(idCiclo);
         this.logger.log(`Relatório de lançamento de avaliações: ${JSON.stringify(resultado)}`);
         return { message: 'Avaliações de pares lançadas com sucesso', relatorio: resultado };
     }
