@@ -1,27 +1,53 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Patch, HttpCode, HttpStatus, Inject, forwardRef } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Patch, HttpCode, HttpStatus, Inject, forwardRef, Req } from '@nestjs/common';
 import { CicloService } from './ciclo.service';
-import { CreateCicloDto, UpdateCicloDto} from './ciclo.dto';
+import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 
 @Controller('ciclo')
 export class CicloController {
     constructor(
         private readonly cicloService: CicloService,
+        private readonly auditoriaService: AuditoriaService,
     ) {}
 
     @Post()
-    async criarCiclo(@Body() data: CreateCicloDto) {
-        return this.cicloService.createCiclo(data);
+    async criarCiclo(@Body() data: CreateCicloDto, @Req() req) {
+        const result = await this.cicloService.createCiclo(data);
+        await this.auditoriaService.log({
+            userId: req.user?.userId,
+            action: 'criar_ciclo',
+            resource: 'Ciclo',
+            details: { ...data, result },
+            ip: req.ip,
+        });
+        return result;
     }
 
     @Delete(':id')
-    async removerCiclo(@Param('id') id: string) {
-        return this.cicloService.deleteCiclo(id);
+    async removerCiclo(@Param('id') id: string, @Req() req) {
+        const result = await this.cicloService.deleteCiclo(id);
+        await this.auditoriaService.log({
+            userId: req.user?.userId,
+            action: 'remover_ciclo',
+            resource: 'Ciclo',
+            details: { id, result },
+            ip: req.ip,
+        });
+        return result;
     }
 
 
     @Put(':id')
-    async atualizarCiclo(@Param('id') id: string, @Body() data: UpdateCicloDto) {
-        return this.cicloService.updateCiclo(id, data);
+    async atualizarCiclo(@Param('id') id: string, @Body() data: UpdateCicloDto, @Req() req) {
+        const result = await this.cicloService.updateCiclo(id, data);
+        await this.auditoriaService.log({
+            userId: req.user?.userId,
+            action: 'atualizar_ciclo',
+            resource: 'Ciclo',
+            details: { id, ...data, result },
+            ip: req.ip,
+        });
+        return result;
     }
 
     @Patch(':id')

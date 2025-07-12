@@ -4,11 +4,15 @@ import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 import { Motivacao } from './avaliacoes.contants';
 import { Decimal } from '@prisma/client/runtime/library';
 import { RelatorioItem } from './avaliacoes.constants';
+import { HashService } from '../common/hash.service';
 
 @Injectable()
 export class AvaliacoesService {
     private readonly logger = new Logger(AvaliacoesService.name);
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly hashService: HashService,
+    ) { }
 
     // =================== MÉTODOS PÚBLICOS ===================
 
@@ -511,8 +515,8 @@ export class AvaliacoesService {
             data: {
                 nota, // Prisma converte number para Decimal
                 motivadoTrabalharNovamente: motivacao,
-                pontosFortes,
-                pontosFracos,
+                pontosFortes: this.hashService.hash(pontosFortes),
+                pontosFracos: this.hashService.hash(pontosFracos),
             },
         });
         await this.prisma.avaliacao.update({
@@ -537,7 +541,10 @@ export class AvaliacoesService {
 
         await this.prisma.avaliacaoColaboradorMentor.update({
             where: { idAvaliacao },
-            data: { nota, justificativa },
+            data: { 
+                nota: this.hashService.hash(nota.toString()),
+                justificativa: this.hashService.hash(justificativa)
+            },
         });
 
         await this.prisma.avaliacao.update({
@@ -587,8 +594,8 @@ export class AvaliacoesService {
             await this.prisma.cardAutoAvaliacao.update({
                 where: { idCardAvaliacao: card.idCardAvaliacao },
                 data: {
-                    nota: criterio.nota,
-                    justificativa: criterio.justificativa
+                    nota: this.hashService.hash(criterio.nota.toString()),
+                    justificativa: this.hashService.hash(criterio.justificativa)
                 }
             });
         }
@@ -644,8 +651,8 @@ export class AvaliacoesService {
             await this.prisma.cardAvaliacaoLiderColaborador.update({
                 where: { idCardAvaliacao: card.idCardAvaliacao },
                 data: {
-                    nota: criterio.nota,
-                    justificativa: criterio.justificativa
+                    nota: this.hashService.hash(criterio.nota.toString()),
+                    justificativa: this.hashService.hash(criterio.justificativa)
                 }
             });
         }

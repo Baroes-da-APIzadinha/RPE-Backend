@@ -84,6 +84,7 @@ model Colaborador {
   mentoreados         MentorColaborador[]  @relation("ColaboradorMentor")
   colaboradoresCiclos ColaboradorCiclo[]
   primeiroLogin       Boolean              @default(true)
+  auditLogs           AuditLog[]
 }
 
 model ColaboradorPerfil {
@@ -303,4 +304,16 @@ model ColaboradorCiclo {
   ciclo         CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo])
 
   @@unique([idColaborador, idCiclo])
+}
+
+model AuditLog {
+  id           String      @id @default(uuid()) @db.Uuid
+  userId       String?     @db.Uuid
+  action       String
+  resource     String
+  details      Json?
+  timestamp    DateTime    @default(now())
+  ip           String?
+
+  user         Colaborador? @relation(fields: [userId], references: [idColaborador])
 }

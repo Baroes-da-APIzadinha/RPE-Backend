@@ -9,19 +9,21 @@ import {
   Logger,
   HttpCode,
   HttpStatus,
-  UseGuards
+  UseGuards,
+  Req
 } from '@nestjs/common';
 import { EqualizacaoService } from './equalizacao.service';
 import { CreateEqualizacaoDto, UpdateEqualizacaoDto } from './equalizacao.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 
 @Controller('equalizacao')
 export class EqualizacaoController {
   private readonly logger = new Logger(EqualizacaoController.name);
   
-  constructor(private readonly equalizacaoService: EqualizacaoService) {}
+  constructor(private readonly equalizacaoService: EqualizacaoService, private readonly auditoriaService: AuditoriaService) {}
 
   @UseGuards(JwtAuthGuard)
   @Get()
@@ -60,25 +62,49 @@ export class EqualizacaoController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'MEMBRO_COMITE')
   @Post()
-  async create(@Body() createEqualizacaoDto: CreateEqualizacaoDto) {
+  async create(@Body() createEqualizacaoDto: CreateEqualizacaoDto, @Req() req) {
     this.logger.log('Recebida requisição para criar nova equalização');
-    return this.equalizacaoService.create(createEqualizacaoDto);
+    const result = await this.equalizacaoService.create(createEqualizacaoDto);
+    await this.auditoriaService.log({
+      userId: req.user?.userId,
+      action: 'criar_equalizacao',
+      resource: 'Equalizacao',
+      details: { ...createEqualizacaoDto, result },
+      ip: req.ip,
+    });
+    return result;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'MEMBRO_COMITE')
   @Patch(':idEqualizacao')
-  async update(@Param('idEqualizacao') idEqualizacao: string, @Body() updateEqualizacaoDto: UpdateEqualizacaoDto) {
+  async update(@Param('idEqualizacao') idEqualizacao: string, @Body() updateEqualizacaoDto: UpdateEqualizacaoDto, @Req() req) {
     this.logger.log(`Recebida requisição para atualizar equalização: ${idEqualizacao}`);
-    return this.equalizacaoService.update(idEqualizacao, updateEqualizacaoDto);
+    const result = await this.equalizacaoService.update(idEqualizacao, updateEqualizacaoDto);
+    await this.auditoriaService.log({
+      userId: req.user?.userId,
+      action: 'atualizar_equalizacao',
+      resource: 'Equalizacao',
+      details: { idEqualizacao, ...updateEqualizacaoDto, result },
+      ip: req.ip,
+    });
+    return result;
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'MEMBRO_COMITE')
   @Delete(':idEqualizacao')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('idEqualizacao') idEqualizacao: string) {
+  async remove(@Param('idEqualizacao') idEqualizacao: string, @Req() req) {
     this.logger.log(`Recebida requisição para remover equalização: ${idEqualizacao}`);
-    return this.equalizacaoService.remove(idEqualizacao);
+    const result = await this.equalizacaoService.remove(idEqualizacao);
+    await this.auditoriaService.log({
+      userId: req.user?.userId,
+      action: 'remover_equalizacao',
+      resource: 'Equalizacao',
+      details: { idEqualizacao, result },
+      ip: req.ip,
+    });
+    return result;
   }
 }
