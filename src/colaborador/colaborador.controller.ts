@@ -118,4 +118,25 @@ export class ColaboradorController {
     async getProgressoAtual(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getProgressoAtual(idColaborador);
     }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN')
+    @Get('perfis')
+    listarPerfisPossiveis() {
+        return Object.values(require('@prisma/client').perfilTipo);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN')
+    @Get(':id/perfis')
+    async listarPerfisColaborador(@Param('id') id: string) {
+        return this.colaboradorService.listarPerfisColaborador(id);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN')
+    @Delete(':id/remover-perfil/:perfil')
+    async removerPerfilColaborador(@Param('id') id: string, @Param('perfil') perfil: string) {
+        return this.colaboradorService.removerPerfilColaborador(id, perfil);
+    }
 }
