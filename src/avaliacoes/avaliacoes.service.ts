@@ -1,5 +1,5 @@
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { PrismaService } from 'src/database/prismaService';
+import { PrismaService } from '../database/prismaService';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 import { Motivacao } from './avaliacoes.contants';
 import { Decimal } from '@prisma/client/runtime/library';
