@@ -6,6 +6,7 @@ import { perfilTipo } from '@prisma/client';
 import { validarPerfisColaborador } from './colaborador.constants';
 import { TrocarSenhaDto } from './colaborador.dto';
 import { AvaliacoesService } from '../avaliacoes/avaliacoes.service';
+import { EqualizacaoService } from 'src/equalizacao/equalizacao.service';
 import { CicloService } from '../ciclo/ciclo.service';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 import { CriteriosService } from '../criterios/criterios.service';
@@ -17,6 +18,7 @@ export class ColaboradorService {
         private readonly avaliacoesService: AvaliacoesService,
         private readonly cicloService: CicloService,
         private readonly criteriosService: CriteriosService,
+        private readonly equalizacaoService: EqualizacaoService
     ) {}
 
     async criarColaborador(data: CreateColaboradorDto) {
@@ -582,4 +584,39 @@ export class ColaboradorService {
             { TipoAvaliacao: 'Lider/mentor', porcentagemPreenchimento: calc([...lider, ...mentor]) },
         ];
     }
+
+    async getInfoMentorados(idMentor: string, idCiclo: string) {
+        // Busca todos os mentorados associados ao mentor
+        const mentorias = await this.prisma.mentorColaborador.findMany({
+            where: { idMentor, idCiclo },
+            select: { idColaborador: true }
+        });
+        const idsMentorados = mentorias.map(m => m.idColaborador);
+        if (!idsMentorados.length) return [];
+        // Busca dados dos mentorados
+        const mentorados = await this.prisma.colaborador.findMany({
+            where: { idColaborador: { in: idsMentorados } },
+            select: {
+                idColaborador: true,
+                nomeCompleto: true,
+                cargo: true,
+                trilhaCarreira: true
+            }
+        });
+        // Busca notaFinal de equalização para cada mentorado
+        const result: any[] = [];
+        for (const mentorado of mentorados) {
+            const equalizacao = await this.equalizacaoService.getEqualizacaoColaboradorCiclo(mentorado.idColaborador, idCiclo);
+            result.push({
+                idMentorado: mentorado.idColaborador,
+                nomeMentorado: mentorado.nomeCompleto,
+                cargoMentorado: mentorado.cargo,
+                trilhaMentorado: mentorado.trilhaCarreira,
+                mediaFinal: equalizacao ? equalizacao.notaAjustada : null
+            });
+        }
+        return result;
+    }
+
+
 }

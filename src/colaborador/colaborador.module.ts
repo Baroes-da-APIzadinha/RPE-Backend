@@ -5,9 +5,10 @@ import { PrismaService } from 'src/database/prismaService';
 import { AvaliacoesService } from '../avaliacoes/avaliacoes.service';
 import { CicloService } from '../ciclo/ciclo.service';
 import { CriteriosService } from '../criterios/criterios.service';
+import { EqualizacaoService } from 'src/equalizacao/equalizacao.service';
 
 @Module({
-  providers: [ColaboradorService, PrismaService, AvaliacoesService, CicloService, CriteriosService],
+  providers: [ColaboradorService, PrismaService, AvaliacoesService, CicloService, CriteriosService, EqualizacaoService],
   controllers: [ColaboradorController],
   exports: [ColaboradorService],
 })
