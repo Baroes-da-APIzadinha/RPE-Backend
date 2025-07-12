@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/database/prismaService';
+import { PrismaService } from '../database/prismaService';
 import * as bcrypt from 'bcrypt';
 import { CreateColaboradorDto, UpdateColaboradorDto } from './colaborador.dto';
 import { perfilTipo } from '@prisma/client';
