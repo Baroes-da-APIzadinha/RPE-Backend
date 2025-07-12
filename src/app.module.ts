@@ -18,10 +18,13 @@ import { ReferenciasModule } from './referencias/referencias.module';
 import { ImportacaoModule } from './importacao/importacao.module';
 import { RhModule } from './rh/rh.module';
 import { ProjetosModule } from './projetos/projetos.module';
+import { ScheduleModule } from '@nestjs/schedule'; 
+import { HttpModule } from '@nestjs/axios';
+import { SincronizacaoModule } from './sincronizacao/sincronizacao.module';
 
 
 @Module({
-  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, ProjetosModule],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, ProjetosModule, HttpModule, ScheduleModule.forRoot(), SincronizacaoModule],
   controllers: [AppController, AvaliacoesController, EqualizacaoController],
   providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService],
 })

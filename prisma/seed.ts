@@ -47,10 +47,6 @@ async function processarPlanilha(filePath: string) {
     console.warn(`Nome ( nome.sobrenome ) não encontrado na aba 'Perfil' de ${filePath}. Pulando.`);
     return;
   }
-  if (!perfil['Unidade']) {
-    console.warn(`Unidade não encontrada na aba 'Perfil' de ${filePath}. Pulando.`);
-    return;
-  }
 
   // Cria ou atualiza o colaborador pelo email (único)
   const colaboradorExistente = await prisma.colaborador.findUnique({ where: { email: perfil.Email } });
@@ -128,12 +124,12 @@ async function processarPlanilha(filePath: string) {
     for (const emailAvaliado in avaliacoesPorAvaliado) {
       if (!emailAvaliado || emailAvaliado === 'undefined') continue;
       const avaliado = await prisma.colaborador.upsert({
-        where: { email: emailAvaliado },
+        where: { email: `${emailAvaliado}@empresa.com` },
         update: {},
         create: {
-          nomeCompleto: `Avaliado - ${emailAvaliado}`,
-          email: emailAvaliado,
-          unidade: 'Desconhecida',
+          nomeCompleto: emailAvaliado,
+          email: `${emailAvaliado}@empresa.com`,
+          unidade: perfil['Unidade'],
           senha: 'senha123', 
         },
       });
@@ -143,7 +139,6 @@ async function processarPlanilha(filePath: string) {
         const periodo = linha['PERÍODO'];
         let diasTrabalhadosJuntos = 0;
         if (periodo && typeof periodo === 'string') {
-          // Espera-se formato tipo "45 dias" ou só número
           const match = periodo.match(/(\d+)/);
           if (match) diasTrabalhadosJuntos = parseInt(match[1], 10);
         }
@@ -151,7 +146,6 @@ async function processarPlanilha(filePath: string) {
           const projeto = await upsertProjeto(nomeProjeto);
           await upsertAlocacao(avaliado.idColaborador, projeto.idProjeto, cicloObj.dataInicio, cicloObj.dataFim);
           await upsertAlocacao(colaborador.idColaborador, projeto.idProjeto, cicloObj.dataInicio, cicloObj.dataFim);
-          // Cria ou atualiza o par com diasTrabalhadosJuntos
           await prisma.pares.upsert({
             where: {
               idColaborador1_idColaborador2_idCiclo: {
@@ -181,7 +175,6 @@ async function processarPlanilha(filePath: string) {
   if (referencias.length > 0) {
     let refsCriadas = 0;
     for (const ref of referencias) {
-      // Busca a coluna de e-mail de referência de forma flexível
       const nomeColunaEmailReferencia = Object.keys(ref).find(k => k.replace(/\s+/g, ' ').toLowerCase().includes('email da referência'));
       const emailIndicado = nomeColunaEmailReferencia ? ref[nomeColunaEmailReferencia] : undefined;
       const justificativa = ref['JUSTIFICATIVA'];
@@ -192,20 +185,17 @@ async function processarPlanilha(filePath: string) {
       if (!emailIndicado) continue;
 
       try {
-        // Garante que a pessoa indicada (a referência) exista no banco
         const indicado = await prisma.colaborador.upsert({
-          where: { email: emailIndicado },
+          where: { email: `${emailIndicado}@empresa.com` },
           update: {},
           create: {
-            nomeCompleto: `Indicado - ${emailIndicado}`,
-            email: emailIndicado,
-            unidade: 'Desconhecida',
+            nomeCompleto: emailIndicado,
+            email: `${emailIndicado}@empresa.com`,
+            unidade: perfil['Unidade'],
             senha: 'senha123',
           },
         });
-        // Garante que ciclo existe
         if (!ciclo) throw new Error('Ciclo não encontrado para referência.');
-        // Cria o registro na tabela de indicações
         await prisma.indicacaoReferencia.create({
           data: {
             idCiclo: ciclo.idCiclo,
@@ -285,7 +275,6 @@ const MAPA_CRITERIOS_ANTIGOS_PARA_NOVOS = {
   'Novos Produtos ou Serviços**': 'Evolução da Rocket Corp',
 };
 
-// --- FUNÇÕES AUXILIARES ---
 
 function extrairDadosDaAba(workbook: xlsx.WorkBook, nomeAba: string): any[] {
   const sheet = workbook.Sheets[nomeAba];

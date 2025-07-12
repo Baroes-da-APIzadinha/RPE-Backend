@@ -47,12 +47,12 @@ export class ImportacaoService {
         for (const emailAvaliado in avaliacoesPorAvaliado) {
           if (!emailAvaliado || emailAvaliado === 'undefined') continue;
           const avaliado = await this.prisma.colaborador.upsert({
-            where: { email: emailAvaliado },
+            where: { email: `${emailAvaliado}@empresa.com` },
             update: {},
             create: {
-              nomeCompleto: `Avaliado - ${emailAvaliado}`,
-              email: emailAvaliado,
-              unidade: 'Desconhecida',
+              nomeCompleto: emailAvaliado,
+              email: `${emailAvaliado}@empresa.com`,
+              unidade: perfil['Unidade'],
               senha: 'senha123',
             },
           });
@@ -81,13 +81,13 @@ export class ImportacaoService {
           if (!emailIndicado) continue;
           try {
             const indicado = await this.prisma.colaborador.upsert({
-              where: { email: emailIndicado },
+              where: { email: `${emailIndicado}@empresa.com` },
               update: {},
               create: {
-                nomeCompleto: `Indicado - ${emailIndicado}`,
-                email: emailIndicado,
-                unidade: 'Desconhecida',
-                senha: 'senha123',
+                nomeCompleto: emailIndicado,
+                email: `${emailIndicado}@empresa.com`,
+                unidade: perfil['Unidade'],
+                    senha: 'senha123',
               },
             });
             await this.prisma.indicacaoReferencia.create({

@@ -56,24 +56,15 @@ export class ProjetosService {
     });
   }
 
-  // =======================================================
-  // === NOVOS MÉTODOS PARA GERENCIAR ALOCAÇÕES ===
-  // =======================================================
-
-  /**
-   * Aloca um colaborador a um projeto específico.
-   */
   async alocarColaborador(idProjeto: string, dto: CreateAlocacaoDto) {
     const { idColaborador, dataEntrada, dataSaida } = dto;
 
-    // Valida se o projeto e o colaborador existem
     await this.findOne(idProjeto); // Reutiliza o método que já lança erro se não encontrar
     const colaborador = await this.prisma.colaborador.findUnique({ where: { idColaborador } });
     if (!colaborador) {
       throw new NotFoundException(`Colaborador com ID "${idColaborador}" não encontrado.`);
     }
 
-    // Valida se a alocação já não existe
     const alocacaoExistente = await this.prisma.alocacaoColaboradorProjeto.findFirst({
       where: { idProjeto, idColaborador },
     });
@@ -91,16 +82,12 @@ export class ProjetosService {
     });
   }
 
-  /**
-   * Lista todos os colaboradores alocados em um projeto.
-   */
   async listarAlocacoesPorProjeto(idProjeto: string) {
     await this.findOne(idProjeto); // Garante que o projeto existe
 
     return this.prisma.alocacaoColaboradorProjeto.findMany({
       where: { idProjeto },
       include: {
-        // Inclui os dados do colaborador para uma resposta mais rica
         colaborador: {
           select: {
             idColaborador: true,
@@ -112,9 +99,6 @@ export class ProjetosService {
     });
   }
 
-  /**
-   * Atualiza uma alocação existente (ex: para adicionar uma data de saída).
-   */
   async atualizarAlocacao(idAlocacao: string, dto: UpdateAlocacaoDto) {
     const alocacao = await this.prisma.alocacaoColaboradorProjeto.findUnique({
       where: { idAlocacao },
@@ -132,9 +116,6 @@ export class ProjetosService {
     });
   }
 
-  /**
-   * Remove uma alocação de um colaborador de um projeto.
-   */
   async removerAlocacao(idAlocacao: string) {
     const alocacao = await this.prisma.alocacaoColaboradorProjeto.findUnique({
       where: { idAlocacao },

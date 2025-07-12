@@ -85,6 +85,7 @@ model Colaborador {
   colaboradoresCiclos ColaboradorCiclo[]
   primeiroLogin       Boolean              @default(true)
   alocacoes           AlocacaoColaboradorProjeto[]
+  projetosLiderados   Projeto[]            @relation("LiderProjeto")
 }
 
 model ColaboradorPerfil {
@@ -319,6 +320,10 @@ model Projeto {
   dataInicio  DateTime?                    @db.Date
   dataFim     DateTime?                    @db.Date
   status      projetoStatus                @default(PLANEJADO)
+
+  // Relação de liderança
+  idLider     String?                      @db.Uuid
+  lider       Colaborador?                 @relation("LiderProjeto", fields: [idLider], references: [idColaborador])
 
   // Relação inversa: um projeto pode ter várias alocações
   alocacoes   AlocacaoColaboradorProjeto[]
