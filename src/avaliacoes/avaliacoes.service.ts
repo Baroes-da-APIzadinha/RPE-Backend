@@ -525,8 +525,44 @@ export class AvaliacoesService {
             ]
         });
 
-        this.logger.log(`Encontradas ${avaliacoes.length} avaliações`);
-        return avaliacoes;
+        // Descriptografar justificativas
+        const avaliacoesComJustificativasDescriptografadas = avaliacoes.map(avaliacao => {
+            // Descriptografar justificativas de autoavaliação
+            if (avaliacao.autoAvaliacao?.cardAutoAvaliacoes) {
+                avaliacao.autoAvaliacao.cardAutoAvaliacoes = avaliacao.autoAvaliacao.cardAutoAvaliacoes.map(card => ({
+                    ...card,
+                    justificativa: card.justificativa ? this.hashService.decrypt(card.justificativa) : null
+                }));
+            }
+
+            // Descriptografar justificativas de avaliação líder-colaborador
+            if (avaliacao.avaliacaoLiderColaborador?.cardAvaliacaoLiderColaborador) {
+                avaliacao.avaliacaoLiderColaborador.cardAvaliacaoLiderColaborador = avaliacao.avaliacaoLiderColaborador.cardAvaliacaoLiderColaborador.map(card => ({
+                    ...card,
+                    justificativa: card.justificativa ? this.hashService.decrypt(card.justificativa) : null
+                }));
+            }
+
+            // Descriptografar justificativa de avaliação colaborador-mentor
+            if (avaliacao.avaliacaoColaboradorMentor?.justificativa) {
+                avaliacao.avaliacaoColaboradorMentor.justificativa = this.hashService.decrypt(avaliacao.avaliacaoColaboradorMentor.justificativa);
+            }
+
+            // Descriptografar pontos fortes e fracos de avaliação de pares
+            if (avaliacao.avaliacaoPares) {
+                if (avaliacao.avaliacaoPares.pontosFortes) {
+                    avaliacao.avaliacaoPares.pontosFortes = this.hashService.decrypt(avaliacao.avaliacaoPares.pontosFortes);
+                }
+                if (avaliacao.avaliacaoPares.pontosFracos) {
+                    avaliacao.avaliacaoPares.pontosFracos = this.hashService.decrypt(avaliacao.avaliacaoPares.pontosFracos);
+                }
+            }
+
+            return avaliacao;
+        });
+
+        this.logger.log(`Encontradas ${avaliacoesComJustificativasDescriptografadas.length} avaliações`);
+        return avaliacoesComJustificativasDescriptografadas;
     }
 
     async preencherAvaliacaoPares(

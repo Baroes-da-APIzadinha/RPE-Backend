@@ -88,7 +88,7 @@ export class EqualizacaoService {
   async findAll() {
     this.logger.log('Buscando todas as equalizações');
     
-    return this.prisma.equalizacao.findMany({
+    const equalizacoes = await this.prisma.equalizacao.findMany({
       include: {
         alvo: {
           select: {
@@ -100,12 +100,16 @@ export class EqualizacaoService {
         },
       },
     });
+    return equalizacoes.map(eq => ({
+      ...eq,
+      justificativa: eq.justificativa ? this.hashService.decrypt(eq.justificativa) : null,
+    }));
   }
 
   async findByAvaliado(idAvaliado: string) {
     this.logger.log(`Buscando equalizações para avaliado: ${idAvaliado}`);
     
-    return this.prisma.equalizacao.findMany({
+    const equalizacoes = await this.prisma.equalizacao.findMany({
       where: {
         idAvaliado,
       },
@@ -121,12 +125,16 @@ export class EqualizacaoService {
         dataEqualizacao: 'desc',
       },
     });
+    return equalizacoes.map(eq => ({
+      ...eq,
+      justificativa: eq.justificativa ? this.hashService.decrypt(eq.justificativa) : null,
+    }));
   }
 
   async findByAvaliadoCiclo(idAvaliado: string, idCiclo: string) {
-  this.logger.log(`Buscando equalizações para avaliado: ${idAvaliado} no ciclo ${idCiclo}`);
+    this.logger.log(`Buscando equalizações para avaliado: ${idAvaliado} no ciclo ${idCiclo}`);
     
-    return this.prisma.equalizacao.findMany({
+    const equalizacoes = await this.prisma.equalizacao.findMany({
       where: {
         idAvaliado,
         idCiclo
@@ -143,12 +151,16 @@ export class EqualizacaoService {
         dataEqualizacao: 'desc',
       },
     });
+    return equalizacoes.map(eq => ({
+      ...eq,
+      justificativa: eq.justificativa ? this.hashService.decrypt(eq.justificativa) : null,
+    }));
   }
 
   async findByComite(idMembroComite: string) {
     this.logger.log(`Buscando equalizações realizadas pelo membro do comitê: ${idMembroComite}`);
     
-    return this.prisma.equalizacao.findMany({
+    const equalizacoes = await this.prisma.equalizacao.findMany({
       where: {
         idMembroComite,
       },
@@ -164,6 +176,10 @@ export class EqualizacaoService {
         dataEqualizacao: 'desc',
       },
     });
+    return equalizacoes.map(eq => ({
+      ...eq,
+      justificativa: eq.justificativa ? this.hashService.decrypt(eq.justificativa) : null,
+    }));
   }
 
   async findOne(idEqualizacao: string) {
@@ -197,7 +213,10 @@ export class EqualizacaoService {
       throw new NotFoundException(`Equalização com ID ${idEqualizacao} não encontrada`);
     }
     
-    return equalizacao;
+    return {
+      ...equalizacao,
+      justificativa: equalizacao.justificativa ? this.hashService.decrypt(equalizacao.justificativa) : null,
+    };
   }
 
   async update(idEqualizacao: string, updateEqualizacaoDto: UpdateEqualizacaoDto) {
@@ -259,11 +278,16 @@ export class EqualizacaoService {
   }
 
   async getEqualizacaoColaboradorCiclo(idColaborador: string, idCiclo: string) {
-        return this.prisma.equalizacao.findFirst({
-            where: {
-                idAvaliado: idColaborador,
-                idCiclo: idCiclo
-            }
-        });
-    }
+    const equalizacao = await this.prisma.equalizacao.findFirst({
+      where: {
+        idAvaliado: idColaborador,
+        idCiclo: idCiclo
+      }
+    });
+    if (!equalizacao) return null;
+    return {
+      ...equalizacao,
+      justificativa: equalizacao.justificativa ? this.hashService.decrypt(equalizacao.justificativa) : null,
+    };
+  }
 }
