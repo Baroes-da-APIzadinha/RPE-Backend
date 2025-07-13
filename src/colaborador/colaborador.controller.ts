@@ -10,6 +10,7 @@ import { AuditoriaService } from '../auditoria/auditoria.service';
 import { EqualizacaoService } from '../equalizacao/equalizacao.service';
 
 
+
 @Controller('colaborador')
 export class ColaboradorController {
     constructor(

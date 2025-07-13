@@ -21,11 +21,12 @@ import { IaService } from './IA/ia.service';
 import { IaController } from './IA/ia.controller';
 import { IaModule } from './IA/ia.module';
 import { AuditoriaModule } from './auditoria/auditoria.module';
+import { HashService } from 'src/common/hash.service';
 
 
 @Module({
   imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, IaModule, AuditoriaModule],
   controllers: [AppController, AvaliacoesController, EqualizacaoController, IaController],
-  providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService, IaService],
+  providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService, IaService, HashService],
 })
 export class AppModule {}
