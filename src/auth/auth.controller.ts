@@ -10,8 +10,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
   @HttpCode(200)
   @Post('login')
-  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const token = await this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response, @Req() req) {
+    const token = await this.authService.login(loginDto, req.ip);
     if (!token) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
