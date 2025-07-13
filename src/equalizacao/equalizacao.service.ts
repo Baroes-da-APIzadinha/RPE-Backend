@@ -257,4 +257,13 @@ export class EqualizacaoService {
     this.logger.log(`Equalização removida com sucesso: ${idEqualizacao}`);
     return { message: 'Equalização removida com sucesso' };
   }
+
+  async getEqualizacaoColaboradorCiclo(idColaborador: string, idCiclo: string) {
+        return this.prisma.equalizacao.findFirst({
+            where: {
+                idAvaliado: idColaborador,
+                idCiclo: idCiclo
+            }
+        });
+    }
 }

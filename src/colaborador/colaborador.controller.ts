@@ -7,13 +7,17 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { validarPerfisColaborador } from './colaborador.constants';
 import { Cargo, Trilha, Unidade } from './colaborador.constants';
 import { AuditoriaService } from '../auditoria/auditoria.service';
+import { EqualizacaoService } from '../equalizacao/equalizacao.service';
+
 
 @Controller('colaborador')
 export class ColaboradorController {
     constructor(
         private readonly colaboradorService: ColaboradorService,
         private readonly auditoriaService: AuditoriaService,
+        private readonly equalizacaoService: EqualizacaoService
     ) { }
+  
 
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('ADMIN', 'RH')
@@ -51,6 +55,12 @@ export class ColaboradorController {
             cargos: Object.values(Cargo),
             unidades: Object.values(Unidade),
         };
+    }
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('MENTOR')
+    @Get('mentorados/:idMentor/:idCiclo')
+    async getInfoMentorados(@Param('idMentor') idMentor: string, @Param('idCiclo') idCiclo: string) {
+        return this.colaboradorService.getInfoMentorados(idMentor, idCiclo);
     }
 
     @UseGuards(JwtAuthGuard)
