@@ -85,6 +85,8 @@ model Colaborador {
   colaboradoresCiclos ColaboradorCiclo[]
   primeiroLogin       Boolean              @default(true)
   auditLogs           AuditLog[]
+  alocacoes           AlocacaoColaboradorProjeto[]
+  projetosLiderados   Projeto[]            @relation("LiderProjeto")
 }
 
 model ColaboradorPerfil {
@@ -105,9 +107,9 @@ model CicloAvaliacao {
   avaliacoes           Avaliacao[]
   updatedAt            DateTime @updatedAt
 
-  duracaoEmAndamentoDias    Int                       
-  duracaoEmRevisaoDias      Int                       
-  duracaoEmEqualizacaoDias  Int                       
+  duracaoEmAndamentoDias    Int   @default(0)
+  duracaoEmRevisaoDias      Int   @default(0)
+  duracaoEmEqualizacaoDias  Int   @default(0)
 
   associacoesCriterio  AssociacaoCriterioCiclo[]
   indicacoesReferencia IndicacaoReferencia[]
@@ -264,9 +266,12 @@ model Pares {
   idColaborador1 String?      @db.Uuid
   idColaborador2 String?      @db.Uuid
   idCiclo       String?      @db.Uuid
+  idProjeto     String?      @db.Uuid 
+  diasTrabalhadosJuntos Int  @default(0)
   colaborador1  Colaborador? @relation("Par1", fields: [idColaborador1], references: [idColaborador])
   colaborador2  Colaborador? @relation("Par2", fields: [idColaborador2], references: [idColaborador])
   ciclo         CicloAvaliacao? @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
+  projeto       Projeto?     @relation(fields: [idProjeto], references: [idProjeto])
 
   @@unique([idColaborador1, idColaborador2, idCiclo])
 }
@@ -276,9 +281,12 @@ model LiderColaborador {
   idLider            String       @db.Uuid
   idColaborador      String       @db.Uuid
   idCiclo            String       @db.Uuid
+  idProjeto          String?      @db.Uuid
+
   lider              Colaborador  @relation("Lider", fields: [idLider], references: [idColaborador])
   colaborador        Colaborador  @relation("ColaboradorLider", fields: [idColaborador], references: [idColaborador])
   ciclo              CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo])
+  projeto            Projeto?     @relation(fields: [idProjeto], references: [idProjeto])
 
   @@unique([idLider, idColaborador, idCiclo])
 }
@@ -316,4 +324,37 @@ model AuditLog {
   ip           String?
 
   user         Colaborador? @relation(fields: [userId], references: [idColaborador])
+}
+
+model Projeto {
+  idProjeto   String                       @id @default(uuid()) @db.Uuid
+  nomeProjeto String                       @unique @db.VarChar(255) 
+  cliente     String?                      @db.VarChar(255)
+  dataInicio  DateTime?                    @db.Date
+  dataFim     DateTime?                    @db.Date
+  status      projetoStatus                @default(PLANEJADO)
+
+  // Relação de liderança
+  idLider     String?                      @db.Uuid
+  lider       Colaborador?                 @relation("LiderProjeto", fields: [idLider], references: [idColaborador])
+
+  // Relação inversa: um projeto pode ter várias alocações
+  alocacoes   AlocacaoColaboradorProjeto[]
+  pares       Pares[]                      // relação inversa com Pares
+  liderColaboradores LiderColaborador[]    // relação inversa com LiderColaborador
+
+  @@map("projetos") // Mapeia o nome do modelo para o nome da tabela no banco
+}
+
+model AlocacaoColaboradorProjeto {
+  idAlocacao    String      @id @default(uuid()) @db.Uuid
+  idColaborador String      @db.Uuid
+  idProjeto     String      @db.Uuid
+  dataEntrada   DateTime    @db.Date
+  dataSaida     DateTime?   @db.Date
+
+  projeto       Projeto     @relation(fields: [idProjeto], references: [idProjeto], onDelete: Cascade)
+  colaborador   Colaborador @relation(fields: [idColaborador], references: [idColaborador], onDelete: Cascade)
+
+  @@map("alocacoes_colaborador_projeto")
 }

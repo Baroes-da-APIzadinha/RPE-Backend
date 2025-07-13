@@ -159,8 +159,8 @@ export class AvaliacoesController {
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('ADMIN', 'RH')
     @Post('lancar-pares')
-    async lancarAvaliaçãoPares(@Body('idCiclo') idCiclo: string, @Req() req) {
-        const resultado = await this.service.lancarAvaliaçãoPares(idCiclo);
+    async lancarAvaliacaoPares(@Body('idCiclo') idCiclo: string) {
+        const resultado = await this.service.lancarAvaliacaoPares(idCiclo);
         this.logger.log(`Relatório de lançamento de avaliações: ${JSON.stringify(resultado)}`);
         await this.auditoriaService.log({
             userId: req.user?.userId,

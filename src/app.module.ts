@@ -22,10 +22,14 @@ import { IaController } from './IA/ia.controller';
 import { IaModule } from './IA/ia.module';
 import { AuditoriaModule } from './auditoria/auditoria.module';
 import { HashService } from 'src/common/hash.service';
+import { ProjetosModule } from './projetos/projetos.module';
+import { ScheduleModule } from '@nestjs/schedule'; 
+import { HttpModule } from '@nestjs/axios';
+import { SincronizacaoModule } from './sincronizacao/sincronizacao.module';
 
 
 @Module({
-  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, IaModule, AuditoriaModule],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, IaModule, AuditoriaModule, ProjetosModule, HttpModule, ScheduleModule.forRoot(), SincronizacaoModule],
   controllers: [AppController, AvaliacoesController, EqualizacaoController, IaController],
   providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService, IaService, HashService],
 })
