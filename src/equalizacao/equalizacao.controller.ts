@@ -63,11 +63,11 @@ export class EqualizacaoController {
   @Roles('ADMIN', 'MEMBRO_COMITE')
   @Post()
   async create(@Body() createEqualizacaoDto: CreateEqualizacaoDto, @Req() req) {
-    this.logger.log('Recebida requisição para criar nova equalização');
+    this.logger.log('Recebida requisição para lancar as equalizações');
     const result = await this.equalizacaoService.create(createEqualizacaoDto);
     await this.auditoriaService.log({
       userId: req.user?.userId,
-      action: 'criar_equalizacao',
+      action: 'Lancamento de equalizações',
       resource: 'Equalizacao',
       details: { ...createEqualizacaoDto, result },
       ip: req.ip,

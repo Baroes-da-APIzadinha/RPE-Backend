@@ -220,7 +220,7 @@ export class EqualizacaoService {
     }
 
     let dataToUpdate = { ...updateEqualizacaoDto };
-    dataToUpdate.notaAjustada = parseFloat(this.hashService.hash(updateEqualizacaoDto.notaAjustada.toString()));
+    dataToUpdate.notaAjustada = updateEqualizacaoDto.notaAjustada;
     dataToUpdate.justificativa = this.hashService.hash(updateEqualizacaoDto.justificativa);
 
     if (!updateEqualizacaoDto.status) {

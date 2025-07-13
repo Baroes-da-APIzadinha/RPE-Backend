@@ -542,7 +542,7 @@ export class AvaliacoesService {
         await this.prisma.avaliacaoColaboradorMentor.update({
             where: { idAvaliacao },
             data: { 
-                nota: this.hashService.hash(nota.toString()),
+                nota: nota,
                 justificativa: this.hashService.hash(justificativa)
             },
         });
@@ -594,7 +594,7 @@ export class AvaliacoesService {
             await this.prisma.cardAutoAvaliacao.update({
                 where: { idCardAvaliacao: card.idCardAvaliacao },
                 data: {
-                    nota: this.hashService.hash(criterio.nota.toString()),
+                    nota: criterio.nota,
                     justificativa: this.hashService.hash(criterio.justificativa)
                 }
             });
@@ -651,7 +651,7 @@ export class AvaliacoesService {
             await this.prisma.cardAvaliacaoLiderColaborador.update({
                 where: { idCardAvaliacao: card.idCardAvaliacao },
                 data: {
-                    nota: this.hashService.hash(criterio.nota.toString()),
+                    nota:criterio.nota,
                     justificativa: this.hashService.hash(criterio.justificativa)
                 }
             });
