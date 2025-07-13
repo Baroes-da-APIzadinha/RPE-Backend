@@ -153,7 +153,7 @@ export class EqualizacaoService {
     });
     return equalizacoes.map(eq => ({
       ...eq,
-      justificativa: eq.justificativa ? this.hashService.decrypt(eq.justificativa) : null,
+      justificativa: typeof eq.justificativa === 'string' ? this.hashService.decrypt(eq.justificativa) : null,
     }));
   }
 
