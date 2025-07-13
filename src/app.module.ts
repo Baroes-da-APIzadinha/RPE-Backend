@@ -20,10 +20,11 @@ import { RhModule } from './rh/rh.module';
 import { IaService } from './IA/ia.service';
 import { IaController } from './IA/ia.controller';
 import { IaModule } from './IA/ia.module';
+import { AuditoriaModule } from './auditoria/auditoria.module';
 
 
 @Module({
-  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, IaModule],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, IaModule, AuditoriaModule],
   controllers: [AppController, AvaliacoesController, EqualizacaoController, IaController],
   providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService, IaService],
 })

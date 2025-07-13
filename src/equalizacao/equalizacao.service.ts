@@ -2,12 +2,13 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { PrismaService } from '../database/prismaService';
 import { CreateEqualizacaoDto, UpdateEqualizacaoDto } from './equalizacao.dto';
 import { preenchimentoStatus } from '@prisma/client';
+import { HashService } from '../common/hash.service';
 
 @Injectable()
 export class EqualizacaoService {
   private readonly logger = new Logger(EqualizacaoService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly hashService: HashService) {}
 
   async create(createEqualizacaoDto: CreateEqualizacaoDto) {
     this.logger.log(`Lançando equalizações para todos os colaboradores do ciclo: ${createEqualizacaoDto.idCiclo}`);
@@ -122,6 +123,28 @@ export class EqualizacaoService {
     });
   }
 
+  async findByAvaliadoCiclo(idAvaliado: string, idCiclo: string) {
+  this.logger.log(`Buscando equalizações para avaliado: ${idAvaliado} no ciclo ${idCiclo}`);
+    
+    return this.prisma.equalizacao.findMany({
+      where: {
+        idAvaliado,
+        idCiclo
+      },
+      include: {
+        alvo: {
+          select: {
+            nomeCompleto: true,
+            cargo: true,
+          },
+        },
+      },
+      orderBy: {
+        dataEqualizacao: 'desc',
+      },
+    });
+  }
+
   async findByComite(idMembroComite: string) {
     this.logger.log(`Buscando equalizações realizadas pelo membro do comitê: ${idMembroComite}`);
     
@@ -197,6 +220,8 @@ export class EqualizacaoService {
     }
 
     let dataToUpdate = { ...updateEqualizacaoDto };
+    dataToUpdate.notaAjustada = this.hashService.hash(updateEqualizacaoDto.notaAjustada.toString());
+    dataToUpdate.justificativa = this.hashService.hash(updateEqualizacaoDto.justificativa);
 
     if (!updateEqualizacaoDto.status) {
         dataToUpdate.status = preenchimentoStatus.CONCLUIDA;

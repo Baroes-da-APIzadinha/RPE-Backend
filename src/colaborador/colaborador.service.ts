@@ -585,6 +585,7 @@ export class ColaboradorService {
         ];
     }
 
+
     async getInfoMentorados(idMentor: string, idCiclo: string) {
         // Busca todos os mentorados associados ao mentor
         const mentorias = await this.prisma.mentorColaborador.findMany({
@@ -618,5 +619,67 @@ export class ColaboradorService {
         return result;
     }
 
+    async listarPerfisColaborador(idColaborador: string) {
+        if (!this.isValidUUID(idColaborador)) {
+            return {
+                status: 400,
+                message: 'ID do colaborador inválido'
+            }
+        }
+        const perfis = await this.prisma.colaboradorPerfil.findMany({
+            where: { idColaborador },
+            select: { tipoPerfil: true }
+        });
+        return perfis.map(p => p.tipoPerfil);
+    }
 
+    async removerPerfilColaborador(idColaborador: string, tipoPerfil: string) {
+        if (!this.isValidUUID(idColaborador)) {
+            return {
+                status: 400,
+                message: 'ID do colaborador inválido'
+            }
+        }
+        // Verifica se o colaborador existe
+        const colaborador = await this.prisma.colaborador.findUnique({
+            where: { idColaborador }
+        });
+        if (!colaborador) {
+            return {
+                status: 404,
+                message: 'Colaborador não encontrado'
+            }
+        }
+        // Valida se o tipoPerfil é válido
+        if (!Object.values(perfilTipo).includes(tipoPerfil as perfilTipo)) {
+            return {
+                status: 400,
+                message: 'Tipo de perfil inválido'
+            }
+        }
+        // Verifica se existe a associação
+        const associado = await this.prisma.colaboradorPerfil.findUnique({
+            where: {
+                idColaborador_tipoPerfil: {
+                    idColaborador,
+                    tipoPerfil: tipoPerfil as perfilTipo
+                }
+            }
+        });
+        if (!associado) {
+            return {
+                status: 404,
+                message: 'Perfil não associado ao colaborador'
+            }
+        }
+        // Remove a associação
+        return this.prisma.colaboradorPerfil.delete({
+            where: {
+                idColaborador_tipoPerfil: {
+                    idColaborador,
+                    tipoPerfil: tipoPerfil as perfilTipo
+                }
+            }
+        });
+    }
 }

@@ -6,10 +6,12 @@ import { PrismaService } from 'src/database/prismaService';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AvaliacoesService } from 'src/avaliacoes/avaliacoes.service';
 import { EqualizacaoService } from 'src/equalizacao/equalizacao.service';
+import { AuditoriaModule } from '../auditoria/auditoria.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    AuditoriaModule,
   ],
   providers: [CicloService, CiclosStatus, PrismaService, AvaliacoesService, EqualizacaoService],
   controllers: [CicloController],
