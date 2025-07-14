@@ -159,7 +159,7 @@ POST http://localhost:3000/avaliacoes
 Content-Type: application/json
 
 {
-    "idCiclo": "55555555-5555-5555-5555-666666666666"
+    "idCiclo": "55555555-5555-5555-5555-777777777777"
 }
 
 ### Lançar avaliações de lideres

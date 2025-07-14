@@ -76,7 +76,7 @@ export class IaService {
         return avaliacoes;
     }
 
-    async getAllColaborador(idColaborador: string, idCiclo: string) {
+    async getAll_Infos_Colaborador(idColaborador: string, idCiclo: string) {
         const avaliacoes = await this.getAvaliacoesIA(idColaborador, idCiclo);
         const equalizacao = await this.prisma.equalizacao.findFirst({
             where: {
@@ -84,9 +84,17 @@ export class IaService {
                 idCiclo: idCiclo
             }
         });
+
+        const referencias = await this.prisma.indicacaoReferencia.findMany({
+            where : {
+                idIndicado : idColaborador,
+                idCiclo : idCiclo
+            }
+        })
         return {
             avaliacoes,
-            equalizacao
+            equalizacao,
+            referencias
         };
     }
 
@@ -361,10 +369,11 @@ export class IaService {
     async gerarBrutalFacts(idColaborador: string, idCiclo: string): Promise<string> {
         const logger = new Logger('IaService');
         logger.log(`Iniciando geração do Brutal Facts para idColaborador=${idColaborador}, idCiclo=${idCiclo}`);
-        // Busca avaliações e equalização
-        const { avaliacoes, equalizacao } = await this.getAllColaborador(idColaborador, idCiclo);
+        // Busca avaliações, equalização e referências
+        const { avaliacoes, equalizacao, referencias } = await this.getAll_Infos_Colaborador(idColaborador, idCiclo);
         logger.log(`Avaliações encontradas: ${avaliacoes ? avaliacoes.length : 0}`);
         logger.log(`Equalização encontrada: ${!!equalizacao}`);
+        logger.log(`Referências encontradas: ${referencias ? referencias.length : 0}`);
         if (!avaliacoes || avaliacoes.length === 0) {
             logger.warn('Nenhuma avaliação encontrada para este colaborador neste ciclo');
             throw new Error('Nenhuma avaliação encontrada para este colaborador neste ciclo');
@@ -372,8 +381,8 @@ export class IaService {
         // Processa avaliações para formato detalhado
         const dadosProcessados = this.processarAvaliacoes(avaliacoes);
         logger.debug(`Dados processados para prompt: ${JSON.stringify(dadosProcessados)}`);
-        // Monta prompt para brutal facts
-        let prompt = this.criarPromptBrutalFacts(dadosProcessados, equalizacao);
+        // Monta prompt para brutal facts, agora incluindo referências
+        let prompt = this.criarPromptBrutalFacts(dadosProcessados, equalizacao, referencias);
         logger.debug(`Prompt gerado para IA:\n${prompt}`);
         // Chama IA
         try {
@@ -407,7 +416,7 @@ export class IaService {
     }
 
     // Função auxiliar para montar prompt específico do brutal facts
-    private criarPromptBrutalFacts(dados: any, equalizacao: any): string {
+    private criarPromptBrutalFacts(dados: any, equalizacao: any, referencias?: any[]): string {
         let prompt = `=== DADOS PARA BRUTAL FACTS ===\n`;
         // Autoavaliação
         if (dados.autoAvaliacao) {
@@ -444,6 +453,15 @@ export class IaService {
             prompt += `\n=== EQUALIZAÇÃO ===\nNota Final Equalizada: ${equalizacao.notaFinal || 'Não informada'}\nJustificativa do Comitê: \"${equalizacao.justificativa || 'Não informada'}\"`;
         } else {
             prompt += `\n=== EQUALIZAÇÃO ===\n❌ Equalização não realizada`;
+        }
+        // Indicações de Referências
+        if (referencias && referencias.length > 0) {
+            prompt += `\n=== INDICAÇÕES DE REFERÊNCIAS (${referencias.length}) ===`;
+            referencias.forEach((ref: any, idx: number) => {
+                prompt += `\nIndicação ${idx + 1}: Tipo: ${ref.tipo || 'Não informado'} | Justificativa: \"${ref.justificativa || 'Não informada'}\"`;
+            });
+        } else {
+            prompt += `\n=== INDICAÇÕES DE REFERÊNCIAS ===\n❌ Nenhuma indicação de referência registrada para este ciclo.`;
         }
         // Instrução final
         prompt += `\n\nAnalise os dados acima e siga as instruções do sistema para gerar o Brutal Facts.`;

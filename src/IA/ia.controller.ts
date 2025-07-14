@@ -35,9 +35,9 @@ export class IaController {
         }
     }
     @Get('brutalfacts/:idColaborador/:idCiclo')
-    async getAllColaborador(@Param('idColaborador') idColaborador: string, @Param('idCiclo') idCiclo: string): Promise<any> {
+    async getAll_Infos_Colaborador(@Param('idColaborador') idColaborador: string, @Param('idCiclo') idCiclo: string): Promise<any> {
         try {
-            const resultado = await this.iaService.getAllColaborador(idColaborador, idCiclo);
+            const resultado = await this.iaService.getAll_Infos_Colaborador(idColaborador, idCiclo);
             return resultado;
         } catch (error) {
             console.error('Erro ao buscar avaliações + equalização do colaborador', error);
