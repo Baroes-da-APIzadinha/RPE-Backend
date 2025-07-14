@@ -1,6 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
+﻿import { Test, TestingModule } from '@nestjs/testing';
 import { AvaliacoesService } from './avaliacoes.service';
 import { PrismaService } from '../database/prismaService';
+import { HashService } from '../common/hash.service';
 import { HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
 import { Motivacao } from './avaliacoes.contants';
@@ -75,6 +76,18 @@ describe('AvaliacoesService', () => {
     equalizacao: {
       findMany: jest.fn(),
     },
+    projeto: {
+      findMany: jest.fn(),
+    },
+    alocacaoColaboradorProjeto: {
+      findMany: jest.fn(),
+    },
+  };
+
+  // Mock do HashService
+  const mockHashService = {
+    hash: jest.fn(),
+    decrypt: jest.fn(),
   };
 
   // Dados de teste
@@ -248,6 +261,10 @@ describe('AvaliacoesService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: HashService,
+          useValue: mockHashService,
+        },
       ],
     }).compile();
 
@@ -259,6 +276,15 @@ describe('AvaliacoesService', () => {
     jest.spyOn(Logger.prototype, 'warn').mockImplementation();
     jest.spyOn(Logger.prototype, 'error').mockImplementation();
     jest.spyOn(Logger.prototype, 'debug').mockImplementation();
+
+    // Configurar mocks do HashService
+    mockHashService.hash.mockImplementation((value: string) => `encrypted_${value}`);
+    mockHashService.decrypt.mockImplementation((encrypted: string) => {
+      if (encrypted?.startsWith('encrypted_')) {
+        return encrypted.replace('encrypted_', '');
+      }
+      return encrypted;
+    });
   });
 
   afterEach(() => {
@@ -279,7 +305,7 @@ describe('AvaliacoesService', () => {
     it('deve lançar todas as avaliações com sucesso', async () => {
       // Arrange
       const spyAutoAvaliacoes = jest.spyOn(service, 'lancarAutoAvaliacoes').mockResolvedValue({ lancadas: 2, existentes: 0, erros: 0 });
-      const spyAvaliacaoPares = jest.spyOn(service, 'lancarAvaliaçãoPares').mockResolvedValue({ lancadas: 2, existentes: 0, erros: 0 });
+      const spyAvaliacaoPares = jest.spyOn(service, 'lancarAvaliacaoPares').mockResolvedValue({ lancadas: 2, existentes: 0, erros: 0 });
       const spyLiderColaborador = jest.spyOn(service, 'lancarAvaliacaoLiderColaborador').mockResolvedValue({ lancadas: 1, existentes: 0, erros: 0 });
       const spyColaboradorMentor = jest.spyOn(service, 'lancarAvaliacaoColaboradorMentor').mockResolvedValue({ lancadas: 1, existentes: 0, erros: 0 });
 
@@ -409,21 +435,34 @@ describe('AvaliacoesService', () => {
     });
   });
 
-  describe('lancarAvaliaçãoPares', () => {
+  describe('lancarAvaliacaoPares', () => {
     beforeEach(() => {
+      // Mock para gerarParesPorProjetos
+      mockPrismaService.projeto.findMany.mockResolvedValue([]);
+      mockPrismaService.alocacaoColaboradorProjeto.findMany.mockResolvedValue([]);
+      
       mockPrismaService.pares.findMany.mockResolvedValue(mockPares);
       mockPrismaService.avaliacao.findMany.mockResolvedValue([]);
       mockPrismaService.$transaction.mockImplementation(async (callback) => {
-        return callback({
-          avaliacao: { create: jest.fn().mockResolvedValue({ idAvaliacao: mockIdAvaliacao }) },
-          avaliacaoPares: { create: jest.fn().mockResolvedValue({}) },
-        });
+        const mockTx = {
+          avaliacao: { 
+            createMany: jest.fn().mockResolvedValue({ count: 2 }),
+            findMany: jest.fn().mockResolvedValue([
+              { idAvaliacao: mockIdAvaliacao + '1' },
+              { idAvaliacao: mockIdAvaliacao + '2' }
+            ])
+          },
+          avaliacaoPares: { 
+            createMany: jest.fn().mockResolvedValue({ count: 2 })
+          },
+        };
+        return callback(mockTx);
       });
     });
 
     it('deve lançar avaliações de pares com sucesso', async () => {
       // Act
-      const resultado = await service.lancarAvaliaçãoPares(mockIdCiclo);
+      const resultado = await service.lancarAvaliacaoPares(mockIdCiclo);
 
       // Assert
       expect(resultado.lancadas).toBe(2); // A avalia B e B avalia A
@@ -436,7 +475,7 @@ describe('AvaliacoesService', () => {
       mockPrismaService.pares.findMany.mockResolvedValue([]);
 
       // Act
-      const resultado = await service.lancarAvaliaçãoPares(mockIdCiclo);
+      const resultado = await service.lancarAvaliacaoPares(mockIdCiclo);
 
       // Assert
       expect(resultado).toEqual({ lancadas: 0, existentes: 0, erros: 0 });
@@ -448,8 +487,24 @@ describe('AvaliacoesService', () => {
         { idAvaliador: mockIdColaborador1, idAvaliado: mockIdColaborador2 },
       ]);
 
+      // Mock para transação com apenas 1 nova avaliação
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          avaliacao: { 
+            createMany: jest.fn().mockResolvedValue({ count: 1 }),
+            findMany: jest.fn().mockResolvedValue([
+              { idAvaliacao: mockIdAvaliacao + '1' }
+            ])
+          },
+          avaliacaoPares: { 
+            createMany: jest.fn().mockResolvedValue({ count: 1 })
+          },
+        };
+        return callback(mockTx);
+      });
+
       // Act
-      const resultado = await service.lancarAvaliaçãoPares(mockIdCiclo);
+      const resultado = await service.lancarAvaliacaoPares(mockIdCiclo);
 
       // Assert
       expect(resultado.existentes).toBe(1);
@@ -463,8 +518,25 @@ describe('AvaliacoesService', () => {
         ...mockPares,
       ]);
 
+      // Mock para transação com 2 avaliações (do par válido)
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          avaliacao: { 
+            createMany: jest.fn().mockResolvedValue({ count: 2 }),
+            findMany: jest.fn().mockResolvedValue([
+              { idAvaliacao: mockIdAvaliacao + '1' },
+              { idAvaliacao: mockIdAvaliacao + '2' }
+            ])
+          },
+          avaliacaoPares: { 
+            createMany: jest.fn().mockResolvedValue({ count: 2 })
+          },
+        };
+        return callback(mockTx);
+      });
+
       // Act
-      const resultado = await service.lancarAvaliaçãoPares(mockIdCiclo);
+      const resultado = await service.lancarAvaliacaoPares(mockIdCiclo);
 
       // Assert
       expect(resultado.lancadas).toBe(2); // Apenas o par válido
@@ -473,6 +545,10 @@ describe('AvaliacoesService', () => {
 
   describe('lancarAvaliacaoLiderColaborador', () => {
     beforeEach(() => {
+      // Mock para gerarLiderColaboradorPorProjetos
+      mockPrismaService.projeto.findMany.mockResolvedValue([]);
+      mockPrismaService.alocacaoColaboradorProjeto.findMany.mockResolvedValue([]);
+      
       mockPrismaService.liderColaborador.findMany.mockResolvedValue(mockLideresColaboradores);
       mockPrismaService.avaliacao.findMany.mockResolvedValue([]);
       mockPrismaService.associacaoCriterioCiclo.findMany.mockResolvedValue([
@@ -581,8 +657,8 @@ describe('AvaliacoesService', () => {
         data: {
           nota: mockAvaliacaoParesDto.nota,
           motivadoTrabalharNovamente: mockAvaliacaoParesDto.motivacao,
-          pontosFortes: mockAvaliacaoParesDto.pontosFortes,
-          pontosFracos: mockAvaliacaoParesDto.pontosFracos,
+          pontosFortes: `encrypted_${mockAvaliacaoParesDto.pontosFortes}`,
+          pontosFracos: `encrypted_${mockAvaliacaoParesDto.pontosFracos}`,
         },
       });
 
@@ -696,7 +772,7 @@ describe('AvaliacoesService', () => {
         where: { idAvaliacao: mockIdAvaliacao },
         data: {
           nota: mockAvaliacaoMentorDto.nota,
-          justificativa: mockAvaliacaoMentorDto.justificativa,
+          justificativa: `encrypted_${mockAvaliacaoMentorDto.justificativa}`,
         },
       });
 
@@ -1338,11 +1414,15 @@ describe('AvaliacoesService', () => {
     it('deve lidar com transações falhando', async () => {
       // Arrange
       const error = new Error('Falha na transação');
+      mockPrismaService.pares.findMany.mockResolvedValue(mockPares);
+      mockPrismaService.avaliacao.findMany.mockResolvedValue([]);
       mockPrismaService.$transaction.mockRejectedValue(error);
 
-      // Act & Assert
-      await expect(service.lancarAvaliaçãoPares(mockIdCiclo))
-        .rejects.toThrow('Falha na transação');
+      // Act
+      const resultado = await service.lancarAvaliacaoPares(mockIdCiclo);
+
+      // Assert
+      expect(resultado).toEqual({ lancadas: 0, existentes: 0, erros: 1 });
     });
 
     it('deve processar grande quantidade de pares', async () => {
@@ -1356,16 +1436,24 @@ describe('AvaliacoesService', () => {
       mockPrismaService.pares.findMany.mockResolvedValue(muitosPares);
       mockPrismaService.avaliacao.findMany.mockResolvedValue([]);
       mockPrismaService.$transaction.mockImplementation(async (callback) => {
-        return callback({
-          avaliacao: { create: jest.fn().mockResolvedValue({ idAvaliacao: mockIdAvaliacao }) },
-          avaliacaoPares: { create: jest.fn().mockResolvedValue({}) },
-        });
+        const mockTx = {
+          avaliacao: { 
+            createMany: jest.fn().mockResolvedValue({ count: 200 }),
+            findMany: jest.fn().mockResolvedValue(
+              Array.from({ length: 200 }, (_, i) => ({ idAvaliacao: `${mockIdAvaliacao}${i}` }))
+            )
+          },
+          avaliacaoPares: { 
+            createMany: jest.fn().mockResolvedValue({ count: 200 })
+          },
+        };
+        return callback(mockTx);
       });
 
       const inicio = Date.now();
 
       // Act
-      const resultado = await service.lancarAvaliaçãoPares(mockIdCiclo);
+      const resultado = await service.lancarAvaliacaoPares(mockIdCiclo);
 
       const fim = Date.now();
       const tempoExecucao = fim - inicio;
@@ -1381,19 +1469,28 @@ describe('AvaliacoesService', () => {
       mockPrismaService.pares.findMany.mockResolvedValue(mockPares);
       mockPrismaService.avaliacao.findMany.mockResolvedValue([]);
       mockPrismaService.$transaction.mockImplementation(async (callback) => {
-        return callback({
-          avaliacao: { create: jest.fn().mockResolvedValue({ idAvaliacao: mockIdAvaliacao }) },
-          avaliacaoPares: { create: jest.fn().mockResolvedValue({}) },
-        });
+        const mockTx = {
+          avaliacao: { 
+            createMany: jest.fn().mockResolvedValue({ count: 2 }),
+            findMany: jest.fn().mockResolvedValue([
+              { idAvaliacao: mockIdAvaliacao + '1' },
+              { idAvaliacao: mockIdAvaliacao + '2' }
+            ])
+          },
+          avaliacaoPares: { 
+            createMany: jest.fn().mockResolvedValue({ count: 2 })
+          },
+        };
+        return callback(mockTx);
       });
 
       // Act
-      await service.lancarAvaliaçãoPares(mockIdCiclo);
+      await service.lancarAvaliacaoPares(mockIdCiclo);
 
       // Assert
       expect(spyLogger).toHaveBeenCalledWith(`Iniciando lançamento de avaliações de pares para ciclo ${mockIdCiclo}`);
       expect(spyLogger).toHaveBeenCalledWith(`Total de pares encontrados para o ciclo ${mockIdCiclo}: 1`);
-      expect(spyLogger).toHaveBeenCalledWith(expect.stringContaining('Resumo do lançamento'));
+      expect(spyLogger).toHaveBeenCalledWith(expect.stringContaining('avaliações de pares lançadas com sucesso'));
     });
   });
 });

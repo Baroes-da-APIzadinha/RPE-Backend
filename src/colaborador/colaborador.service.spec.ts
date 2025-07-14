@@ -4,6 +4,7 @@ import { PrismaService } from '../database/prismaService';
 import { AvaliacoesService } from '../avaliacoes/avaliacoes.service';
 import { CicloService } from '../ciclo/ciclo.service';
 import { CriteriosService } from '../criterios/criterios.service';
+import { EqualizacaoService } from '../equalizacao/equalizacao.service';
 import { CreateColaboradorDto, UpdateColaboradorDto, TrocarSenhaDto } from './colaborador.dto';
 import { perfilTipo } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -55,15 +56,19 @@ const mockPrismaService = {
 
 // Mock dos services
 const mockAvaliacoesService = {
-  // métodos necessários do AvaliacoesService
+  // Não utilizado
 };
 
 const mockCicloService = {
-  // métodos necessários do CicloService
+  // Não utilizado
 };
 
 const mockCriteriosService = {
-  // métodos necessários do CriteriosService
+  // Não utilizado
+};
+
+const mockEqualizacaoService = {
+  getEqualizacaoColaboradorCiclo: jest.fn(),
 };
 
 describe('ColaboradorService', () => {
@@ -114,6 +119,10 @@ describe('ColaboradorService', () => {
         {
           provide: CriteriosService,
           useValue: mockCriteriosService,
+        },
+        {
+          provide: EqualizacaoService,
+          useValue: mockEqualizacaoService,
         },
       ],
     }).compile();
@@ -401,9 +410,8 @@ describe('ColaboradorService', () => {
         cargo: 'DESENVOLVEDOR',
       };
 
-      mockPrismaService.colaborador.findUnique
-        .mockResolvedValueOnce(null) // Para verificação de email
-        .mockResolvedValueOnce(mockColaborador); // Para verificar se existe
+      // Como não há email no updateDto, só há uma chamada findUnique
+      mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
 
       const colaboradorAtualizado = { ...mockColaborador, ...updateDto };
       mockPrismaService.colaborador.update.mockResolvedValue(colaboradorAtualizado);
@@ -426,9 +434,8 @@ describe('ColaboradorService', () => {
         senha: 'novaSenha123',
       };
 
-      mockPrismaService.colaborador.findUnique
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(mockColaborador);
+      // Como não há email no updateDto, só precisa da chamada para buscar o colaborador pelo ID
+      mockPrismaService.colaborador.findUnique.mockResolvedValueOnce(mockColaborador);
 
       (mockedBcrypt.genSalt as jest.Mock).mockResolvedValue('salt');
       (mockedBcrypt.hash as jest.Mock).mockResolvedValue('novaSenhaHashed');
@@ -466,7 +473,15 @@ describe('ColaboradorService', () => {
         email: 'existente@teste.com',
       };
 
-      mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador); // Email já existe
+      // Mock para email já existir (com ID diferente)
+      const colaboradorExistente = {
+        ...mockColaborador,
+        idColaborador: 'outro-id-diferente',
+        email: 'existente@teste.com',
+      };
+
+      // Primeira chamada: verificar se o email já existe
+      mockPrismaService.colaborador.findUnique.mockResolvedValueOnce(colaboradorExistente);
 
       // Act
       const resultado = await service.updateColaborador(id, updateDto);
