@@ -37,7 +37,7 @@ export class AvaliacoesService {
     }
 
     async lancarAvaliacaoPares(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
-    this.logger.log(`Iniciando lançamento de avaliações de pares para ciclo ${idCiclo}`);
+        this.logger.log(`Iniciando lançamento de avaliações de pares para ciclo ${idCiclo}`);
     
     try {
         await this.gerarParesPorProjetos(idCiclo);
@@ -49,7 +49,7 @@ export class AvaliacoesService {
             }),
             this.prisma.avaliacao.findMany({
                 where: { idCiclo, tipoAvaliacao: 'AVALIACAO_PARES' },
-                select: { idAvaliador: true, idAvaliado: true }
+            select: { idAvaliador: true, idAvaliado: true }
             })
         ]);
         this.logger.log(`Total de pares encontrados para o ciclo ${idCiclo}: ${pares.length}`);
@@ -112,11 +112,11 @@ export class AvaliacoesService {
         this.logger.log(`${novasAvaliacoesParaCriar.length} avaliações de pares lançadas com sucesso.`);
         return { lancadas: novasAvaliacoesParaCriar.length, existentes, erros: 0 };
 
-    } catch (error) {
+                } catch (error) {
         this.logger.error(`Falha catastrófica ao lançar avaliações de pares para o ciclo ${idCiclo}`, error.stack);
         return { lancadas: 0, existentes: 0, erros: 1 };
+                }
     }
-}
 
     async lancarAutoAvaliacoes(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
         this.logger.log(`Iniciando lançamento de autoavaliaçõess para ciclo ${idCiclo}`);

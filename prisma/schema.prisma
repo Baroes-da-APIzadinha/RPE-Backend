@@ -87,6 +87,7 @@ model Colaborador {
   auditLogs           AuditLog[]
   alocacoes           AlocacaoColaboradorProjeto[]
   projetosLiderados   Projeto[]            @relation("LiderProjeto")
+  brutalFacts         BrutalFacts[]
 }
 
 model ColaboradorPerfil {
@@ -119,6 +120,7 @@ model CicloAvaliacao {
   liderColaboradores   LiderColaborador[]
   mentorColaboradores  MentorColaborador[]
   equalizacoes         Equalizacao[]
+  brutalFacts          BrutalFacts[]
 }
 
 model CriterioAvaliativo {
@@ -357,4 +359,15 @@ model AlocacaoColaboradorProjeto {
   colaborador   Colaborador @relation(fields: [idColaborador], references: [idColaborador], onDelete: Cascade)
 
   @@map("alocacoes_colaborador_projeto")
+}
+
+model BrutalFacts {
+  idColaborador String  @db.Uuid
+  idCiclo       String  @db.Uuid
+  brutalFact    String  @db.Text
+
+  colaborador   Colaborador   @relation(fields: [idColaborador], references: [idColaborador], onDelete: Cascade)
+  ciclo         CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
+
+  @@id([idColaborador, idCiclo])
 }

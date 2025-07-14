@@ -3,12 +3,15 @@ import { PrismaService } from 'src/database/prismaService';
 import ai from './init';
 import { generationConfig, MiniConfig } from './config';
 import { AvaliacoesService } from '../avaliacoes/avaliacoes.service';
+import { HashService } from 'src/common/hash.service';
+import { ConflictException, BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class IaService {
     constructor(
         private readonly prisma: PrismaService,
-        private readonly avaliacoesService: AvaliacoesService
+        private readonly avaliacoesService: AvaliacoesService,
+        private readonly hashService : HashService
     ) { }
 
     async avaliarColaborador(idColaborador: string, idCiclo: string): Promise<string> {
@@ -73,7 +76,35 @@ export class IaService {
                 avaliacaoLiderColaborador: { include: { cardAvaliacaoLiderColaborador: true } }
             }
         });
-        return avaliacoes;
+
+        // Descriptografar justificativas das avaliações
+        const avaliacoesDescriptografadas = avaliacoes.map(avaliacao => {
+            // Autoavaliação
+            if (avaliacao.autoAvaliacao?.cardAutoAvaliacoes) {
+                avaliacao.autoAvaliacao.cardAutoAvaliacoes = avaliacao.autoAvaliacao.cardAutoAvaliacoes.map(card => ({
+                    ...card,
+                    justificativa: card.justificativa ? this.hashService.decrypt(card.justificativa) : null
+                }));
+            }
+            // Avaliação líder-colaborador
+            if (avaliacao.avaliacaoLiderColaborador?.cardAvaliacaoLiderColaborador) {
+                avaliacao.avaliacaoLiderColaborador.cardAvaliacaoLiderColaborador = avaliacao.avaliacaoLiderColaborador.cardAvaliacaoLiderColaborador.map(card => ({
+                    ...card,
+                    justificativa: card.justificativa ? this.hashService.decrypt(card.justificativa) : null
+                }));
+            }
+            // Avaliação de pares
+            if (avaliacao.avaliacaoPares) {
+                if (avaliacao.avaliacaoPares.pontosFortes) {
+                    avaliacao.avaliacaoPares.pontosFortes = this.hashService.decrypt(avaliacao.avaliacaoPares.pontosFortes);
+                }
+                if (avaliacao.avaliacaoPares.pontosFracos) {
+                    avaliacao.avaliacaoPares.pontosFracos = this.hashService.decrypt(avaliacao.avaliacaoPares.pontosFracos);
+                }
+            }
+            return avaliacao;
+        });
+        return avaliacoesDescriptografadas;
     }
 
     async getAll_Infos_Colaborador(idColaborador: string, idCiclo: string) {
@@ -91,10 +122,25 @@ export class IaService {
                 idCiclo : idCiclo
             }
         })
+        // Descriptografar justificativa da equalização
+        let equalizacaoDescriptografada = equalizacao;
+        if (equalizacaoDescriptografada && equalizacaoDescriptografada.justificativa) {
+            equalizacaoDescriptografada = {
+                ...equalizacaoDescriptografada,
+                justificativa: this.hashService.decrypt(equalizacaoDescriptografada.justificativa)
+            };
+        }
+
+        // Descriptografar justificativas das referências
+        const referenciasDescriptografadas = referencias.map(ref => ({
+            ...ref,
+            justificativa: ref.justificativa ? this.hashService.decrypt(ref.justificativa) : null
+        }));
+
         return {
             avaliacoes,
-            equalizacao,
-            referencias
+            equalizacao: equalizacaoDescriptografada,
+            referencias: referenciasDescriptografadas
         };
     }
 
@@ -396,7 +442,8 @@ export class IaService {
                     temperature: brutalFactsConfig.temperature,
                     topP: brutalFactsConfig.topP,
                     maxOutputTokens: brutalFactsConfig.maxOutputTokens,
-                    responseMimeType: brutalFactsConfig.responseMimeType
+                    responseMimeType: brutalFactsConfig.responseMimeType,
+                    thinkingConfig : brutalFactsConfig.thinkingConfig
                 }
             });
             logger.debug(`Resposta completa da IA: ${JSON.stringify(response)}`);
@@ -408,7 +455,27 @@ export class IaService {
                 }
             }
             logger.debug(`Texto da IA: ${texto}`);
-            return texto || 'Erro na geração de resposta pela IA. Veja o log para detalhes da resposta.';
+            // Só salva se houver texto válido
+            if (!texto || texto.includes('Erro na geração de resposta pela IA')) {
+                logger.error('Erro na geração de resposta pela IA. Nada será salvo no banco.');
+                throw new BadRequestException('Erro na geração de resposta pela IA. Veja o log para detalhes da resposta.');
+            }
+            try {
+                await this.prisma.brutalFacts.create({
+                    data: {
+                        idColaborador,
+                        idCiclo,
+                        brutalFact: texto
+                    }
+                });
+            } catch (error) {
+                if (error.code === 'P2002') {
+                    // Registro já existe
+                    throw new ConflictException('Brutal Fact já cadastrado para este colaborador e ciclo.');
+                }
+                throw error;
+            }
+            return texto;
         } catch (error) {
             logger.error('Erro ao gerar Brutal Facts', error.stack || error.message || error);
             throw error;
