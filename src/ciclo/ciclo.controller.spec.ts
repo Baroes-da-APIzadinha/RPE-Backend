@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CicloController } from './ciclo.controller';
 import { CicloService } from './ciclo.service';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
 import { cicloStatus } from '@prisma/client';
 import { 
@@ -12,6 +13,7 @@ import {
 describe('CicloController', () => {
   let controller: CicloController;
   let service: CicloService;
+  let auditoriaService: AuditoriaService;
 
   // Mock do CicloService
   const mockCicloService = {
@@ -22,6 +24,22 @@ describe('CicloController', () => {
     getCiclosAtivos: jest.fn(),
     getHistoricoCiclos: jest.fn(),
     getCiclo: jest.fn(),
+  };
+
+  // Mock do AuditoriaService
+  const mockAuditoriaService = {
+    log: jest.fn(),
+    getLogs: jest.fn(),
+  };
+
+  // Mock do request com dados de usuário
+  const mockRequest = {
+    user: { 
+      userId: 'user-123',
+      email: 'admin@empresa.com',
+      roles: ['ADMIN'] 
+    },
+    ip: '192.168.1.100',
   };
 
   // Dados de teste
@@ -58,11 +76,16 @@ describe('CicloController', () => {
           provide: CicloService,
           useValue: mockCicloService,
         },
+        {
+          provide: AuditoriaService,
+          useValue: mockAuditoriaService,
+        },
       ],
     }).compile();
 
     controller = module.get<CicloController>(CicloController);
     service = module.get<CicloService>(CicloService);
+    auditoriaService = module.get<AuditoriaService>(AuditoriaService);
   });
 
   afterEach(() => {
@@ -73,219 +96,402 @@ describe('CicloController', () => {
     it('should be defined', () => {
       expect(controller).toBeDefined();
     });
+
+    it('deve ter CicloService injetado', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('deve ter AuditoriaService injetado', () => {
+      expect(auditoriaService).toBeDefined();
+    });
   });
 
   describe('criarCiclo', () => {
-    it('deve criar um ciclo com sucesso', async () => {
-      // Arrange
-      mockCicloService.createCiclo.mockResolvedValue(mockCiclo);
+    describe('Casos de sucesso com auditoria', () => {
+      it('deve criar um ciclo com sucesso e registrar auditoria', async () => {
+        // Arrange
+        mockCicloService.createCiclo.mockResolvedValue(mockCiclo);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
-      // Act
-      const resultado = await controller.criarCiclo(createCicloDto);
+        // Act
+        const resultado = await controller.criarCiclo(createCicloDto, mockRequest);
 
-      // Assert
-      expect(resultado).toEqual(mockCiclo);
-      expect(mockCicloService.createCiclo).toHaveBeenCalledWith(createCicloDto);
-      expect(mockCicloService.createCiclo).toHaveBeenCalledTimes(1);
+        // Assert
+        expect(resultado).toEqual(mockCiclo);
+        expect(mockCicloService.createCiclo).toHaveBeenCalledWith(createCicloDto);
+        expect(mockCicloService.createCiclo).toHaveBeenCalledTimes(1);
+
+        // Verifica auditoria DEPOIS do service
+        expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockRequest.user.userId,
+          action: 'criar_ciclo',
+          resource: 'Ciclo',
+          details: { ...createCicloDto, result: mockCiclo },
+          ip: mockRequest.ip,
+        });
+      });
+
+      it('deve criar ciclo com diferentes configurações e registrar auditoria', async () => {
+        // Arrange
+        const ciclosVariados = [
+          {
+            dto: { ...createCicloDto, nome: '2024.2', duracaoEmAndamentoDias: 70 },
+            resultado: { ...mockCiclo, nomeCiclo: '2024.2', duracaoEmAndamentoDias: 70 }
+          },
+          {
+            dto: { ...createCicloDto, nome: '2025.1', duracaoEmRevisaoDias: 30 },
+            resultado: { ...mockCiclo, nomeCiclo: '2025.1', duracaoEmRevisaoDias: 30 }
+          },
+        ];
+
+        for (const { dto, resultado } of ciclosVariados) {
+          mockCicloService.createCiclo.mockResolvedValue(resultado);
+          mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+          // Act
+          const resultadoController = await controller.criarCiclo(dto, mockRequest);
+
+          // Assert
+          expect(resultadoController).toEqual(resultado);
+          expect(mockCicloService.createCiclo).toHaveBeenCalledWith(dto);
+          expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+            userId: mockRequest.user.userId,
+            action: 'criar_ciclo',
+            resource: 'Ciclo',
+            details: { ...dto, result: resultado },
+            ip: mockRequest.ip,
+          });
+
+          jest.clearAllMocks();
+        }
+      });
+
+      it('deve registrar auditoria DEPOIS de chamar o service', async () => {
+        // Arrange
+        const callOrder: string[] = [];
+        
+        mockCicloService.createCiclo.mockImplementation(async () => {
+          callOrder.push('service');
+          return mockCiclo;
+        });
+
+        mockAuditoriaService.log.mockImplementation(async () => {
+          callOrder.push('auditoria');
+          return { id: 'audit-log-id' };
+        });
+
+        // Act
+        await controller.criarCiclo(createCicloDto, mockRequest);
+
+        // Assert
+        expect(callOrder).toEqual(['service', 'auditoria']);
+      });
     });
 
-    it('deve retornar erro quando nome do ciclo é inválido', async () => {
-      // Arrange
-      const dtoInvalido = { ...createCicloDto, nome: 'nome-inválido' };
-      const error = new BadRequestException('O nome do ciclo deve seguir o padrão AAAA.S (ex: 2024.1).');
-      
-      mockCicloService.createCiclo.mockRejectedValue(error);
+    describe('Casos de falha com auditoria', () => {
+      it('deve NOT registrar auditoria quando service falha', async () => {
+        // Arrange
+        const error = new BadRequestException('O nome do ciclo deve seguir o padrão AAAA.S (ex: 2024.1).');
+        const dtoInvalido = { ...createCicloDto, nome: 'nome-inválido' };
+        
+        mockCicloService.createCiclo.mockRejectedValue(error);
 
-      // Act & Assert
-      await expect(controller.criarCiclo(dtoInvalido)).rejects.toThrow(BadRequestException);
-      expect(mockCicloService.createCiclo).toHaveBeenCalledWith(dtoInvalido);
-    });
+        // Act & Assert
+        await expect(controller.criarCiclo(dtoInvalido, mockRequest)).rejects.toThrow(BadRequestException);
+        
+        // Service é chamado primeiro
+        expect(mockCicloService.createCiclo).toHaveBeenCalledWith(dtoInvalido);
+        
+        // Auditoria NÃO é registrada quando service falha
+        expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+      });
 
-    it('deve retornar erro quando ciclo já existe', async () => {
-      // Arrange
-      const error = new ConflictException('Já existe um ciclo com este nome.');
-      
-      mockCicloService.createCiclo.mockRejectedValue(error);
+      it('deve NOT registrar auditoria quando service falha com diferentes erros', async () => {
+        // Arrange
+        const tiposErro = [
+          new ConflictException('Já existe um ciclo com este nome.'),
+          new BadRequestException('Data inválida fornecida'),
+          new ConflictException('O período informado sobrepõe o ciclo existente'),
+        ];
 
-      // Act & Assert
-      await expect(controller.criarCiclo(createCicloDto)).rejects.toThrow(ConflictException);
-      expect(mockCicloService.createCiclo).toHaveBeenCalledWith(createCicloDto);
-    });
+        for (const error of tiposErro) {
+          mockCicloService.createCiclo.mockRejectedValue(error);
 
-    it('deve retornar erro quando datas são inválidas', async () => {
-      // Arrange
-      const dtoDataInvalida = {
-        ...createCicloDto,
-        dataInicioMes: 13, // Mês inválido
-      };
-      const error = new BadRequestException('Data inválida fornecida');
-      
-      mockCicloService.createCiclo.mockRejectedValue(error);
+          // Act & Assert
+          await expect(controller.criarCiclo(createCicloDto, mockRequest)).rejects.toThrow(error);
+          expect(mockCicloService.createCiclo).toHaveBeenCalledWith(createCicloDto);
+          expect(mockAuditoriaService.log).not.toHaveBeenCalled();
 
-      // Act & Assert
-      await expect(controller.criarCiclo(dtoDataInvalida)).rejects.toThrow(BadRequestException);
-      expect(mockCicloService.createCiclo).toHaveBeenCalledWith(dtoDataInvalida);
-    });
+          jest.clearAllMocks();
+        }
+      });
 
-    it('deve retornar erro quando há sobreposição de datas', async () => {
-      // Arrange
-      const error = new ConflictException('O período informado sobrepõe o ciclo existente');
-      
-      mockCicloService.createCiclo.mockRejectedValue(error);
+      it('deve falhar se auditoria falhar DEPOIS do service suceder', async () => {
+        // Arrange
+        mockCicloService.createCiclo.mockResolvedValue(mockCiclo);
+        mockAuditoriaService.log.mockRejectedValue(new Error('Erro na auditoria'));
 
-      // Act & Assert
-      await expect(controller.criarCiclo(createCicloDto)).rejects.toThrow(ConflictException);
-      expect(mockCicloService.createCiclo).toHaveBeenCalledWith(createCicloDto);
+        // Act & Assert
+        await expect(controller.criarCiclo(createCicloDto, mockRequest)).rejects.toThrow('Erro na auditoria');
+        
+        // Service é chamado normalmente
+        expect(mockCicloService.createCiclo).toHaveBeenCalledWith(createCicloDto);
+        // Auditoria é tentada mas falha
+        expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+      });
     });
   });
 
   describe('removerCiclo', () => {
-    it('deve remover um ciclo com sucesso', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      mockCicloService.deleteCiclo.mockResolvedValue(mockCiclo);
+    describe('Casos de sucesso com auditoria', () => {
+      it('deve remover um ciclo com sucesso e registrar auditoria', async () => {
+        // Arrange
+        const id = '123e4567-e89b-12d3-a456-426614174000';
+        mockCicloService.deleteCiclo.mockResolvedValue(mockCiclo);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
-      // Act
-      const resultado = await controller.removerCiclo(id);
+        // Act
+        const resultado = await controller.removerCiclo(id, mockRequest);
 
-      // Assert
-      expect(resultado).toEqual(mockCiclo);
-      expect(mockCicloService.deleteCiclo).toHaveBeenCalledWith(id);
-      expect(mockCicloService.deleteCiclo).toHaveBeenCalledTimes(1);
+        // Assert
+        expect(resultado).toEqual(mockCiclo);
+        expect(mockCicloService.deleteCiclo).toHaveBeenCalledWith(id);
+        expect(mockCicloService.deleteCiclo).toHaveBeenCalledTimes(1);
+
+        // Verifica auditoria DEPOIS do service
+        expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockRequest.user.userId,
+          action: 'remover_ciclo',
+          resource: 'Ciclo',
+          details: { id, result: mockCiclo },
+          ip: mockRequest.ip,
+        });
+      });
+
+      it('deve registrar auditoria DEPOIS de chamar o service', async () => {
+        // Arrange
+        const id = '123e4567-e89b-12d3-a456-426614174000';
+        const callOrder: string[] = [];
+        
+        mockCicloService.deleteCiclo.mockImplementation(async () => {
+          callOrder.push('service');
+          return mockCiclo;
+        });
+
+        mockAuditoriaService.log.mockImplementation(async () => {
+          callOrder.push('auditoria');
+          return { id: 'audit-log-id' };
+        });
+
+        // Act
+        await controller.removerCiclo(id, mockRequest);
+
+        // Assert
+        expect(callOrder).toEqual(['service', 'auditoria']);
+      });
     });
 
-    it('deve retornar erro quando ciclo não encontrado', async () => {
-      // Arrange
-      const id = 'id-inexistente';
-      const error = new NotFoundException('Ciclo não encontrado.');
-      
-      mockCicloService.deleteCiclo.mockRejectedValue(error);
+    describe('Casos de falha com auditoria', () => {
+      it('deve NOT registrar auditoria quando ciclo não encontrado', async () => {
+        // Arrange
+        const id = 'id-inexistente';
+        const error = new NotFoundException('Ciclo não encontrado.');
+        
+        mockCicloService.deleteCiclo.mockRejectedValue(error);
 
-      // Act & Assert
-      await expect(controller.removerCiclo(id)).rejects.toThrow(NotFoundException);
-      expect(mockCicloService.deleteCiclo).toHaveBeenCalledWith(id);
-    });
+        // Act & Assert
+        await expect(controller.removerCiclo(id, mockRequest)).rejects.toThrow(NotFoundException);
+        expect(mockCicloService.deleteCiclo).toHaveBeenCalledWith(id);
+        expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+      });
 
-    it('deve retornar erro quando ID é inválido', async () => {
-      // Arrange
-      const id = 'id-inválido';
-      const error = new BadRequestException('ID do ciclo inválido.');
-      
-      mockCicloService.deleteCiclo.mockRejectedValue(error);
+      it('deve NOT registrar auditoria quando ID inválido', async () => {
+        // Arrange
+        const id = 'id-inválido';
+        const error = new BadRequestException('ID do ciclo inválido.');
+        
+        mockCicloService.deleteCiclo.mockRejectedValue(error);
 
-      // Act & Assert
-      await expect(controller.removerCiclo(id)).rejects.toThrow(BadRequestException);
-      expect(mockCicloService.deleteCiclo).toHaveBeenCalledWith(id);
+        // Act & Assert
+        await expect(controller.removerCiclo(id, mockRequest)).rejects.toThrow(BadRequestException);
+        expect(mockCicloService.deleteCiclo).toHaveBeenCalledWith(id);
+        expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+      });
     });
   });
 
   describe('atualizarCiclo (PUT)', () => {
-    it('deve atualizar um ciclo completamente com sucesso', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      const updateDto: UpdateCicloDto = {
-        nome: '2024.2',
-        dataInicioAno: 2024,
-        dataInicioMes: 8,
-        dataInicioDia: 1,
-        dataFimAno: 2024,
-        dataFimMes: 11,
-        dataFimDia: 1,
-        duracaoEmAndamentoDias: 70,
-        duracaoEmRevisaoDias: 20,
-        duracaoEmEqualizacaoDias: 3,
-      };
+    describe('Casos de sucesso com auditoria', () => {
+      it('deve atualizar um ciclo completamente com sucesso e registrar auditoria', async () => {
+        // Arrange
+        const id = '123e4567-e89b-12d3-a456-426614174000';
+        const updateDto: UpdateCicloDto = {
+          nome: '2024.2',
+          dataInicioAno: 2024,
+          dataInicioMes: 8,
+          dataInicioDia: 1,
+          dataFimAno: 2024,
+          dataFimMes: 11,
+          dataFimDia: 1,
+          duracaoEmAndamentoDias: 70,
+          duracaoEmRevisaoDias: 20,
+          duracaoEmEqualizacaoDias: 3,
+        };
 
-      const cicloAtualizado = { ...mockCiclo, ...updateDto };
-      mockCicloService.updateCiclo.mockResolvedValue(cicloAtualizado);
+        const cicloAtualizado = { ...mockCiclo, ...updateDto };
+        mockCicloService.updateCiclo.mockResolvedValue(cicloAtualizado);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
-      // Act
-      const resultado = await controller.atualizarCiclo(id, updateDto);
+        // Act
+        const resultado = await controller.atualizarCiclo(id, updateDto, mockRequest);
 
-      // Assert
-      expect(resultado).toEqual(cicloAtualizado);
-      expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
-      expect(mockCicloService.updateCiclo).toHaveBeenCalledTimes(1);
+        // Assert
+        expect(resultado).toEqual(cicloAtualizado);
+        expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
+        expect(mockCicloService.updateCiclo).toHaveBeenCalledTimes(1);
+
+        // Verifica auditoria DEPOIS do service
+        expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockRequest.user.userId,
+          action: 'atualizar_ciclo',
+          resource: 'Ciclo',
+          details: { id, ...updateDto, result: cicloAtualizado },
+          ip: mockRequest.ip,
+        });
+      });
+
+      it('deve registrar auditoria DEPOIS de chamar o service', async () => {
+        // Arrange
+        const id = '123e4567-e89b-12d3-a456-426614174000';
+        const updateDto: UpdateCicloDto = { nome: '2024.2' };
+        const callOrder: string[] = [];
+        
+        mockCicloService.updateCiclo.mockImplementation(async () => {
+          callOrder.push('service');
+          return mockCiclo;
+        });
+
+        mockAuditoriaService.log.mockImplementation(async () => {
+          callOrder.push('auditoria');
+          return { id: 'audit-log-id' };
+        });
+
+        // Act
+        await controller.atualizarCiclo(id, updateDto, mockRequest);
+
+        // Assert
+        expect(callOrder).toEqual(['service', 'auditoria']);
+      });
     });
 
-    it('deve retornar erro quando ciclo não encontrado para atualização', async () => {
-      // Arrange
-      const id = 'id-inexistente';
-      const updateDto: UpdateCicloDto = { nome: '2024.2' };
-      const error = new NotFoundException('Ciclo não encontrado.');
-      
-      mockCicloService.updateCiclo.mockRejectedValue(error);
+    describe('Casos de falha com auditoria', () => {
+      it('deve NOT registrar auditoria quando ciclo não encontrado para atualização', async () => {
+        // Arrange
+        const id = 'id-inexistente';
+        const updateDto: UpdateCicloDto = { nome: '2024.2' };
+        const error = new NotFoundException('Ciclo não encontrado.');
+        
+        mockCicloService.updateCiclo.mockRejectedValue(error);
 
-      // Act & Assert
-      await expect(controller.atualizarCiclo(id, updateDto)).rejects.toThrow(NotFoundException);
-      expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
-    });
+        // Act & Assert
+        await expect(controller.atualizarCiclo(id, updateDto, mockRequest)).rejects.toThrow(NotFoundException);
+        expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
+        expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+      });
 
-    it('deve retornar erro quando dados de atualização são inválidos', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      const updateDto: UpdateCicloDto = { nome: 'nome-inválido' };
-      const error = new BadRequestException('O nome do ciclo deve seguir o padrão AAAA.S (ex: 2024.1).');
-      
-      mockCicloService.updateCiclo.mockRejectedValue(error);
+      it('deve NOT registrar auditoria quando dados de atualização são inválidos', async () => {
+        // Arrange
+        const id = '123e4567-e89b-12d3-a456-426614174000';
+        const updateDto: UpdateCicloDto = { nome: 'nome-inválido' };
+        const error = new BadRequestException('O nome do ciclo deve seguir o padrão AAAA.S (ex: 2024.1).');
+        
+        mockCicloService.updateCiclo.mockRejectedValue(error);
 
-      // Act & Assert
-      await expect(controller.atualizarCiclo(id, updateDto)).rejects.toThrow(BadRequestException);
-      expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
+        // Act & Assert
+        await expect(controller.atualizarCiclo(id, updateDto, mockRequest)).rejects.toThrow(BadRequestException);
+        expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
+        expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+      });
     });
   });
 
   describe('atualizarCicloParcial (PATCH)', () => {
-    it('deve atualizar parcialmente um ciclo com sucesso', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      const updateDto: UpdateCicloDto = {
-        duracaoEmAndamentoDias: 65,
-      };
+    describe('Casos sem auditoria (comportamento atual)', () => {
+      it('deve atualizar parcialmente um ciclo com sucesso sem auditoria', async () => {
+        // Arrange
+        const id = '123e4567-e89b-12d3-a456-426614174000';
+        const updateDto: UpdateCicloDto = {
+          duracaoEmAndamentoDias: 65,
+        };
 
-      const cicloAtualizado = { ...mockCiclo, duracaoEmAndamentoDias: 65 };
-      mockCicloService.updateCiclo.mockResolvedValue(cicloAtualizado);
+        const cicloAtualizado = { ...mockCiclo, duracaoEmAndamentoDias: 65 };
+        mockCicloService.updateCiclo.mockResolvedValue(cicloAtualizado);
 
-      // Act
-      const resultado = await controller.atualizarCicloParcial(id, updateDto);
+        // Act
+        const resultado = await controller.atualizarCicloParcial(id, updateDto);
 
-      // Assert
-      expect(resultado).toEqual(cicloAtualizado);
-      expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
-      expect(mockCicloService.updateCiclo).toHaveBeenCalledTimes(1);
-    });
+        // Assert
+        expect(resultado).toEqual(cicloAtualizado);
+        expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
+        expect(mockCicloService.updateCiclo).toHaveBeenCalledTimes(1);
 
-    it('deve atualizar apenas o status do ciclo', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      const updateDto: UpdateCicloDto = {
-        status: cicloStatus.EM_ANDAMENTO,
-      };
+        // Verifica que auditoria NÃO foi chamada (PATCH não tem auditoria)
+        expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+      });
 
-      const cicloAtualizado = { ...mockCiclo, status: cicloStatus.EM_ANDAMENTO };
-      mockCicloService.updateCiclo.mockResolvedValue(cicloAtualizado);
+      it('deve atualizar apenas o status do ciclo sem auditoria', async () => {
+        // Arrange
+        const id = '123e4567-e89b-12d3-a456-426614174000';
+        const updateDto: UpdateCicloDto = {
+          status: cicloStatus.EM_ANDAMENTO,
+        };
 
-      // Act
-      const resultado = await controller.atualizarCicloParcial(id, updateDto);
+        const cicloAtualizado = { ...mockCiclo, status: cicloStatus.EM_ANDAMENTO };
+        mockCicloService.updateCiclo.mockResolvedValue(cicloAtualizado);
 
-      // Assert
-      expect(resultado).toEqual(cicloAtualizado);
-      expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
-    });
+        // Act
+        const resultado = await controller.atualizarCicloParcial(id, updateDto);
 
-    it('deve retornar erro para atualização parcial com dados inválidos', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      const updateDto: UpdateCicloDto = {
-        duracaoEmAndamentoDias: -5, // Duração inválida
-      };
-      const error = new BadRequestException('Duração inválida');
-      
-      mockCicloService.updateCiclo.mockRejectedValue(error);
+        // Assert
+        expect(resultado).toEqual(cicloAtualizado);
+        expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
+        expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+      });
 
-      // Act & Assert
-      await expect(controller.atualizarCicloParcial(id, updateDto)).rejects.toThrow(BadRequestException);
-      expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
+      it('deve propagar erro para atualização parcial com dados inválidos sem auditoria', async () => {
+        // Arrange
+        const id = '123e4567-e89b-12d3-a456-426614174000';
+        const updateDto: UpdateCicloDto = {
+          duracaoEmAndamentoDias: -5, // Duração inválida
+        };
+        const error = new BadRequestException('Duração inválida');
+        
+        mockCicloService.updateCiclo.mockRejectedValue(error);
+
+        // Act & Assert
+        await expect(controller.atualizarCicloParcial(id, updateDto)).rejects.toThrow(BadRequestException);
+        expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
+        expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+      });
+
+      it('deve funcionar com objetos DTO vazios em atualizações parciais sem auditoria', async () => {
+        // Arrange
+        const id = '123e4567-e89b-12d3-a456-426614174000';
+        const updateDto: UpdateCicloDto = {}; // DTO vazio
+        
+        mockCicloService.updateCiclo.mockResolvedValue(mockCiclo);
+
+        // Act
+        const resultado = await controller.atualizarCicloParcial(id, updateDto);
+
+        // Assert
+        expect(resultado).toEqual(mockCiclo);
+        expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
+        expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+      });
     });
   });
 
@@ -308,6 +514,7 @@ describe('CicloController', () => {
       expect(mockCicloService.getCiclos).toHaveBeenCalledTimes(1);
       expect(Array.isArray(resultado)).toBe(true);
       expect(resultado).toHaveLength(3);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar array vazio quando não há ciclos', async () => {
@@ -320,6 +527,7 @@ describe('CicloController', () => {
       // Assert
       expect(resultado).toEqual([]);
       expect(mockCicloService.getCiclos).toHaveBeenCalledTimes(1);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar ciclos com estrutura correta', async () => {
@@ -339,6 +547,7 @@ describe('CicloController', () => {
       expect(resultado[0]).toHaveProperty('duracaoEmAndamentoDias');
       expect(resultado[0]).toHaveProperty('duracaoEmRevisaoDias');
       expect(resultado[0]).toHaveProperty('duracaoEmEqualizacaoDias');
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
   });
 
@@ -373,6 +582,7 @@ describe('CicloController', () => {
       expect(resultado).toHaveLength(2);
       expect(resultado[0]).toHaveProperty('tempoRestante');
       expect(typeof resultado[0].tempoRestante).toBe('string');
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar array vazio quando não há ciclos ativos', async () => {
@@ -385,6 +595,7 @@ describe('CicloController', () => {
       // Assert
       expect(resultado).toEqual([]);
       expect(mockCicloService.getCiclosAtivos).toHaveBeenCalledTimes(1);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar apenas ciclos com status ativo', async () => {
@@ -412,6 +623,7 @@ describe('CicloController', () => {
         cicloStatus.EM_REVISAO,
         cicloStatus.EM_EQUALIZAÇÃO,
       ]).toContain(resultado[0].status);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
   });
 
@@ -444,6 +656,7 @@ describe('CicloController', () => {
       expect(resultado).toHaveLength(2);
       expect(resultado[0].status).toBe(cicloStatus.FECHADO);
       expect(resultado[1].status).toBe(cicloStatus.FECHADO);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar array vazio quando não há histórico', async () => {
@@ -456,6 +669,7 @@ describe('CicloController', () => {
       // Assert
       expect(resultado).toEqual([]);
       expect(mockCicloService.getHistoricoCiclos).toHaveBeenCalledTimes(1);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar histórico com estrutura correta', async () => {
@@ -480,6 +694,7 @@ describe('CicloController', () => {
       expect(resultado[0]).toHaveProperty('dataEncerramento');
       expect(resultado[0]).toHaveProperty('status');
       expect(resultado[0].dataEncerramento).toBeInstanceOf(Date);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
   });
 
@@ -496,6 +711,7 @@ describe('CicloController', () => {
       expect(resultado).toEqual(mockCiclo);
       expect(mockCicloService.getCiclo).toHaveBeenCalledWith(id);
       expect(mockCicloService.getCiclo).toHaveBeenCalledTimes(1);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar erro quando ciclo não encontrado', async () => {
@@ -508,6 +724,7 @@ describe('CicloController', () => {
       // Act & Assert
       await expect(controller.getCiclo(id)).rejects.toThrow(NotFoundException);
       expect(mockCicloService.getCiclo).toHaveBeenCalledWith(id);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar erro para ID inválido', async () => {
@@ -520,6 +737,7 @@ describe('CicloController', () => {
       // Act & Assert
       await expect(controller.getCiclo(id)).rejects.toThrow(BadRequestException);
       expect(mockCicloService.getCiclo).toHaveBeenCalledWith(id);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar ciclo com todos os campos necessários', async () => {
@@ -537,6 +755,7 @@ describe('CicloController', () => {
       expect(resultado).toHaveProperty('dataFim');
       expect(resultado).toHaveProperty('status');
       expect(resultado.idCiclo).toBe(id);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
   });
 
@@ -560,6 +779,7 @@ describe('CicloController', () => {
       resultados.forEach(resultado => {
         expect(resultado).toEqual([mockCiclo]);
       });
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve propagar erros do service corretamente', async () => {
@@ -569,6 +789,7 @@ describe('CicloController', () => {
 
       // Act & Assert
       await expect(controller.getCiclos()).rejects.toThrow('Erro interno do servidor');
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve validar que todos os endpoints estão mapeados corretamente', () => {
@@ -582,25 +803,10 @@ describe('CicloController', () => {
       expect(controller.getHistoricoCiclos).toBeDefined();
       expect(controller.getCiclo).toBeDefined();
     });
-
-    it('deve funcionar com objetos DTO vazios em atualizações parciais', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      const updateDto: UpdateCicloDto = {}; // DTO vazio
-      
-      mockCicloService.updateCiclo.mockResolvedValue(mockCiclo);
-
-      // Act
-      const resultado = await controller.atualizarCicloParcial(id, updateDto);
-
-      // Assert
-      expect(resultado).toEqual(mockCiclo);
-      expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
-    });
   });
 
   describe('Validação de tipos e estruturas', () => {
-    it('deve aceitar CreateCicloDto com todos os campos obrigatórios', async () => {
+    it('deve aceitar CreateCicloDto com todos os campos obrigatórios e registrar auditoria', async () => {
       // Arrange
       const dtoCompleto: CreateCicloDto = {
         nome: '2024.3',
@@ -617,16 +823,24 @@ describe('CicloController', () => {
       };
 
       mockCicloService.createCiclo.mockResolvedValue(mockCiclo);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
-      const resultado = await controller.criarCiclo(dtoCompleto);
+      const resultado = await controller.criarCiclo(dtoCompleto, mockRequest);
 
       // Assert
       expect(resultado).toBeDefined();
       expect(mockCicloService.createCiclo).toHaveBeenCalledWith(dtoCompleto);
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'criar_ciclo',
+        resource: 'Ciclo',
+        details: { ...dtoCompleto, result: mockCiclo },
+        ip: mockRequest.ip,
+      });
     });
 
-    it('deve aceitar UpdateCicloDto com campos opcionais', async () => {
+    it('deve aceitar UpdateCicloDto com campos opcionais e registrar auditoria', async () => {
       // Arrange
       const id = '123e4567-e89b-12d3-a456-426614174000';
       const updateDto: UpdateCicloDto = {
@@ -635,14 +849,23 @@ describe('CicloController', () => {
         // Outros campos opcionais omitidos
       };
 
-      mockCicloService.updateCiclo.mockResolvedValue({ ...mockCiclo, ...updateDto });
+      const cicloAtualizado = { ...mockCiclo, ...updateDto };
+      mockCicloService.updateCiclo.mockResolvedValue(cicloAtualizado);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
-      const resultado = await controller.atualizarCiclo(id, updateDto);
+      const resultado = await controller.atualizarCiclo(id, updateDto, mockRequest);
 
       // Assert
       expect(resultado).toBeDefined();
       expect(mockCicloService.updateCiclo).toHaveBeenCalledWith(id, updateDto);
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'atualizar_ciclo',
+        resource: 'Ciclo',
+        details: { id, ...updateDto, result: cicloAtualizado },
+        ip: mockRequest.ip,
+      });
     });
 
     it('deve retornar dados no formato esperado', async () => {
@@ -663,6 +886,116 @@ describe('CicloController', () => {
       expect(resultado.updatedAt).toBeInstanceOf(Date);
       expect(typeof resultado.nomeCiclo).toBe('string');
       expect(typeof resultado.duracaoEmAndamentoDias).toBe('number');
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Cenários de auditoria específicos', () => {
+    it('deve registrar auditoria com diferentes tipos de request', async () => {
+      // Arrange
+      const requestTypes = [
+        { user: { userId: 'user-1' }, ip: '127.0.0.1' },
+        { user: { userId: 'user-2', roles: ['ADMIN'] }, ip: '192.168.1.1' },
+        { user: undefined, ip: '10.0.0.1' },
+        { user: { userId: null }, ip: undefined },
+      ];
+
+      mockCicloService.createCiclo.mockResolvedValue(mockCiclo);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+      // Act & Assert
+      for (const request of requestTypes) {
+        await controller.criarCiclo(createCicloDto, request);
+
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: request.user?.userId,
+          action: 'criar_ciclo',
+          resource: 'Ciclo',
+          details: { ...createCicloDto, result: mockCiclo },
+          ip: request.ip,
+        });
+
+        jest.clearAllMocks();
+      }
+    });
+
+    it('deve demonstrar diferença entre PUT (com auditoria) e PATCH (sem auditoria)', async () => {
+      // Arrange
+      const id = '123e4567-e89b-12d3-a456-426614174000';
+      const updateDto: UpdateCicloDto = { nome: '2024.5' };
+      
+      mockCicloService.updateCiclo.mockResolvedValue(mockCiclo);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+      // Act - PUT (com auditoria)
+      await controller.atualizarCiclo(id, updateDto, mockRequest);
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+
+      jest.clearAllMocks();
+
+      // Act - PATCH (sem auditoria)
+      await controller.atualizarCicloParcial(id, updateDto);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+    });
+
+    it('deve registrar dados completos na auditoria incluindo resultado', async () => {
+      // Arrange
+      const dtoEspecifico = {
+        ...createCicloDto,
+        nome: '2024.TESTE',
+        duracaoEmAndamentoDias: 45,
+      };
+
+      const resultadoEspecifico = {
+        ...mockCiclo,
+        nomeCiclo: '2024.TESTE',
+        duracaoEmAndamentoDias: 45,
+      };
+
+      mockCicloService.createCiclo.mockResolvedValue(resultadoEspecifico);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+      // Act
+      await controller.criarCiclo(dtoEspecifico, mockRequest);
+
+      // Assert
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'criar_ciclo',
+        resource: 'Ciclo',
+        details: { ...dtoEspecifico, result: resultadoEspecifico },
+        ip: mockRequest.ip,
+      });
+    });
+  });
+
+  describe('Observações sobre auditoria', () => {
+    it('deve demonstrar que apenas operações modificadoras têm auditoria', () => {
+      // Operações com auditoria
+
+      expect(controller.criarCiclo).toBeDefined();      // COM auditoria
+      expect(controller.removerCiclo).toBeDefined();    // COM auditoria
+      expect(controller.atualizarCiclo).toBeDefined();  // COM auditoria
+      expect(controller.atualizarCicloParcial).toBeDefined(); // SEM auditoria
+      expect(controller.getCiclos).toBeDefined();       // SEM auditoria
+      expect(controller.getCiclosAtivos).toBeDefined(); // SEM auditoria
+      expect(controller.getHistoricoCiclos).toBeDefined(); // SEM auditoria
+      expect(controller.getCiclo).toBeDefined();        // SEM auditoria
+    });
+
+    it('deve demonstrar separação de responsabilidades entre auditoria e processamento', async () => {
+      // Arrange
+      mockCicloService.createCiclo.mockResolvedValue(mockCiclo);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+      // Act
+      await controller.criarCiclo(createCicloDto, mockRequest);
+
+      // Assert
+      expect(mockCicloService.createCiclo).toHaveBeenCalledWith(createCicloDto);
+      
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+      
     });
   });
 });

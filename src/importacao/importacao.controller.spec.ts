@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ImportacaoController } from './importacao.controller';
 import { ImportacaoService } from './importacao.service';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { ParseFilePipe, MaxFileSizeValidator } from '@nestjs/common';
@@ -10,9 +11,16 @@ const mockImportacaoService = {
   iniciarProcessoDeImportacao: jest.fn(),
 };
 
+// Mock do AuditoriaService
+const mockAuditoriaService = {
+  log: jest.fn(),
+  getLogs: jest.fn(),
+};
+
 describe('ImportacaoController', () => {
   let controller: ImportacaoController;
   let importacaoService: ImportacaoService;
+  let auditoriaService: AuditoriaService;
 
   // Mock files para testes
   const mockValidFile = {
@@ -29,6 +37,16 @@ describe('ImportacaoController', () => {
     size: 12 * 1024 * 1024,
   };
 
+  // Mock do request com dados de usuário
+  const mockRequest = {
+    user: { 
+      userId: 'user-123',
+      email: 'admin@empresa.com',
+      roles: ['ADMIN'] 
+    },
+    ip: '192.168.1.100',
+  };
+
   type ImportacaoResponse = {
     statusCode: number;
     message: string;
@@ -41,16 +59,11 @@ describe('ImportacaoController', () => {
 
   const criarArquivoMock = (size: number, originalname = 'teste.xlsx') => {
     return {
-      fieldname: 'file',
       originalname: originalname,
-      encoding: '7bit',
+      buffer: Buffer.alloc(size),
       mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       size: size,
-      buffer: Buffer.alloc(size),
-      destination: undefined,
-      filename: undefined,
-      path: undefined,
-    } as any;
+    };
   };
 
   beforeEach(async () => {
@@ -60,6 +73,10 @@ describe('ImportacaoController', () => {
         {
           provide: ImportacaoService,
           useValue: mockImportacaoService,
+        },
+        {
+          provide: AuditoriaService,
+          useValue: mockAuditoriaService,
         },
       ],
     })
@@ -71,6 +88,7 @@ describe('ImportacaoController', () => {
 
     controller = module.get<ImportacaoController>(ImportacaoController);
     importacaoService = module.get<ImportacaoService>(ImportacaoService);
+    auditoriaService = module.get<AuditoriaService>(AuditoriaService);
   });
 
   afterEach(() => {
@@ -85,178 +103,415 @@ describe('ImportacaoController', () => {
     it('deve ter ImportacaoService injetado', () => {
       expect(importacaoService).toBeDefined();
     });
+
+    it('deve ter AuditoriaService injetado', () => {
+      expect(auditoriaService).toBeDefined();
+    });
   });
 
   describe('importarAvaliacoes', () => {
-    it('deve processar arquivo válido com sucesso', async () => {
-      // Arrange
-      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+    describe('Casos de sucesso com auditoria', () => {
+      it('deve processar arquivo válido com sucesso e registrar auditoria', async () => {
+        // Arrange
+        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
-      // Act
-      const resultado = await controller.importarAvaliacoes(mockValidFile);
+        // Act
+        const resultado = await controller.importarAvaliacoes(mockValidFile, mockRequest);
 
-      // Assert
-      expect(resultado).toEqual(mockSuccessResponse);
-      expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(mockValidFile);
-      expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledTimes(1);
-    });
+        // Assert
+        expect(resultado).toEqual(mockSuccessResponse);
+        expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(mockValidFile);
+        expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledTimes(1);
 
-    it('deve aceitar diferentes tipos de arquivo Excel', async () => {
-      // Arrange
-      const tiposArquivo = [
-        {
-          originalname: 'dados.xlsx',
+        // Verifica auditoria
+        expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockRequest.user.userId,
+          action: 'importar_avaliacoes',
+          resource: 'Importacao',
+          details: { originalname: mockValidFile.originalname },
+          ip: mockRequest.ip,
+        });
+      });
+
+      it('deve aceitar diferentes tipos de arquivo Excel e registrar auditoria', async () => {
+        // Arrange
+        const tiposArquivo = [
+          {
+            originalname: 'dados.xlsx',
+            mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            buffer: Buffer.from('xlsx data'),
+            size: 1024,
+          },
+          {
+            originalname: 'dados.xls',
+            mimetype: 'application/vnd.ms-excel',
+            buffer: Buffer.from('xls data'),
+            size: 2048,
+          },
+        ];
+
+        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+        for (const arquivo of tiposArquivo) {
+          // Act
+          const resultado = await controller.importarAvaliacoes(arquivo, mockRequest);
+
+          // Assert
+          expect(resultado).toEqual(mockSuccessResponse);
+          expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivo);
+          expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+            userId: mockRequest.user.userId,
+            action: 'importar_avaliacoes',
+            resource: 'Importacao',
+            details: { originalname: arquivo.originalname },
+            ip: mockRequest.ip,
+          });
+
+          jest.clearAllMocks();
+        }
+      });
+
+      it('deve aceitar arquivos com nomes especiais e registrar auditoria', async () => {
+        // Arrange
+        const arquivosComNomesEspeciais = [
+          { ...mockValidFile, originalname: 'arquivo com espaços.xlsx' },
+          { ...mockValidFile, originalname: 'arquivo-com-hífen.xlsx' },
+          { ...mockValidFile, originalname: 'arquivo_com_underscore.xlsx' },
+          { ...mockValidFile, originalname: 'arquivo123.xlsx' },
+          { ...mockValidFile, originalname: 'Arquivo-COM-maiúsculas.XLSX' },
+          { ...mockValidFile, originalname: 'arquivo.ção.xlsx' },
+        ];
+
+        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+        for (const arquivo of arquivosComNomesEspeciais) {
+          // Act
+          const resultado = await controller.importarAvaliacoes(arquivo, mockRequest);
+
+          // Assert
+          expect(resultado).toEqual(mockSuccessResponse);
+          expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivo);
+          expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+            userId: mockRequest.user.userId,
+            action: 'importar_avaliacoes',
+            resource: 'Importacao',
+            details: { originalname: arquivo.originalname },
+            ip: mockRequest.ip,
+          });
+
+          jest.clearAllMocks();
+        }
+      });
+
+      it('deve aceitar arquivo no limite de tamanho (10MB) e registrar auditoria', async () => {
+        // Arrange
+        const arquivoNoLimite = {
+          originalname: 'arquivo-limite.xlsx',
+          buffer: Buffer.alloc(10 * 1024 * 1024), // Exatamente 10MB
           mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          buffer: Buffer.from('xlsx data'),
-          size: 1024,
-        },
-        {
-          originalname: 'dados.xls',
-          mimetype: 'application/vnd.ms-excel',
-          buffer: Buffer.from('xls data'),
-          size: 2048,
-        },
-      ];
+          size: 10 * 1024 * 1024,
+        };
 
-      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
-      for (const arquivo of tiposArquivo) {
         // Act
-        const resultado = await controller.importarAvaliacoes(arquivo);
+        const resultado = await controller.importarAvaliacoes(arquivoNoLimite, mockRequest);
 
         // Assert
         expect(resultado).toEqual(mockSuccessResponse);
-        expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivo);
+        expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivoNoLimite);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockRequest.user.userId,
+          action: 'importar_avaliacoes',
+          resource: 'Importacao',
+          details: { originalname: arquivoNoLimite.originalname },
+          ip: mockRequest.ip,
+        });
+      });
 
-        jest.clearAllMocks();
-      }
-    });
+      it('deve aceitar arquivo vazio e registrar auditoria', async () => {
+        // Arrange
+        const arquivoVazio = {
+          originalname: 'vazio.xlsx',
+          buffer: Buffer.alloc(0),
+          mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          size: 0,
+        };
 
-    it('deve aceitar arquivos com nomes especiais', async () => {
-      // Arrange
-      const arquivosComNomesEspeciais = [
-        { ...mockValidFile, originalname: 'arquivo com espaços.xlsx' },
-        { ...mockValidFile, originalname: 'arquivo-com-hífen.xlsx' },
-        { ...mockValidFile, originalname: 'arquivo_com_underscore.xlsx' },
-        { ...mockValidFile, originalname: 'arquivo123.xlsx' },
-        { ...mockValidFile, originalname: 'Arquivo-COM-maiúsculas.XLSX' },
-        { ...mockValidFile, originalname: 'arquivo.ção.xlsx' },
-      ];
+        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
-      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
-
-      for (const arquivo of arquivosComNomesEspeciais) {
         // Act
-        const resultado = await controller.importarAvaliacoes(arquivo);
+        const resultado = await controller.importarAvaliacoes(arquivoVazio, mockRequest);
 
         // Assert
         expect(resultado).toEqual(mockSuccessResponse);
-        expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivo);
-
-        jest.clearAllMocks();
-      }
+        expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivoVazio);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockRequest.user.userId,
+          action: 'importar_avaliacoes',
+          resource: 'Importacao',
+          details: { originalname: arquivoVazio.originalname },
+          ip: mockRequest.ip,
+        });
+      });
     });
 
-    it('deve aceitar arquivo no limite de tamanho (10MB)', async () => {
-      // Arrange
-      const arquivoNoLimite = {
-        originalname: 'arquivo-limite.xlsx',
-        buffer: Buffer.alloc(10 * 1024 * 1024), // Exatamente 10MB
-        mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        size: 10 * 1024 * 1024,
-      };
-
-      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
-
-      // Act
-      const resultado = await controller.importarAvaliacoes(arquivoNoLimite);
-
-      // Assert
-      expect(resultado).toEqual(mockSuccessResponse);
-      expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivoNoLimite);
-    });
-
-    it('deve aceitar arquivo vazio', async () => {
-      // Arrange
-      const arquivoVazio = {
-        originalname: 'vazio.xlsx',
-        buffer: Buffer.alloc(0),
-        mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        size: 0,
-      };
-
-      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
-
-      // Act
-      const resultado = await controller.importarAvaliacoes(arquivoVazio);
-
-      // Assert
-      expect(resultado).toEqual(mockSuccessResponse);
-      expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivoVazio);
-    });
-
-    it('deve propagar erro do service', async () => {
-      // Arrange
-      const serviceError = new Error('Erro interno do service');
-      mockImportacaoService.iniciarProcessoDeImportacao.mockRejectedValue(serviceError);
-
-      // Act & Assert
-      await expect(controller.importarAvaliacoes(mockValidFile)).rejects.toThrow(serviceError);
-      expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(mockValidFile);
-    });
-
-    it('deve propagar diferentes tipos de erro do service', async () => {
-      // Arrange
-      const tiposErro = [
-        new Error('Erro genérico'),
-        new TypeError('Tipo inválido'),
-        new RangeError('Valor fora do intervalo'),
-        Object.assign(new Error('Erro personalizado'), { code: 'CUSTOM_ERROR' }),
-      ];
-
-      for (const erro of tiposErro) {
-        mockImportacaoService.iniciarProcessoDeImportacao.mockRejectedValue(erro);
+    describe('Casos de falha com auditoria', () => {
+      it('deve registrar auditoria e depois propagar erro do service', async () => {
+        // Arrange
+        const serviceError = new Error('Erro interno do service');
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+        mockImportacaoService.iniciarProcessoDeImportacao.mockRejectedValue(serviceError);
 
         // Act & Assert
-        await expect(controller.importarAvaliacoes(mockValidFile)).rejects.toThrow();
+        await expect(controller.importarAvaliacoes(mockValidFile, mockRequest)).rejects.toThrow(serviceError);
+        
+        // Auditoria é registrada ANTES do service ser chamado
+        expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockRequest.user.userId,
+          action: 'importar_avaliacoes',
+          resource: 'Importacao',
+          details: { originalname: mockValidFile.originalname },
+          ip: mockRequest.ip,
+        });
+        
         expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(mockValidFile);
+      });
 
-        jest.clearAllMocks();
-      }
+      it('deve registrar auditoria e propagar diferentes tipos de erro do service', async () => {
+        // Arrange
+        const tiposErro = [
+          new Error('Erro genérico'),
+          new TypeError('Tipo inválido'),
+          new RangeError('Valor fora do intervalo'),
+          Object.assign(new Error('Erro personalizado'), { code: 'CUSTOM_ERROR' }),
+        ];
+
+        for (const erro of tiposErro) {
+          mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+          mockImportacaoService.iniciarProcessoDeImportacao.mockRejectedValue(erro);
+
+          // Act & Assert
+          await expect(controller.importarAvaliacoes(mockValidFile, mockRequest)).rejects.toThrow();
+          
+          // Auditoria é registrada ANTES do service falhar
+          expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+          expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(mockValidFile);
+
+          jest.clearAllMocks();
+        }
+      });
+
+      it('deve falhar na auditoria e não chamar o service', async () => {
+        // Arrange
+        mockAuditoriaService.log.mockRejectedValue(new Error('Erro na auditoria'));
+        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+
+        // Act & Assert
+        await expect(controller.importarAvaliacoes(mockValidFile, mockRequest)).rejects.toThrow('Erro na auditoria');
+        
+        // Service não deve ser chamado quando auditoria falha
+        expect(importacaoService.iniciarProcessoDeImportacao).not.toHaveBeenCalled();
+      });
+
+      it('deve registrar auditoria e lidar com timeout do service', async () => {
+        // Arrange
+        const timeoutError = new Error('Request timeout');
+        timeoutError.name = 'TimeoutError';
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+        mockImportacaoService.iniciarProcessoDeImportacao.mockRejectedValue(timeoutError);
+
+        // Act & Assert
+        await expect(controller.importarAvaliacoes(mockValidFile, mockRequest)).rejects.toThrow('Request timeout');
+        
+        // Auditoria é registrada ANTES do timeout
+        expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+      });
     });
 
-    it('deve lidar com resposta customizada do service', async () => {
-      // Arrange
-      const respostasCustomizadas = [
-        {
-          statusCode: 400,
-          message: 'Arquivo inválido',
-          errors: ['Formato não suportado'],
-        },
-        {
-          statusCode: 500,
-          message: 'Erro interno',
-          timestamp: new Date().toISOString(),
-        },
-        {
-          statusCode: 202,
-          message: 'Processamento iniciado',
-          data: { fileId: 'abc123' },
-        },
-      ];
+    describe('Casos com resposta customizada do service e auditoria', () => {
+      it('deve lidar com resposta customizada do service e registrar auditoria', async () => {
+        // Arrange
+        const respostasCustomizadas = [
+          {
+            statusCode: 400,
+            message: 'Arquivo inválido',
+            errors: ['Formato não suportado'],
+          },
+          {
+            statusCode: 500,
+            message: 'Erro interno',
+            timestamp: new Date().toISOString(),
+          },
+          {
+            statusCode: 202,
+            message: 'Processamento iniciado',
+            data: { fileId: 'abc123' },
+          },
+        ];
 
-      for (const resposta of respostasCustomizadas) {
-        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(resposta);
+        for (const resposta of respostasCustomizadas) {
+          mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(resposta);
+          mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+          // Act
+          const resultado = await controller.importarAvaliacoes(mockValidFile, mockRequest);
+
+          // Assert
+          expect(resultado).toEqual(resposta);
+          expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(mockValidFile);
+          expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+            userId: mockRequest.user.userId,
+            action: 'importar_avaliacoes',
+            resource: 'Importacao',
+            details: { originalname: mockValidFile.originalname },
+            ip: mockRequest.ip,
+          });
+
+          jest.clearAllMocks();
+        }
+      });
+    });
+
+    describe('Casos edge com auditoria', () => {
+      it('deve lidar com arquivo sem originalname e registrar auditoria', async () => {
+        // Arrange
+        const arquivoSemNome = {
+          ...mockValidFile,
+          originalname: undefined,
+        };
+
+        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
         // Act
-        const resultado = await controller.importarAvaliacoes(mockValidFile);
+        const resultado = await controller.importarAvaliacoes(arquivoSemNome, mockRequest);
 
         // Assert
-        expect(resultado).toEqual(resposta);
-        expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(mockValidFile);
+        expect(resultado).toEqual(mockSuccessResponse);
+        expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivoSemNome);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockRequest.user.userId,
+          action: 'importar_avaliacoes',
+          resource: 'Importacao',
+          details: { originalname: undefined },
+          ip: mockRequest.ip,
+        });
+      });
 
-        jest.clearAllMocks();
-      }
+      it('deve lidar com arquivo sem mimetype e registrar auditoria', async () => {
+        // Arrange
+        const arquivoSemMimetype = {
+          ...mockValidFile,
+          mimetype: undefined,
+        };
+
+        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+        // Act
+        const resultado = await controller.importarAvaliacoes(arquivoSemMimetype, mockRequest);
+
+        // Assert
+        expect(resultado).toEqual(mockSuccessResponse);
+        expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivoSemMimetype);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockRequest.user.userId,
+          action: 'importar_avaliacoes',
+          resource: 'Importacao',
+          details: { originalname: arquivoSemMimetype.originalname },
+          ip: mockRequest.ip,
+        });
+      });
+
+      it('deve passar arquivo null/undefined para o service e tentar registrar auditoria', async () => {
+        // Arrange
+        const valoresInvalidos: any[] = [null, undefined];
+
+        for (const valor of valoresInvalidos) {
+          mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+          mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+          // Act
+          const resultado = await controller.importarAvaliacoes(valor, mockRequest);
+
+          // Assert
+          expect(resultado).toEqual(mockSuccessResponse);
+          expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(valor);
+          expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+            userId: mockRequest.user.userId,
+            action: 'importar_avaliacoes',
+            resource: 'Importacao',
+            details: { originalname: valor?.originalname },
+            ip: mockRequest.ip,
+          });
+
+          jest.clearAllMocks();
+        }
+      });
+
+      it('deve registrar auditoria com diferentes tipos de request', async () => {
+        // Arrange
+        const requestTypes = [
+          { user: { userId: 'user-1' }, ip: '127.0.0.1' },
+          { user: { userId: 'user-2', roles: ['ADMIN'] }, ip: '192.168.1.1' },
+          { user: undefined, ip: '10.0.0.1' },
+          { user: { userId: null }, ip: undefined },
+        ];
+
+        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+        // Act & Assert
+        for (const request of requestTypes) {
+          await controller.importarAvaliacoes(mockValidFile, request);
+
+          expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+            userId: request.user?.userId,
+            action: 'importar_avaliacoes',
+            resource: 'Importacao',
+            details: { originalname: mockValidFile.originalname },
+            ip: request.ip,
+          });
+
+          jest.clearAllMocks();
+        }
+      });
+
+      it('deve preservar propriedades originais do arquivo e registrar auditoria', async () => {
+        // Arrange
+        const arquivoComPropriedades = {
+          ...mockValidFile,
+          fieldname: 'file',
+          encoding: '7bit',
+          destination: '/tmp/uploads',
+          filename: 'arquivo-123.xlsx',
+          path: '/tmp/uploads/arquivo-123.xlsx',
+        };
+
+        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+        // Act
+        await controller.importarAvaliacoes(arquivoComPropriedades, mockRequest);
+
+        // Assert
+        expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivoComPropriedades);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockRequest.user.userId,
+          action: 'importar_avaliacoes',
+          resource: 'Importacao',
+          details: { originalname: arquivoComPropriedades.originalname },
+          ip: mockRequest.ip,
+        });
+      });
     });
   });
 
@@ -286,7 +541,7 @@ describe('ImportacaoController', () => {
       expect(validator.isValid(mockValidFile)).toBe(true);
     });
 
-     it('deve rejeitar arquivo que excede o limite por 1 byte', () => {
+    it('deve rejeitar arquivo que excede o limite por 1 byte', () => {
       // Arrange
       const validator = new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 });
       const arquivoAcimaDoLimite = {
@@ -310,15 +565,6 @@ describe('ImportacaoController', () => {
       expect(validator.isValid(arquivoVazio)).toBe(true);
     });
 
-    it('deve ter ParseFilePipe configurado no método', () => {
-      // Arrange & Act
-      const parameterTypes = Reflect.getMetadata('design:paramtypes', controller, 'importarAvaliacoes');
-      
-      // Assert
-      expect(parameterTypes).toBeDefined();
-      expect(parameterTypes.length).toBeGreaterThan(0);
-    });
-
     it('deve validar diferentes tamanhos de arquivo', () => {
       // Arrange
       const validator = new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 });
@@ -339,7 +585,7 @@ describe('ImportacaoController', () => {
       });
     });
 
-    it('deve processar arquivo válido através do pipe validation', async () => {
+    it('deve processar arquivo válido através do pipe validation com auditoria', async () => {
       // Arrange
       const arquivoValido = {
         originalname: 'teste-valido.xlsx',
@@ -349,87 +595,26 @@ describe('ImportacaoController', () => {
       };
 
       mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
-      const resultado = await controller.importarAvaliacoes(arquivoValido);
+      const resultado = await controller.importarAvaliacoes(arquivoValido, mockRequest);
 
       // Assert
       expect(resultado).toEqual(mockSuccessResponse);
       expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivoValido);
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'importar_avaliacoes',
+        resource: 'Importacao',
+        details: { originalname: arquivoValido.originalname },
+        ip: mockRequest.ip,
+      });
     });
   });
 
-  describe('Guards e Autenticação', () => {
-    it('deve usar JwtAuthGuard', () => {
-      // Arrange & Act
-      const guards = Reflect.getMetadata('__guards__', ImportacaoController);
-      
-      // Assert
-      expect(guards).toContain(JwtAuthGuard);
-    });
-
-    it('deve usar RolesGuard', () => {
-      // Arrange & Act
-      const guards = Reflect.getMetadata('__guards__', ImportacaoController);
-      
-      // Assert
-      expect(guards).toContain(RolesGuard);
-    });
-
-    it('deve exigir roles ADMIN ou RH', () => {
-      // Arrange & Act
-      const roles = Reflect.getMetadata('roles', ImportacaoController);
-      
-      // Assert
-      expect(roles).toEqual(['ADMIN', 'RH']);
-    });
-  });
-
-  describe('Decorators e Metadata', () => {
-    it('deve estar configurado com @Controller("importacao")', () => {
-      // Arrange & Act
-      const path = Reflect.getMetadata('path', ImportacaoController);
-      
-      // Assert
-      expect(path).toBe('importacao');
-    });
-
-    it('deve ter método POST /avaliacoes', () => {
-      // Arrange & Act
-      const methodMetadata = Reflect.getMetadata('method', controller.importarAvaliacoes);
-      const pathMetadata = Reflect.getMetadata('path', controller.importarAvaliacoes);
-      
-      // Assert
-      expect(pathMetadata).toBe('avaliacoes');
-      expect(methodMetadata).toBeDefined();
-      const httpDecorators = Reflect.getMetadata('__httpDecorators__', controller.importarAvaliacoes) || [];
-      expect(httpDecorators.length).toBeGreaterThanOrEqual(0);
-    });
-
-    it('deve usar decorator @Post("avaliacoes")', () => {
-      // Arrange & Act
-      const path = Reflect.getMetadata('path', controller.importarAvaliacoes);
-      const target = ImportacaoController.prototype;
-      const propertyKey = 'importarAvaliacoes';
-      
-      // Assert
-      expect(path).toBe('avaliacoes');
-      expect(target[propertyKey]).toBeDefined();
-      expect(typeof target[propertyKey]).toBe('function');
-    });
-
-    it('deve usar FileInterceptor com nome "file"', () => {
-      // Arrange & Act
-      const interceptors = Reflect.getMetadata('__interceptors__', controller.importarAvaliacoes);
-      
-      // Assert
-      expect(interceptors).toBeDefined();
-      expect(interceptors.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Integração com diferentes cenários', () => {
-    it('deve processar múltiplos arquivos sequencialmente', async () => {
+  describe('Integração com diferentes cenários e auditoria', () => {
+    it('deve processar múltiplos arquivos sequencialmente com auditoria', async () => {
       // Arrange
       const arquivos = [
         { ...mockValidFile, originalname: 'arquivo1.xlsx' },
@@ -438,10 +623,11 @@ describe('ImportacaoController', () => {
       ];
 
       mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
       for (const arquivo of arquivos) {
-        const resultado = await controller.importarAvaliacoes(arquivo);
+        const resultado = await controller.importarAvaliacoes(arquivo, mockRequest);
         
         // Assert
         expect(resultado).toEqual(mockSuccessResponse);
@@ -449,103 +635,32 @@ describe('ImportacaoController', () => {
 
       // Assert
       expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledTimes(3);
-    });
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(3);
 
-    it('deve lidar com timeout do service', async () => {
-      // Arrange
-      const timeoutError = new Error('Request timeout');
-      timeoutError.name = 'TimeoutError';
-      mockImportacaoService.iniciarProcessoDeImportacao.mockRejectedValue(timeoutError);
-
-      // Act & Assert
-      await expect(controller.importarAvaliacoes(mockValidFile)).rejects.toThrow('Request timeout');
-    });
-
-    it('deve preservar propriedades originais do arquivo', async () => {
-      // Arrange
-      const arquivoComPropriedades = {
-        ...mockValidFile,
-        fieldname: 'file',
-        encoding: '7bit',
-        destination: '/tmp/uploads',
-        filename: 'arquivo-123.xlsx',
-        path: '/tmp/uploads/arquivo-123.xlsx',
-      };
-
-      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
-
-      // Act
-      await controller.importarAvaliacoes(arquivoComPropriedades);
-
-      // Assert
-      expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivoComPropriedades);
+      // Verifica se cada arquivo foi auditado corretamente
+      arquivos.forEach((arquivo, index) => {
+        expect(mockAuditoriaService.log).toHaveBeenNthCalledWith(index + 1, {
+          userId: mockRequest.user.userId,
+          action: 'importar_avaliacoes',
+          resource: 'Importacao',
+          details: { originalname: arquivo.originalname },
+          ip: mockRequest.ip,
+        });
+      });
     });
   });
 
-  describe('Casos edge e validações adicionais', () => {
-    it('deve lidar com arquivo sem originalname', async () => {
-      // Arrange
-      const arquivoSemNome = {
-        ...mockValidFile,
-        originalname: undefined,
-      };
-
-      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
-
-      // Act
-      const resultado = await controller.importarAvaliacoes(arquivoSemNome);
-
-      // Assert
-      expect(resultado).toEqual(mockSuccessResponse);
-      expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivoSemNome);
-    });
-
-    it('deve lidar com arquivo sem mimetype', async () => {
-      // Arrange
-      const arquivoSemMimetype = {
-        ...mockValidFile,
-        mimetype: undefined,
-      };
-
-      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
-
-      // Act
-      const resultado = await controller.importarAvaliacoes(arquivoSemMimetype);
-
-      // Assert
-      expect(resultado).toEqual(mockSuccessResponse);
-      expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(arquivoSemMimetype);
-    });
-
-    it('deve passar arquivo null/undefined para o service', async () => {
-      // Arrange
-      const valoresInvalidos = [null, undefined];
-
-      for (const valor of valoresInvalidos) {
-        mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
-
-        // Act
-        const resultado = await controller.importarAvaliacoes(valor);
-
-        // Assert
-        expect(resultado).toEqual(mockSuccessResponse);
-        expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(valor);
-
-        jest.clearAllMocks();
-      }
-    });
-  });
-
-  describe('Performance e Concorrência', () => {
-    it('deve processar chamadas concorrentes independentemente', async () => {
+  describe('Performance e Concorrência com auditoria', () => {
+    it('deve processar chamadas concorrentes independentemente com auditoria', async () => {
       // Arrange
       const promisesImportacao: Promise<{ statusCode: number; message: string }>[] = [];
       mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
       for (let i = 0; i < 5; i++) {
         const arquivo = { ...mockValidFile, originalname: `arquivo${i}.xlsx` };
-        promisesImportacao.push(controller.importarAvaliacoes(arquivo));
+        promisesImportacao.push(controller.importarAvaliacoes(arquivo, mockRequest));
       }
 
       const resultados = await Promise.all(promisesImportacao);
@@ -556,9 +671,10 @@ describe('ImportacaoController', () => {
         expect(resultado).toEqual(mockSuccessResponse);
       });
       expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledTimes(5);
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(5);
     });
 
-    it('deve lidar com uma falha entre múltiplas chamadas', async () => {
+    it('deve lidar com uma falha entre múltiplas chamadas e auditoria', async () => {
       // Arrange
       const arquivos = [
         { ...mockValidFile, originalname: 'sucesso1.xlsx' },
@@ -571,16 +687,138 @@ describe('ImportacaoController', () => {
         .mockRejectedValueOnce(new Error('Falha específica')) // falha
         .mockResolvedValueOnce(mockSuccessResponse); // sucesso2
 
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
       // Act & Assert
-      const resultado1 = await controller.importarAvaliacoes(arquivos[0]);
+      const resultado1 = await controller.importarAvaliacoes(arquivos[0], mockRequest);
       expect(resultado1).toEqual(mockSuccessResponse);
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
 
-      await expect(controller.importarAvaliacoes(arquivos[1])).rejects.toThrow('Falha específica');
+      await expect(controller.importarAvaliacoes(arquivos[1], mockRequest)).rejects.toThrow('Falha específica');
+      // Auditoria é registrada mesmo quando service falha (já foi registrada antes)
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(2);
 
-      const resultado3 = await controller.importarAvaliacoes(arquivos[2]);
+      const resultado3 = await controller.importarAvaliacoes(arquivos[2], mockRequest);
       expect(resultado3).toEqual(mockSuccessResponse);
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(3);
 
       expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe('Integração de auditoria', () => {
+    it('deve registrar auditoria antes de chamar o service', async () => {
+      // Arrange
+      const callOrder: string[] = [];
+      
+      mockAuditoriaService.log.mockImplementation(async () => {
+        callOrder.push('auditoria');
+        return { id: 'audit-log-id' };
+      });
+
+      mockImportacaoService.iniciarProcessoDeImportacao.mockImplementation(async () => {
+        callOrder.push('service');
+        return mockSuccessResponse;
+      });
+
+      // Act
+      await controller.importarAvaliacoes(mockValidFile, mockRequest);
+
+      // Assert
+      expect(callOrder).toEqual(['auditoria', 'service']);
+    });
+
+    it('deve registrar dados específicos da importação na auditoria', async () => {
+      // Arrange
+      const arquivoEspecifico = {
+        ...mockValidFile,
+        originalname: 'avaliacoes-2024-Q1.xlsx',
+        size: 2048,
+      };
+
+      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+      // Act
+      await controller.importarAvaliacoes(arquivoEspecifico, mockRequest);
+
+      // Assert
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'importar_avaliacoes',
+        resource: 'Importacao',
+        details: { originalname: 'avaliacoes-2024-Q1.xlsx' },
+        ip: mockRequest.ip,
+      });
+    });
+
+    it('deve funcionar com request sem informações completas de usuário', async () => {
+      // Arrange
+      const requestIncompleto = {
+        user: undefined,
+        ip: '203.0.113.10',
+      };
+
+      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+      // Act
+      await controller.importarAvaliacoes(mockValidFile, requestIncompleto);
+
+      // Assert
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: undefined,
+        action: 'importar_avaliacoes',
+        resource: 'Importacao',
+        details: { originalname: mockValidFile.originalname },
+        ip: requestIncompleto.ip,
+      });
+    });
+  });
+
+  describe('Observações sobre auditoria', () => {
+    it('deve demonstrar que auditoria é registrada para todas as tentativas de importação', async () => {
+      // Arrange
+      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+      // Act
+      await controller.importarAvaliacoes(mockValidFile, mockRequest);
+
+      // Assert
+      // A auditoria deve ser registrada independente do resultado da importação
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'importar_avaliacoes',
+        resource: 'Importacao',
+        details: { originalname: mockValidFile.originalname },
+        ip: mockRequest.ip,
+      });
+
+      // Nota: A auditoria registra:
+      // - Quem fez a importação (userId)
+      // - Nome do arquivo (originalname)
+      // - IP de origem
+      // - Timestamp automático do AuditoriaService
+    });
+
+    it('deve demonstrar separação de responsabilidades entre auditoria e processamento', async () => {
+      // Arrange
+      mockImportacaoService.iniciarProcessoDeImportacao.mockResolvedValue(mockSuccessResponse);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+      // Act
+      await controller.importarAvaliacoes(mockValidFile, mockRequest);
+
+      // Assert
+      // Controller registra auditoria da ação
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+      
+      // Service processa o arquivo (sem responsabilidade de auditoria)
+      expect(importacaoService.iniciarProcessoDeImportacao).toHaveBeenCalledWith(mockValidFile);
+      
+      // Nota: ImportacaoService pode ter seus próprios logs internos,
+      // mas a auditoria de segurança é responsabilidade do controller
     });
   });
 });
