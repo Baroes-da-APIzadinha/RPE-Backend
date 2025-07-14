@@ -7,7 +7,7 @@ SET CONSTRAINTS ALL DEFERRED;
     TRUNCATE TABLE "CardAvaliacaoLiderColaborador" CASCADE;
     TRUNCATE TABLE "CardAutoAvaliacao" CASCADE;
     TRUNCATE TABLE "AvaliacaoLiderColaborador" CASCADE;
-    TRUNCATE TABLE "AvaliacaoColaboradorMentor" CASCADE;
+    TRUNCATE "AvaliacaoColaboradorMentor" CASCADE;
     TRUNCATE TABLE "AvaliacaoPares" CASCADE;
     TRUNCATE TABLE "AutoAvaliacao" CASCADE;
     TRUNCATE TABLE "Equalizacao" CASCADE;
@@ -23,6 +23,7 @@ SET CONSTRAINTS ALL DEFERRED;
     TRUNCATE TABLE "CicloAvaliacao" CASCADE;
     TRUNCATE TABLE "ColaboradorPerfil" CASCADE;
     TRUNCATE TABLE "Colaborador" CASCADE;
+    TRUNCATE TABLE "projetos" CASCADE;
 SET CONSTRAINTS ALL IMMEDIATE;
 
     -- Reabilitar as verificações de chave estrangeira
@@ -84,15 +85,23 @@ DECLARE
     avaliacao_autoavaliacao_5_id UUID := uuid_generate_v4();
     avaliacao_autoavaliacao_6_id UUID := uuid_generate_v4();
     avaliacao_autoavaliacao_7_id UUID := uuid_generate_v4();
+    avaliacao_autoavaliacao_8_id UUID := uuid_generate_v4();
     avaliacao_lider_colaborador_id UUID := uuid_generate_v4();
     avaliacao_lider_colaborador_2_id UUID := uuid_generate_v4();
     avaliacao_lider_colaborador_3_id UUID := uuid_generate_v4();
     avaliacao_lider_colaborador_4_id UUID := uuid_generate_v4();
     avaliacao_lider_colaborador_5_id UUID := uuid_generate_v4();
+    avaliacao_lider_colaborador_6_id UUID := uuid_generate_v4();
+    avaliacao_lider_colaborador_7_id UUID := uuid_generate_v4();
     
-    -- Adicionar usuário do comitê de equalização
-
+    -- projetos
+    projeto_rocket_id UUID := uuid_generate_v4();
+    projeto_apollo_id UUID := uuid_generate_v4();
 BEGIN  
+
+
+
+
 
 -- Inserir Colaboradores
 INSERT INTO "Colaborador" ("idColaborador", "nomeCompleto", "email", "senha", "cargo", "trilhaCarreira", "unidade", "dataCriacao", "primeiroLogin")
@@ -130,6 +139,14 @@ VALUES
     (colaborador_comum_sem_avaliação_id, 'COLABORADOR_COMUM');
 
 -- Inserir Ciclos de Avaliação (com campos obrigatórios)
+
+-- Inserir Projetos
+INSERT INTO "projetos" ("idProjeto", "nomeProjeto", "cliente", "dataInicio", "dataFim", "status", "idLider")
+VALUES
+    (projeto_rocket_id, 'Projeto Rocket', 'Cliente A', '2025-01-01', '2025-12-31', 'EM_ANDAMENTO', colaborador_gestor_id),
+    (projeto_apollo_id, 'Projeto Apollo', 'Cliente B', '2025-02-01', '2025-11-30', 'PLANEJADO', colaborador_mentor_id);
+
+
 INSERT INTO "CicloAvaliacao" ("idCiclo", "nomeCiclo", "dataInicio", "dataFim", "status", "duracaoEmAndamentoDias", "duracaoEmRevisaoDias", "duracaoEmEqualizacaoDias", "updatedAt")
 VALUES
     (ciclo_2024_2_id, '2024.2', '2024-07-01', '2024-12-31', 'FECHADO', 30, 15, 10, CURRENT_TIMESTAMP),
@@ -200,7 +217,8 @@ VALUES
     (uuid_generate_v4(), colaborador_gestor_id, colaborador_marketing_id, ciclo_2025_1_id),
     (uuid_generate_v4(), colaborador_gestor_id, colaborador_suporte_id, ciclo_2025_1_id),
     (uuid_generate_v4(), colaborador_gestor_id, colaborador_financeiro_id, ciclo_2025_1_id),
-    (uuid_generate_v4(), colaborador_gestor_id, colaborador_comercial_id, ciclo_2025_1_id);
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_comercial_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_comum_sem_avaliação_id, ciclo_2025_1_id);
 
 -- Inserir Relação Líder-Colaborador
 INSERT INTO "LiderColaborador" ("idLiderColaborador", "idLider", "idColaborador", "idCiclo")
@@ -210,7 +228,9 @@ VALUES
     (uuid_generate_v4(), colaborador_gestor_id, colaborador_ux_id, ciclo_2025_1_id),
     (uuid_generate_v4(), colaborador_gestor_id, colaborador_marketing_id, ciclo_2025_1_id),
     (uuid_generate_v4(), colaborador_gestor_id, colaborador_suporte_id, ciclo_2025_1_id),
-    (uuid_generate_v4(), colaborador_gestor_id, colaborador_financeiro_id, ciclo_2025_1_id);
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_financeiro_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_comercial_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_comum_sem_avaliação_id, ciclo_2025_1_id);
 
 -- Inserir Colaboradores no Ciclo
 INSERT INTO "ColaboradorCiclo" ("id", "idColaborador", "idCiclo")
@@ -240,20 +260,20 @@ VALUES
     (uuid_generate_v4(), colaborador_mentor_id, colaborador_comum_id, ciclo_2025_1_id),
     (uuid_generate_v4(), colaborador_mentor_id, colaborador_qa_id, ciclo_2025_1_id),
     (uuid_generate_v4(), colaborador_mentor_id, colaborador_suporte_id, ciclo_2025_1_id),
-    (uuid_generate_v4(), colaborador_mentor_id, colaborador_comum_sem_avaliação_id , ciclo_2025_1_id);
+    (uuid_generate_v4(), colaborador_mentor_id, colaborador_comum_sem_avaliação_id, ciclo_2025_1_id);
 
 -- Inserir Pares
-INSERT INTO "Pares" ("idPar", "idColaborador1", "idColaborador2", "idCiclo")
+INSERT INTO "Pares" ("idPar", "idColaborador1", "idColaborador2", "idCiclo", "idProjeto", "diasTrabalhadosJuntos")
 VALUES
-    (uuid_generate_v4(), colaborador_comum_id, colaborador_qa_id, ciclo_2025_1_id),
-    (uuid_generate_v4(), colaborador_ux_id, colaborador_marketing_id, ciclo_2025_1_id),
-    (uuid_generate_v4(), colaborador_suporte_id, colaborador_financeiro_id, ciclo_2025_1_id),
-    (uuid_generate_v4(), colaborador_gestor_id, colaborador_mentor_id, ciclo_2025_1_id),
+    (uuid_generate_v4(), colaborador_comum_id, colaborador_qa_id, ciclo_2025_1_id, projeto_apollo_id, 90),
+    (uuid_generate_v4(), colaborador_ux_id, colaborador_marketing_id, ciclo_2025_1_id, projeto_apollo_id, 90),
+    (uuid_generate_v4(), colaborador_suporte_id, colaborador_financeiro_id, ciclo_2025_1_id, projeto_apollo_id, 60),
+    (uuid_generate_v4(), colaborador_gestor_id, colaborador_mentor_id, ciclo_2025_1_id, projeto_apollo_id, 60),
 
-    (uuid_generate_v4(), colaborador_comum_sem_avaliação_id, colaborador_suporte_id, ciclo_2025_1_id),
-    (uuid_generate_v4(), colaborador_comum_sem_avaliação_id, colaborador_qa_id, ciclo_2025_1_id),
-    (uuid_generate_v4(), colaborador_suporte_id, colaborador_comum_sem_avaliação_id, ciclo_2025_1_id),
-    (uuid_generate_v4(), colaborador_qa_id, colaborador_comum_sem_avaliação_id, ciclo_2025_1_id);
+    (uuid_generate_v4(), colaborador_comum_sem_avaliação_id, colaborador_suporte_id, ciclo_2025_1_id, projeto_apollo_id, 90),
+    (uuid_generate_v4(), colaborador_comum_sem_avaliação_id, colaborador_qa_id, ciclo_2025_1_id, projeto_apollo_id, 100),
+    (uuid_generate_v4(), colaborador_suporte_id, colaborador_comum_sem_avaliação_id, ciclo_2025_1_id, projeto_rocket_id, 90),
+    (uuid_generate_v4(), colaborador_qa_id, colaborador_comum_sem_avaliação_id, ciclo_2025_1_id, projeto_rocket_id, 80);
 
 
 -- Inserir Avaliações
@@ -267,6 +287,7 @@ VALUES
     (avaliacao_autoavaliacao_5_id, ciclo_2025_1_id, colaborador_suporte_id, colaborador_suporte_id, 'AUTOAVALIACAO', 'CONCLUIDA'),
     (avaliacao_autoavaliacao_6_id, ciclo_2025_1_id, colaborador_comercial_id, colaborador_comercial_id, 'AUTOAVALIACAO', 'CONCLUIDA'),
     (avaliacao_autoavaliacao_7_id, ciclo_2025_1_id, colaborador_comum_sem_avaliação_id, colaborador_comum_sem_avaliação_id, 'AUTOAVALIACAO', 'PENDENTE'),
+    (avaliacao_autoavaliacao_8_id, ciclo_2025_1_id, colaborador_financeiro_id, colaborador_financeiro_id, 'AUTOAVALIACAO', 'PENDENTE'),
     
     -- Avaliações de pares
     (avaliacao_pares_id, ciclo_2025_1_id, colaborador_qa_id, colaborador_comum_id, 'AVALIACAO_PARES', 'CONCLUIDA'),
@@ -281,6 +302,9 @@ VALUES
     (avaliacao_lider_colaborador_3_id, ciclo_2025_1_id, colaborador_gestor_id, colaborador_ux_id, 'LIDER_COLABORADOR', 'CONCLUIDA'),
     (avaliacao_lider_colaborador_4_id, ciclo_2025_1_id, colaborador_gestor_id, colaborador_marketing_id, 'LIDER_COLABORADOR', 'CONCLUIDA'),
     (avaliacao_lider_colaborador_5_id, ciclo_2025_1_id, colaborador_gestor_id, colaborador_suporte_id, 'LIDER_COLABORADOR', 'CONCLUIDA'),
+    (avaliacao_lider_colaborador_6_id, ciclo_2025_1_id, colaborador_gestor_id, colaborador_financeiro_id, 'LIDER_COLABORADOR', 'CONCLUIDA'),
+    (avaliacao_lider_colaborador_7_id, ciclo_2025_1_id, colaborador_gestor_id, colaborador_comercial_id, 'LIDER_COLABORADOR', 'CONCLUIDA'),
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_gestor_id, colaborador_comum_sem_avaliação_id, 'LIDER_COLABORADOR', 'PENDENTE'),
     
     
     -- Avaliação colaborador-mentor
@@ -296,7 +320,8 @@ VALUES
     (avaliacao_autoavaliacao_4_id, 4.1),
     (avaliacao_autoavaliacao_5_id, 3.7),
     (avaliacao_autoavaliacao_6_id, 4.0),
-    (avaliacao_autoavaliacao_7_id, 0.0);
+    (avaliacao_autoavaliacao_7_id, 0.0),
+    (avaliacao_autoavaliacao_8_id, 0.0);
 
 
 -- Inserir Cards da AutoAvaliacao
@@ -332,11 +357,15 @@ VALUES
     (uuid_generate_v4(), avaliacao_autoavaliacao_6_id, 'Comunicação', 4, 'Tenho excelente comunicação com clientes'),
     (uuid_generate_v4(), avaliacao_autoavaliacao_6_id, 'Qualidade das Entregas', 4, 'Alcanço minhas metas de vendas'),
 
+    -- Cards para autoavaliação do Financeiro (Patricia Alves)
+    (uuid_generate_v4(), avaliacao_autoavaliacao_8_id, 'Trabalho em Equipe', 4, 'Trabalho bem com toda a equipe'),
+    (uuid_generate_v4(), avaliacao_autoavaliacao_8_id, 'Comunicação', 4, 'Me comunico de forma clara'),
+    (uuid_generate_v4(), avaliacao_autoavaliacao_8_id, 'Qualidade das Entregas', 4, 'Entrego relatórios precisos'),
+
     -- Cards para autoavaliação do colaborador sem avaliação (João Souza)
     (uuid_generate_v4(), avaliacao_autoavaliacao_7_id, 'Trabalho em Equipe', 0, ''),
     (uuid_generate_v4(), avaliacao_autoavaliacao_7_id, 'Comunicação', 0, ''),
     (uuid_generate_v4(), avaliacao_autoavaliacao_7_id, 'Qualidade das Entregas', 0, '');
-
 
 
 -- Inserir AvaliacaoPares
@@ -359,7 +388,9 @@ VALUES
     (avaliacao_lider_colaborador_2_id, 4.0),
     (avaliacao_lider_colaborador_3_id, 3.9),
     (avaliacao_lider_colaborador_4_id, 4.2),
-    (avaliacao_lider_colaborador_5_id, 3.8);
+    (avaliacao_lider_colaborador_5_id, 3.8),
+    (avaliacao_lider_colaborador_6_id, 4.0),
+    (avaliacao_lider_colaborador_7_id, 4.1);
 
 -- Inserir Cards da AvaliacaoLiderColaborador
 INSERT INTO "CardAvaliacaoLiderColaborador" ("idCardAvaliacao", "idAvaliacao", "nomeCriterio", "nota", "justificativa")
@@ -388,21 +419,32 @@ VALUES
     -- Cards para Lucas Ferreira (Suporte)
     (uuid_generate_v4(), avaliacao_lider_colaborador_5_id, 'Trabalho em Equipe', 4, 'Colabora bem com toda a equipe'),
     (uuid_generate_v4(), avaliacao_lider_colaborador_5_id, 'Comunicação', 4, 'Boa comunicação com clientes'),
-    (uuid_generate_v4(), avaliacao_lider_colaborador_5_id, 'Resolução de Problemas', 3, 'Resolve bem os problemas dos clientes');
+    (uuid_generate_v4(), avaliacao_lider_colaborador_5_id, 'Resolução de Problemas', 3, 'Resolve bem os problemas dos clientes'),
 
--- Inserir Indicação de Referência
-INSERT INTO "IndicacaoReferencia" ("idIndicacao", "idCiclo", "idIndicador", "idIndicado", "tipo", "justificativa")
-VALUES
-    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_gestor_id, colaborador_comum_id, 'TECNICA', 'Forte conhecimento técnico e boa capacidade de resolução de problemas'),
-    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_gestor_id, colaborador_comum_id, 'TECNICA', 'Excelente capacidade de entrega e comprometimento com prazos'),
-    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_gestor_id, colaborador_comum_id, 'CULTURAL', 'Colaborador que se alinha bem com os valores da empresa e demonstra espírito de equipe'),
-    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_mentor_id, colaborador_qa_id, 'CULTURAL', 'Profissional dedicado com potencial de crescimento');
+    -- Cards para Patricia Alves (Financeiro)
+    (uuid_generate_v4(), avaliacao_lider_colaborador_6_id, 'Trabalho em Equipe', 4, 'Colabora bem com todas as áreas'),
+    (uuid_generate_v4(), avaliacao_lider_colaborador_6_id, 'Qualidade das Entregas', 4, 'Relatórios precisos e organizados'),
+    (uuid_generate_v4(), avaliacao_lider_colaborador_6_id, 'Cumprimento de Prazos', 4, 'Sempre entrega dentro do prazo'),
+    
+    -- Cards para Eduardo Nunes (Comercial)
+    (uuid_generate_v4(), avaliacao_lider_colaborador_7_id, 'Trabalho em Equipe', 4, 'Trabalha bem com a equipe'),
+    (uuid_generate_v4(), avaliacao_lider_colaborador_7_id, 'Comunicação', 4, 'Excelente comunicação com clientes'),
+    (uuid_generate_v4(), avaliacao_lider_colaborador_7_id, 'Qualidade das Entregas', 4, 'Atinge suas metas de vendas');
 
--- Inserir Equalização
+
+-- Inserir Equalizações para todos os colaboradores comuns
 INSERT INTO "Equalizacao" ("idEqualizacao", "idCiclo", "idAvaliado", "idMembroComite", "notaAjustada", "justificativa", "status")
 VALUES
-    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_comum_id, colaborador_rh_id, 4.2, 'Desempenho consistente ao longo do ciclo, demonstrando crescimento técnico', 'CONCLUIDA');
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_comum_id, colaborador_comite_id, NULL, NULL, 'PENDENTE'),
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_qa_id, colaborador_comite_id, NULL, NULL, 'PENDENTE'),
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_ux_id, colaborador_comite_id, NULL, NULL, 'PENDENTE'),
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_marketing_id, colaborador_comite_id, NULL, NULL, 'PENDENTE'),
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_suporte_id, colaborador_comite_id, NULL, NULL, 'PENDENTE'),
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_financeiro_id, colaborador_comite_id, NULL, NULL, 'PENDENTE'),
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_comercial_id, colaborador_comite_id, NULL, NULL, 'PENDENTE'),
+    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_comum_sem_avaliação_id, colaborador_comite_id, NULL, NULL, 'PENDENTE');
+
+
 
 END $$;
-
 
