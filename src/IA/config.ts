@@ -198,7 +198,10 @@ const brutalFactsConfig = {
   temperature: 0.4,
   topP: 0.85,
   maxOutputTokens: 900,
-  responseMimeType: "text/plain"
+  responseMimeType: "text/plain",
+  thinkingConfig: {
+   thinkingBudget: 0, // Disables thinking
+}
 };
 
 export { generationConfig, MiniConfig, generalProjectConfig, brutalFactsConfig };
