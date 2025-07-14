@@ -16,7 +16,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYmNmM2QxN
 DELETE http://localhost:3000/colaborador/565a6f76-751e-4d01-bba3-a84f313c80bf
 ### Get colaborador
 
-GET http://localhost:3000/colaborador/get/9aa7e53a-0518-4c53-b03b-2cee1b8cbc87
+GET http://localhost:3000/colaborador/cccccccc-3333-3333-3333-333333333333
 
 ### Get all colaboradores
 GET http://localhost:3000/colaborador/get-all-colaboradores
@@ -47,7 +47,7 @@ POST http://localhost:3000/auth/login
 Content-Type: application/json
 
 {
-    "email": "joao.santos@empresa.com",
+    "email": "juliana.rocha@empresa.com",
     "senha": "senha123"
 }
 
@@ -318,6 +318,12 @@ Content-Type: application/json
 ]
 }
 
+### Buscar forms de autoavaliação agrupados por pilar
+GET http://localhost:3000/avaliacoes/forms-autoavaliacao/7532e589-7d34-4026-8ea2-6b30178634ac
+
+### Buscar forms de autoavaliação agrupados por pilar
+GET http://localhost:3000/avaliacoes/forms-lider-colaborador/4ba9ef95-aecd-4da3-8d0a-e8bcc7778675
+
 ### Relacionar Líder-Colaborador
 POST http://localhost:3000/colaborador/relacionar-lider-colaborador
 Content-Type: application/json
@@ -356,6 +362,7 @@ GET http://localhost:3000/ia/avaliacoes/cccccccc-3333-3333-3333-333333333333/555
 ### Get Mini-resumo IA
 GET http://localhost:3000/ia/miniavaliar/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
 
+
 ### get tudo colaborador
 GET http://localhost:3000/ia/brutalfacts/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
 
@@ -364,3 +371,8 @@ POST http://localhost:3000/ia/gerarbrutalfacts/cccccccc-3333-3333-3333-333333333
 
 
 # (Opcional: corpo vazio, pois os parâmetros estão na URL)
+
+### Buscar mentorados de um mentor em um ciclo
+GET http://localhost:3000/colaborador/mentorados/99999999-9999-9999-9999-999999999999/55555555-5555-5555-5555-666666666666
+
+

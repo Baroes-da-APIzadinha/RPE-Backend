@@ -88,7 +88,7 @@ export class CiclosStatus {
                         this.logger.log(`Lançando avaliações para o ciclo ${ciclo.nomeCiclo} (EM_ANDAMENTO)`);
                         
                         const relatorio_AutoAvaliacao = await this.avaliacoesService.lancarAutoAvaliacoes(ciclo.idCiclo);
-                        const relatorio_AvaliacaoPares = await this.avaliacoesService.lancarAvaliaçãoPares(ciclo.idCiclo);
+                        const relatorio_AvaliacaoPares = await this.avaliacoesService.lancarAvaliacaoPares(ciclo.idCiclo);
                         const relatorio_AvaliacaoMentor = await this.avaliacoesService.lancarAvaliacaoColaboradorMentor(ciclo.idCiclo);
                         
                         relatorio.push({
