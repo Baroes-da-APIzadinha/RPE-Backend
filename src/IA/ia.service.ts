@@ -4,6 +4,7 @@ import ai from './init';
 import { generationConfig, MiniConfig } from './config';
 import { AvaliacoesService } from '../avaliacoes/avaliacoes.service';
 import { HashService } from 'src/common/hash.service';
+import { ConflictException, BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class IaService {
@@ -442,7 +443,7 @@ export class IaService {
                     topP: brutalFactsConfig.topP,
                     maxOutputTokens: brutalFactsConfig.maxOutputTokens,
                     responseMimeType: brutalFactsConfig.responseMimeType,
-                    thinkingConfig: brutalFactsConfig.thinkingConfig
+                    thinkingConfig : brutalFactsConfig.thinkingConfig
                 }
             });
             logger.debug(`Resposta completa da IA: ${JSON.stringify(response)}`);
@@ -454,7 +455,27 @@ export class IaService {
                 }
             }
             logger.debug(`Texto da IA: ${texto}`);
-            return texto || 'Erro na geração de resposta pela IA. Veja o log para detalhes da resposta.';
+            // Só salva se houver texto válido
+            if (!texto || texto.includes('Erro na geração de resposta pela IA')) {
+                logger.error('Erro na geração de resposta pela IA. Nada será salvo no banco.');
+                throw new BadRequestException('Erro na geração de resposta pela IA. Veja o log para detalhes da resposta.');
+            }
+            try {
+                await this.prisma.brutalFacts.create({
+                    data: {
+                        idColaborador,
+                        idCiclo,
+                        brutalFact: texto
+                    }
+                });
+            } catch (error) {
+                if (error.code === 'P2002') {
+                    // Registro já existe
+                    throw new ConflictException('Brutal Fact já cadastrado para este colaborador e ciclo.');
+                }
+                throw error;
+            }
+            return texto;
         } catch (error) {
             logger.error('Erro ao gerar Brutal Facts', error.stack || error.message || error);
             throw error;
