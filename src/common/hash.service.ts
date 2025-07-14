@@ -20,13 +20,29 @@ export class HashService {
     return iv.toString('hex') + ':' + encrypted.toString('hex'); // Junta IV e texto cifrado
   }
 
-  decrypt(encrypted: string): string {
-    const [ivHex, encryptedHex] = encrypted.split(':');
-    const iv = Buffer.from(ivHex, 'hex');
-    const encryptedText = Buffer.from(encryptedHex, 'hex');
-    const decipher = createDecipheriv(this.algorithm, this.key, iv);
-    const decrypted = Buffer.concat([decipher.update(encryptedText), decipher.final()]);
-    return decrypted.toString('utf8');
+  decrypt(encrypted?: string | null): string | null {
+    try {
+      if (!encrypted || typeof encrypted !== 'string') {
+        return null;
+      }
+
+      if (!encrypted.includes(':')) {
+        return encrypted;
+      }
+
+      const [ivHex, encryptedHex] = encrypted.split(':');
+      if (!ivHex || !encryptedHex) {
+        return null;
+      }
+
+      const iv = Buffer.from(ivHex, 'hex');
+      const encryptedText = Buffer.from(encryptedHex, 'hex');
+      const decipher = createDecipheriv(this.algorithm, this.key, iv);
+      const decrypted = Buffer.concat([decipher.update(encryptedText), decipher.final()]);
+      return decrypted.toString('utf8');
+    } catch (err) {
+      return null;
+    }
   }
 
   hash(value: string): string {
