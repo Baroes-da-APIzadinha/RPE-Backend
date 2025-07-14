@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReferenciasService } from './referencias.service';
 import { PrismaService } from '../database/prismaService';
+import { HashService } from '../common/hash.service';
 import { CriarReferenciaDto, AtualizarReferenciaDto } from './referencias.dto';
 import { TipoReferencia } from './referencias.constants';
 import { 
@@ -11,6 +12,7 @@ import {
 describe('ReferenciasService', () => {
   let service: ReferenciasService;
   let prismaService: PrismaService;
+  let hashService: HashService;
 
   // Mock do PrismaService
   const mockPrismaService = {
@@ -23,14 +25,24 @@ describe('ReferenciasService', () => {
     },
   };
 
+  // Mock do HashService
+  const mockHashService = {
+    hash: jest.fn(),
+    decrypt: jest.fn(),
+  };
+
   // Dados de teste
+  const mockJustificativaOriginal = 'Excelente conhecimento técnico em desenvolvimento de software';
+  const mockJustificativaCriptografada = 'a1b2c3d4:e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0';
+  const mockJustificativaDescriptografada = mockJustificativaOriginal;
+
   const mockIndicacao = {
     idIndicacao: '123e4567-e89b-12d3-a456-426614174000',
     idCiclo: '456e7890-e89b-12d3-a456-426614174001',
     idIndicador: '789e0123-e89b-12d3-a456-426614174002',
     idIndicado: '987e6543-e89b-12d3-a456-426614174003',
     tipo: TipoReferencia.TECNICA,
-    justificativa: 'Excelente conhecimento técnico em desenvolvimento de software',
+    justificativa: mockJustificativaCriptografada, // Justificativa criptografada no banco
   };
 
   const mockIndicacaoComRelacionamentos = {
@@ -52,12 +64,23 @@ describe('ReferenciasService', () => {
     },
   };
 
+  // Resultado esperado com justificativa descriptografada
+  const mockIndicacaoDescriptografada = {
+    ...mockIndicacao,
+    justificativa: mockJustificativaDescriptografada,
+  };
+
+  const mockIndicacaoComRelacionamentosDescriptografada = {
+    ...mockIndicacaoComRelacionamentos,
+    justificativa: mockJustificativaDescriptografada,
+  };
+
   const criarReferenciaDto: CriarReferenciaDto = {
     idCiclo: '456e7890-e89b-12d3-a456-426614174001',
     idIndicador: '789e0123-e89b-12d3-a456-426614174002',
     idIndicado: '987e6543-e89b-12d3-a456-426614174003',
     tipo: TipoReferencia.TECNICA,
-    justificativa: 'Excelente conhecimento técnico em desenvolvimento de software',
+    justificativa: mockJustificativaOriginal,
   };
 
   beforeEach(async () => {
@@ -68,11 +91,20 @@ describe('ReferenciasService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: HashService,
+          useValue: mockHashService,
+        },
       ],
     }).compile();
 
     service = module.get<ReferenciasService>(ReferenciasService);
     prismaService = module.get<PrismaService>(PrismaService);
+    hashService = module.get<HashService>(HashService);
+
+    // Setup padrão dos mocks
+    mockHashService.hash.mockReturnValue(mockJustificativaCriptografada);
+    mockHashService.decrypt.mockReturnValue(mockJustificativaDescriptografada);
   });
 
   afterEach(() => {
@@ -83,10 +115,18 @@ describe('ReferenciasService', () => {
     it('should be defined', () => {
       expect(service).toBeDefined();
     });
+
+    it('deve ter PrismaService injetado', () => {
+      expect(prismaService).toBeDefined();
+    });
+
+    it('deve ter HashService injetado', () => {
+      expect(hashService).toBeDefined();
+    });
   });
 
   describe('criarReferencia', () => {
-    it('deve criar uma referência com sucesso', async () => {
+    it('deve criar uma referência com sucesso criptografando a justificativa', async () => {
       // Arrange
       mockPrismaService.indicacaoReferencia.create.mockResolvedValue(mockIndicacao);
 
@@ -95,19 +135,20 @@ describe('ReferenciasService', () => {
 
       // Assert
       expect(resultado).toEqual(mockIndicacao);
+      expect(mockHashService.hash).toHaveBeenCalledWith(criarReferenciaDto.justificativa);
       expect(mockPrismaService.indicacaoReferencia.create).toHaveBeenCalledWith({
         data: {
           idCiclo: criarReferenciaDto.idCiclo,
           idIndicador: criarReferenciaDto.idIndicador,
           idIndicado: criarReferenciaDto.idIndicado,
           tipo: criarReferenciaDto.tipo,
-          justificativa: criarReferenciaDto.justificativa,
+          justificativa: mockJustificativaCriptografada,
         },
       });
       expect(mockPrismaService.indicacaoReferencia.create).toHaveBeenCalledTimes(1);
     });
 
-    it('deve criar referência do tipo CULTURAL', async () => {
+    it('deve criar referência do tipo CULTURAL com criptografia', async () => {
       // Arrange
       const dtoCultural: CriarReferenciaDto = {
         ...criarReferenciaDto,
@@ -118,9 +159,11 @@ describe('ReferenciasService', () => {
       const indicacaoCultural = {
         ...mockIndicacao,
         tipo: TipoReferencia.CULTURAL,
-        justificativa: 'Demonstra excelentes valores culturais da empresa',
+        justificativa: mockJustificativaCriptografada,
       };
 
+      const justificativaCulturalCriptografada = 'cultural-encrypted-value';
+      mockHashService.hash.mockReturnValue(justificativaCulturalCriptografada);
       mockPrismaService.indicacaoReferencia.create.mockResolvedValue(indicacaoCultural);
 
       // Act
@@ -129,8 +172,12 @@ describe('ReferenciasService', () => {
       // Assert
       expect(resultado).toEqual(indicacaoCultural);
       expect(resultado.tipo).toBe(TipoReferencia.CULTURAL);
+      expect(mockHashService.hash).toHaveBeenCalledWith(dtoCultural.justificativa);
       expect(mockPrismaService.indicacaoReferencia.create).toHaveBeenCalledWith({
-        data: dtoCultural,
+        data: {
+          ...dtoCultural,
+          justificativa: justificativaCulturalCriptografada,
+        },
       });
     });
 
@@ -144,12 +191,10 @@ describe('ReferenciasService', () => {
       await expect(service.criarReferencia(criarReferenciaDto)).rejects.toThrow(
         'Erro ao criar referência: Database connection error'
       );
-      expect(mockPrismaService.indicacaoReferencia.create).toHaveBeenCalledWith({
-        data: criarReferenciaDto,
-      });
+      expect(mockHashService.hash).toHaveBeenCalledWith(criarReferenciaDto.justificativa);
     });
 
-    it('deve criar referência com justificativa longa', async () => {
+    it('deve criar referência com justificativa longa e criptografá-la', async () => {
       // Arrange
       const justificativaLonga = 'Esta é uma justificativa muito longa que pode conter até 1000 caracteres. '.repeat(10);
       const dtoJustificativaLonga = {
@@ -157,9 +202,12 @@ describe('ReferenciasService', () => {
         justificativa: justificativaLonga,
       };
 
+      const justificativaLongaCriptografada = 'long-encrypted-value';
+      mockHashService.hash.mockReturnValue(justificativaLongaCriptografada);
+
       const indicacaoJustificativaLonga = {
         ...mockIndicacao,
-        justificativa: justificativaLonga,
+        justificativa: justificativaLongaCriptografada,
       };
 
       mockPrismaService.indicacaoReferencia.create.mockResolvedValue(indicacaoJustificativaLonga);
@@ -168,9 +216,13 @@ describe('ReferenciasService', () => {
       const resultado = await service.criarReferencia(dtoJustificativaLonga);
 
       // Assert
-      expect(resultado.justificativa).toBe(justificativaLonga);
+      expect(resultado.justificativa).toBe(justificativaLongaCriptografada);
+      expect(mockHashService.hash).toHaveBeenCalledWith(justificativaLonga);
       expect(mockPrismaService.indicacaoReferencia.create).toHaveBeenCalledWith({
-        data: dtoJustificativaLonga,
+        data: {
+          ...dtoJustificativaLonga,
+          justificativa: justificativaLongaCriptografada,
+        },
       });
     });
 
@@ -190,11 +242,12 @@ describe('ReferenciasService', () => {
       expect(resultado).toHaveProperty('justificativa');
       expect(typeof resultado.idIndicacao).toBe('string');
       expect(typeof resultado.tipo).toBe('string');
+      expect(mockHashService.hash).toHaveBeenCalled();
     });
   });
 
   describe('atualizarReferencia', () => {
-    it('deve atualizar uma referência com sucesso', async () => {
+    it('deve atualizar uma referência com sucesso criptografando nova justificativa', async () => {
       // Arrange
       const idIndicacao = '123e4567-e89b-12d3-a456-426614174000';
       const atualizarDto: AtualizarReferenciaDto = {
@@ -202,9 +255,13 @@ describe('ReferenciasService', () => {
         justificativa: 'Justificativa atualizada com novos valores culturais',
       };
 
+      const novaJustificativaCriptografada = 'updated-encrypted-value';
+      mockHashService.hash.mockReturnValue(novaJustificativaCriptografada);
+
       const indicacaoAtualizada = {
         ...mockIndicacao,
-        ...atualizarDto,
+        tipo: TipoReferencia.CULTURAL,
+        justificativa: novaJustificativaCriptografada,
       };
 
       mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(mockIndicacao);
@@ -215,6 +272,7 @@ describe('ReferenciasService', () => {
 
       // Assert
       expect(resultado).toEqual(indicacaoAtualizada);
+      expect(mockHashService.hash).toHaveBeenCalledWith(atualizarDto.justificativa);
       expect(mockPrismaService.indicacaoReferencia.findUnique).toHaveBeenCalledWith({
         where: { idIndicacao },
       });
@@ -222,7 +280,7 @@ describe('ReferenciasService', () => {
         where: { idIndicacao },
         data: {
           tipo: atualizarDto.tipo,
-          justificativa: atualizarDto.justificativa,
+          justificativa: novaJustificativaCriptografada,
         },
       });
     });
@@ -247,6 +305,7 @@ describe('ReferenciasService', () => {
 
       // Assert
       expect(resultado).toEqual(indicacaoAtualizada);
+      expect(mockHashService.hash).not.toHaveBeenCalled(); // Não deve criptografar se não há justificativa
       expect(mockPrismaService.indicacaoReferencia.update).toHaveBeenCalledWith({
         where: { idIndicacao },
         data: {
@@ -255,17 +314,20 @@ describe('ReferenciasService', () => {
       });
     });
 
-    it('deve atualizar apenas justificativa quando tipo não fornecido', async () => {
+    it('deve atualizar apenas justificativa criptografando o novo valor', async () => {
       // Arrange
       const idIndicacao = '123e4567-e89b-12d3-a456-426614174000';
       const atualizarDto: AtualizarReferenciaDto = {
-        tipo: TipoReferencia.TECNICA, // campo obrigatório no DTO
+        tipo: TipoReferencia.TECNICA,
         justificativa: 'Nova justificativa apenas',
       };
 
+      const novaJustificativaCriptografada = 'new-encrypted-value';
+      mockHashService.hash.mockReturnValue(novaJustificativaCriptografada);
+
       const indicacaoAtualizada = {
         ...mockIndicacao,
-        justificativa: 'Nova justificativa apenas',
+        justificativa: novaJustificativaCriptografada,
       };
 
       mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(mockIndicacao);
@@ -275,12 +337,13 @@ describe('ReferenciasService', () => {
       const resultado = await service.atualizarReferencia(idIndicacao, atualizarDto);
 
       // Assert
-      expect(resultado.justificativa).toBe('Nova justificativa apenas');
+      expect(resultado.justificativa).toBe(novaJustificativaCriptografada);
+      expect(mockHashService.hash).toHaveBeenCalledWith(atualizarDto.justificativa);
       expect(mockPrismaService.indicacaoReferencia.update).toHaveBeenCalledWith({
         where: { idIndicacao },
         data: {
           tipo: atualizarDto.tipo,
-          justificativa: atualizarDto.justificativa,
+          justificativa: novaJustificativaCriptografada,
         },
       });
     });
@@ -302,6 +365,7 @@ describe('ReferenciasService', () => {
         where: { idIndicacao },
       });
       expect(mockPrismaService.indicacaoReferencia.update).not.toHaveBeenCalled();
+      expect(mockHashService.hash).not.toHaveBeenCalled();
     });
 
     it('deve lançar BadRequestException quando há erro no Prisma', async () => {
@@ -416,7 +480,7 @@ describe('ReferenciasService', () => {
   });
 
   describe('getAllReferencias', () => {
-    it('deve retornar todas as referências com relacionamentos', async () => {
+    it('deve retornar todas as referências com relacionamentos e descriptografar justificativas', async () => {
       // Arrange
       const mockReferencias = [
         mockIndicacaoComRelacionamentos,
@@ -433,7 +497,11 @@ describe('ReferenciasService', () => {
       const resultado = await service.getAllReferencias();
 
       // Assert
-      expect(resultado).toEqual(mockReferencias);
+      expect(resultado).toHaveLength(2);
+      expect(resultado[0].justificativa).toBe(mockJustificativaDescriptografada);
+      expect(resultado[1].justificativa).toBe(mockJustificativaDescriptografada);
+      expect(mockHashService.decrypt).toHaveBeenCalledTimes(2);
+      expect(mockHashService.decrypt).toHaveBeenCalledWith(mockJustificativaCriptografada);
       expect(mockPrismaService.indicacaoReferencia.findMany).toHaveBeenCalledWith({
         include: {
           ciclo: true,
@@ -441,7 +509,6 @@ describe('ReferenciasService', () => {
           indicado: true,
         },
       });
-      expect(mockPrismaService.indicacaoReferencia.findMany).toHaveBeenCalledTimes(1);
     });
 
     it('deve retornar array vazio quando não há referências', async () => {
@@ -453,7 +520,27 @@ describe('ReferenciasService', () => {
 
       // Assert
       expect(resultado).toEqual([]);
+      expect(mockHashService.decrypt).not.toHaveBeenCalled();
       expect(mockPrismaService.indicacaoReferencia.findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('deve lidar com justificativas nulas', async () => {
+      // Arrange
+      const referenciasSemJustificativa = [
+        {
+          ...mockIndicacaoComRelacionamentos,
+          justificativa: null,
+        },
+      ];
+
+      mockPrismaService.indicacaoReferencia.findMany.mockResolvedValue(referenciasSemJustificativa);
+
+      // Act
+      const resultado = await service.getAllReferencias();
+
+      // Assert
+      expect(resultado[0].justificativa).toBeNull();
+      expect(mockHashService.decrypt).not.toHaveBeenCalled();
     });
 
     it('deve retornar referências com estrutura de relacionamentos correta', async () => {
@@ -471,6 +558,7 @@ describe('ReferenciasService', () => {
       expect(resultado[0].ciclo).toHaveProperty('nomeCiclo');
       expect(resultado[0].indicador).toHaveProperty('nomeCompleto');
       expect(resultado[0].indicado).toHaveProperty('email');
+      expect(resultado[0].justificativa).toBe(mockJustificativaDescriptografada);
     });
 
     it('deve lançar BadRequestException quando há erro no Prisma', async () => {
@@ -487,13 +575,17 @@ describe('ReferenciasService', () => {
   });
 
   describe('getReferenciaByIndicador', () => {
-    it('deve retornar referências de um indicador específico', async () => {
+    it('deve retornar referências de um indicador específico com justificativas descriptografadas', async () => {
       // Arrange
       const idIndicador = '789e0123-e89b-12d3-a456-426614174002';
       const mockReferenciasIndicador = [
         {
-          ...mockIndicacaoComRelacionamentos,
-          // Remove indicador do include para simular a resposta real
+          idIndicacao: mockIndicacaoComRelacionamentos.idIndicacao,
+          idCiclo: mockIndicacaoComRelacionamentos.idCiclo,
+          idIndicador: mockIndicacaoComRelacionamentos.idIndicador,
+          idIndicado: mockIndicacaoComRelacionamentos.idIndicado,
+          tipo: mockIndicacaoComRelacionamentos.tipo,
+          justificativa: mockJustificativaCriptografada,
           ciclo: mockIndicacaoComRelacionamentos.ciclo,
           indicado: mockIndicacaoComRelacionamentos.indicado,
         },
@@ -505,7 +597,8 @@ describe('ReferenciasService', () => {
       const resultado = await service.getReferenciaByIndicador(idIndicador);
 
       // Assert
-      expect(resultado).toEqual(mockReferenciasIndicador);
+      expect(resultado[0].justificativa).toBe(mockJustificativaDescriptografada);
+      expect(mockHashService.decrypt).toHaveBeenCalledWith(mockJustificativaCriptografada);
       expect(mockPrismaService.indicacaoReferencia.findMany).toHaveBeenCalledWith({
         where: { idIndicador },
         include: {
@@ -525,13 +618,7 @@ describe('ReferenciasService', () => {
       await expect(service.getReferenciaByIndicador(idIndicador)).rejects.toThrow(
         'Erro ao buscar referências por indicador: Nenhuma referência encontrada para este indicador'
       );
-      expect(mockPrismaService.indicacaoReferencia.findMany).toHaveBeenCalledWith({
-        where: { idIndicador },
-        include: {
-          ciclo: true,
-          indicado: true,
-        },
-      });
+      expect(mockHashService.decrypt).not.toHaveBeenCalled();
     });
 
     it('deve lançar BadRequestException quando há erro no Prisma', async () => {
@@ -550,21 +637,20 @@ describe('ReferenciasService', () => {
     it('deve incluir relacionamentos corretos na consulta por indicador', async () => {
       // Arrange
       const idIndicador = '789e0123-e89b-12d3-a456-426614174002';
-
       const mockReferenciasIndicador = [
         {
-            idIndicacao: mockIndicacaoComRelacionamentos.idIndicacao,
-            idCiclo: mockIndicacaoComRelacionamentos.idCiclo,
-            idIndicador: mockIndicacaoComRelacionamentos.idIndicador,
-            idIndicado: mockIndicacaoComRelacionamentos.idIndicado,
-            tipo: mockIndicacaoComRelacionamentos.tipo,
-            justificativa: mockIndicacaoComRelacionamentos.justificativa,
-            ciclo: mockIndicacaoComRelacionamentos.ciclo,
-            indicado: mockIndicacaoComRelacionamentos.indicado,
+          idIndicacao: mockIndicacaoComRelacionamentos.idIndicacao,
+          idCiclo: mockIndicacaoComRelacionamentos.idCiclo,
+          idIndicador: mockIndicacaoComRelacionamentos.idIndicador,
+          idIndicado: mockIndicacaoComRelacionamentos.idIndicado,
+          tipo: mockIndicacaoComRelacionamentos.tipo,
+          justificativa: mockJustificativaCriptografada,
+          ciclo: mockIndicacaoComRelacionamentos.ciclo,
+          indicado: mockIndicacaoComRelacionamentos.indicado,
         },
       ];
 
-        mockPrismaService.indicacaoReferencia.findMany.mockResolvedValue(mockReferenciasIndicador);
+      mockPrismaService.indicacaoReferencia.findMany.mockResolvedValue(mockReferenciasIndicador);
 
       // Act
       const resultado = await service.getReferenciaByIndicador(idIndicador);
@@ -573,17 +659,22 @@ describe('ReferenciasService', () => {
       expect(resultado[0]).toHaveProperty('ciclo');
       expect(resultado[0]).toHaveProperty('indicado');
       expect(resultado[0]).not.toHaveProperty('indicador'); // Não deve incluir o próprio indicador
+      expect(resultado[0].justificativa).toBe(mockJustificativaDescriptografada);
     });
   });
 
   describe('getReferenciaByIndicado', () => {
-    it('deve retornar referências de um indicado específico', async () => {
+    it('deve retornar referências de um indicado específico com justificativas descriptografadas', async () => {
       // Arrange
       const idIndicado = '987e6543-e89b-12d3-a456-426614174003';
       const mockReferenciasIndicado = [
         {
-          ...mockIndicacaoComRelacionamentos,
-          // Remove indicado do include para simular a resposta real
+          idIndicacao: mockIndicacaoComRelacionamentos.idIndicacao,
+          idCiclo: mockIndicacaoComRelacionamentos.idCiclo,
+          idIndicador: mockIndicacaoComRelacionamentos.idIndicador,
+          idIndicado: mockIndicacaoComRelacionamentos.idIndicado,
+          tipo: mockIndicacaoComRelacionamentos.tipo,
+          justificativa: mockJustificativaCriptografada,
           ciclo: mockIndicacaoComRelacionamentos.ciclo,
           indicador: mockIndicacaoComRelacionamentos.indicador,
         },
@@ -595,7 +686,8 @@ describe('ReferenciasService', () => {
       const resultado = await service.getReferenciaByIndicado(idIndicado);
 
       // Assert
-      expect(resultado).toEqual(mockReferenciasIndicado);
+      expect(resultado[0].justificativa).toBe(mockJustificativaDescriptografada);
+      expect(mockHashService.decrypt).toHaveBeenCalledWith(mockJustificativaCriptografada);
       expect(mockPrismaService.indicacaoReferencia.findMany).toHaveBeenCalledWith({
         where: { idIndicado },
         include: {
@@ -615,13 +707,7 @@ describe('ReferenciasService', () => {
       await expect(service.getReferenciaByIndicado(idIndicado)).rejects.toThrow(
         'Erro ao buscar referências por indicado: Nenhuma referência encontrada para este indicado'
       );
-      expect(mockPrismaService.indicacaoReferencia.findMany).toHaveBeenCalledWith({
-        where: { idIndicado },
-        include: {
-          ciclo: true,
-          indicador: true,
-        },
-      });
+      expect(mockHashService.decrypt).not.toHaveBeenCalled();
     });
 
     it('deve lançar BadRequestException quando há erro no Prisma', async () => {
@@ -640,20 +726,19 @@ describe('ReferenciasService', () => {
     it('deve incluir relacionamentos corretos na consulta por indicado', async () => {
       // Arrange
       const idIndicado = '987e6543-e89b-12d3-a456-426614174003';
-      
       const mockReferenciasIndicado = [
         {
-            idIndicacao: mockIndicacaoComRelacionamentos.idIndicacao,
-            idCiclo: mockIndicacaoComRelacionamentos.idCiclo,
-            idIndicador: mockIndicacaoComRelacionamentos.idIndicador,
-            idIndicado: mockIndicacaoComRelacionamentos.idIndicado,
-            tipo: mockIndicacaoComRelacionamentos.tipo,
-            justificativa: mockIndicacaoComRelacionamentos.justificativa,
-            ciclo: mockIndicacaoComRelacionamentos.ciclo,
-            indicador: mockIndicacaoComRelacionamentos.indicador,
+          idIndicacao: mockIndicacaoComRelacionamentos.idIndicacao,
+          idCiclo: mockIndicacaoComRelacionamentos.idCiclo,
+          idIndicador: mockIndicacaoComRelacionamentos.idIndicador,
+          idIndicado: mockIndicacaoComRelacionamentos.idIndicado,
+          tipo: mockIndicacaoComRelacionamentos.tipo,
+          justificativa: mockJustificativaCriptografada,
+          ciclo: mockIndicacaoComRelacionamentos.ciclo,
+          indicador: mockIndicacaoComRelacionamentos.indicador,
         },
       ];
-  
+
       mockPrismaService.indicacaoReferencia.findMany.mockResolvedValue(mockReferenciasIndicado);
 
       // Act
@@ -663,11 +748,12 @@ describe('ReferenciasService', () => {
       expect(resultado[0]).toHaveProperty('ciclo');
       expect(resultado[0]).toHaveProperty('indicador');
       expect(resultado[0]).not.toHaveProperty('indicado'); // Não deve incluir o próprio indicado
+      expect(resultado[0].justificativa).toBe(mockJustificativaDescriptografada);
     });
   });
 
   describe('getReferenciaById', () => {
-    it('deve retornar uma referência específica por ID', async () => {
+    it('deve retornar uma referência específica por ID com justificativa descriptografada', async () => {
       // Arrange
       const idIndicacao = '123e4567-e89b-12d3-a456-426614174000';
       mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(mockIndicacaoComRelacionamentos);
@@ -676,7 +762,8 @@ describe('ReferenciasService', () => {
       const resultado = await service.getReferenciaById(idIndicacao);
 
       // Assert
-      expect(resultado).toEqual(mockIndicacaoComRelacionamentos);
+      expect(resultado.justificativa).toBe(mockJustificativaDescriptografada);
+      expect(mockHashService.decrypt).toHaveBeenCalledWith(mockJustificativaCriptografada);
       expect(mockPrismaService.indicacaoReferencia.findUnique).toHaveBeenCalledWith({
         where: { idIndicacao },
         include: {
@@ -698,14 +785,7 @@ describe('ReferenciasService', () => {
       await expect(service.getReferenciaById(idIndicacao)).rejects.toThrow(
         'Erro ao buscar referência: Referência não encontrada'
       );
-      expect(mockPrismaService.indicacaoReferencia.findUnique).toHaveBeenCalledWith({
-        where: { idIndicacao },
-        include: {
-          ciclo: true,
-          indicador: true,
-          indicado: true,
-        },
-      });
+      expect(mockHashService.decrypt).not.toHaveBeenCalled();
     });
 
     it('deve lançar BadRequestException quando há erro no Prisma', async () => {
@@ -721,7 +801,7 @@ describe('ReferenciasService', () => {
       );
     });
 
-    it('deve retornar referência com todos os relacionamentos', async () => {
+    it('deve retornar referência com todos os relacionamentos e justificativa descriptografada', async () => {
       // Arrange
       const idIndicacao = '123e4567-e89b-12d3-a456-426614174000';
       mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(mockIndicacaoComRelacionamentos);
@@ -736,6 +816,68 @@ describe('ReferenciasService', () => {
       expect(resultado.ciclo).toHaveProperty('nomeCiclo');
       expect(resultado.indicador).toHaveProperty('nomeCompleto');
       expect(resultado.indicado).toHaveProperty('email');
+      expect(resultado.justificativa).toBe(mockJustificativaDescriptografada);
+    });
+
+    it('deve lidar com justificativa nula', async () => {
+      // Arrange
+      const idIndicacao = '123e4567-e89b-12d3-a456-426614174000';
+      const referenciaComJustificativaNula = {
+        ...mockIndicacaoComRelacionamentos,
+        justificativa: null,
+      };
+      mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(referenciaComJustificativaNula);
+
+      // Act
+      const resultado = await service.getReferenciaById(idIndicacao);
+
+      // Assert
+      expect(resultado.justificativa).toBeNull();
+      expect(mockHashService.decrypt).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Integração com HashService', () => {
+    it('deve criptografar na criação e descriptografar na consulta', async () => {
+      // Arrange
+      const justificativaOriginal = 'Texto original para testar criptografia';
+      const justificativaCriptografada = 'abc123:def456ghi789';
+      
+      mockHashService.hash.mockReturnValue(justificativaCriptografada);
+      mockHashService.decrypt.mockReturnValue(justificativaOriginal);
+
+      const dtoCreate = { ...criarReferenciaDto, justificativa: justificativaOriginal };
+      const indicacaoCriada = { ...mockIndicacao, justificativa: justificativaCriptografada };
+      const indicacaoComRelacionamentos = { ...indicacaoCriada, ciclo: {}, indicador: {}, indicado: {} };
+
+      mockPrismaService.indicacaoReferencia.create.mockResolvedValue(indicacaoCriada);
+      mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(indicacaoComRelacionamentos);
+
+      // Act - Criar
+      const criada = await service.criarReferencia(dtoCreate);
+      
+      // Act - Consultar
+      const consultada = await service.getReferenciaById(criada.idIndicacao);
+
+      // Assert
+      expect(mockHashService.hash).toHaveBeenCalledWith(justificativaOriginal);
+      expect(criada.justificativa).toBe(justificativaCriptografada); // No banco: criptografada
+      expect(mockHashService.decrypt).toHaveBeenCalledWith(justificativaCriptografada);
+      expect(consultada.justificativa).toBe(justificativaOriginal); // Na consulta: descriptografada
+    });
+
+    it('deve lidar com falha na descriptografia', async () => {
+      // Arrange
+      const idIndicacao = '123e4567-e89b-12d3-a456-426614174000';
+      mockHashService.decrypt.mockReturnValue(null); // Simula falha na descriptografia
+      mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(mockIndicacaoComRelacionamentos);
+
+      // Act
+      const resultado = await service.getReferenciaById(idIndicacao);
+
+      // Assert
+      expect(resultado.justificativa).toBeNull();
+      expect(mockHashService.decrypt).toHaveBeenCalledWith(mockJustificativaCriptografada);
     });
   });
 
@@ -756,8 +898,9 @@ describe('ReferenciasService', () => {
       // Assert
       expect(resultados).toHaveLength(3);
       expect(mockPrismaService.indicacaoReferencia.findMany).toHaveBeenCalledTimes(3);
+      expect(mockHashService.decrypt).toHaveBeenCalledTimes(3); // Uma vez para cada getAllReferencias
       resultados.forEach(resultado => {
-        expect(resultado).toEqual([mockIndicacao]);
+        expect(resultado[0].justificativa).toBe(mockJustificativaDescriptografada);
       });
     });
 
@@ -774,7 +917,7 @@ describe('ReferenciasService', () => {
     it('deve funcionar com UUIDs válidos', async () => {
       // Arrange
       const validUUID = '123e4567-e89b-12d3-a456-426614174000';
-      mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(mockIndicacao);
+      mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(mockIndicacaoComRelacionamentos);
 
       // Act
       const resultado = await service.getReferenciaById(validUUID);
@@ -782,15 +925,16 @@ describe('ReferenciasService', () => {
       // Assert
       expect(resultado).toBeDefined();
       expect(resultado.idIndicacao).toBe(validUUID);
+      expect(resultado.justificativa).toBe(mockJustificativaDescriptografada);
     });
 
-    it('deve manter integridade dos dados durante operações CRUD', async () => {
+    it('deve manter integridade dos dados durante operações CRUD com criptografia', async () => {
       // Arrange
       const id = '123e4567-e89b-12d3-a456-426614174000';
       
-      // Simular operação completa: create -> read -> update -> delete
+      // Setup mocks para operação completa
       mockPrismaService.indicacaoReferencia.create.mockResolvedValue(mockIndicacao);
-      mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(mockIndicacao);
+      mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(mockIndicacaoComRelacionamentos);
       mockPrismaService.indicacaoReferencia.update.mockResolvedValue({
         ...mockIndicacao,
         tipo: TipoReferencia.CULTURAL,
@@ -806,13 +950,19 @@ describe('ReferenciasService', () => {
       // Assert
       expect(criado.idCiclo).toBe(criarReferenciaDto.idCiclo);
       expect(encontrado.idIndicacao).toBe(id);
+      expect(encontrado.justificativa).toBe(mockJustificativaDescriptografada); // Descriptografada
       expect(atualizado.tipo).toBe(TipoReferencia.CULTURAL);
       expect(removido).toEqual({ message: 'Referência deletada com sucesso' });
+      
+      // Verifica se criptografia foi chamada na criação
+      expect(mockHashService.hash).toHaveBeenCalledWith(criarReferenciaDto.justificativa);
+      // Verifica se descriptografia foi chamada na consulta
+      expect(mockHashService.decrypt).toHaveBeenCalledWith(mockJustificativaCriptografada);
     });
   });
 
-  describe('Validação de tipos de referência', () => {
-    it('deve criar referência TECNICA corretamente', async () => {
+  describe('Validação de tipos de referência com criptografia', () => {
+    it('deve criar referência TECNICA corretamente com criptografia', async () => {
       // Arrange
       const dtoCriarTecnica = {
         ...criarReferenciaDto,
@@ -829,9 +979,10 @@ describe('ReferenciasService', () => {
 
       // Assert
       expect(resultado.tipo).toBe(TipoReferencia.TECNICA);
+      expect(mockHashService.hash).toHaveBeenCalledWith(dtoCriarTecnica.justificativa);
     });
 
-    it('deve criar referência CULTURAL corretamente', async () => {
+    it('deve criar referência CULTURAL corretamente com criptografia', async () => {
       // Arrange
       const dtoCriarCultural = {
         ...criarReferenciaDto,
@@ -848,6 +999,7 @@ describe('ReferenciasService', () => {
 
       // Assert
       expect(resultado.tipo).toBe(TipoReferencia.CULTURAL);
+      expect(mockHashService.hash).toHaveBeenCalledWith(dtoCriarCultural.justificativa);
     });
 
     it('deve atualizar tipo de TECNICA para CULTURAL', async () => {
@@ -868,10 +1020,11 @@ describe('ReferenciasService', () => {
 
       // Assert
       expect(resultado.tipo).toBe(TipoReferencia.CULTURAL);
+      expect(mockHashService.hash).not.toHaveBeenCalled(); // Não tem justificativa para criptografar
     });
   });
 
-  describe('Validação de estruturas de dados', () => {
+  describe('Validação de estruturas de dados com descriptografia', () => {
     it('deve retornar estrutura correta para indicação completa', async () => {
       // Arrange
       mockPrismaService.indicacaoReferencia.create.mockResolvedValue(mockIndicacao);
@@ -888,9 +1041,10 @@ describe('ReferenciasService', () => {
         tipo: expect.any(String),
         justificativa: expect.any(String),
       });
+      expect(mockHashService.hash).toHaveBeenCalled();
     });
 
-    it('deve manter consistência de tipos nos retornos', async () => {
+    it('deve manter consistência de tipos nos retornos com descriptografia', async () => {
       // Arrange
       const idIndicacao = '123e4567-e89b-12d3-a456-426614174000';
       mockPrismaService.indicacaoReferencia.findUnique.mockResolvedValue(mockIndicacaoComRelacionamentos);
@@ -904,10 +1058,11 @@ describe('ReferenciasService', () => {
       expect(typeof resultado.idIndicador).toBe('string');
       expect(typeof resultado.idIndicado).toBe('string');
       expect(typeof resultado.tipo).toBe('string');
-      expect(typeof resultado.justificativa).toBe('string');
+      expect(typeof resultado.justificativa).toBe('string'); // Descriptografada
       expect(typeof resultado.ciclo.nomeCiclo).toBe('string');
       expect(typeof resultado.indicador.nomeCompleto).toBe('string');
       expect(typeof resultado.indicado.email).toBe('string');
+      expect(mockHashService.decrypt).toHaveBeenCalled();
     });
   });
 });

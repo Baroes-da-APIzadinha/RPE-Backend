@@ -1,655 +1,696 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ColaboradorController } from '../colaborador/colaborador.controller';
-import { ColaboradorService } from '../colaborador/colaborador.service';
-import { CreateColaboradorDto, UpdateColaboradorDto, AssociatePerfilDto, TrocarSenhaDto } from '../colaborador/colaborador.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { ExecutionContext } from '@nestjs/common';
-import { Trilha, Cargo, Unidade } from '../colaborador/colaborador.constants';
+import { CicloService } from './ciclo.service';
+import { PrismaService } from '../database/prismaService';
+import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
+import { BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { cicloStatus } from '@prisma/client';
 
-describe('ColaboradorController', () => {
-  let controller: ColaboradorController;
-  let service: ColaboradorService;
+describe('CicloService', () => {
+  let service: CicloService;
+  let prismaService: PrismaService;
 
-  // Mock do ColaboradorService
-  const mockColaboradorService = {
-    criarColaborador: jest.fn(),
-    removerColaborador: jest.fn(),
-    getProfile: jest.fn(),
-    getGestorColaborador: jest.fn(),
-    updateColaborador: jest.fn(),
-    trocarSenhaPrimeiroLogin: jest.fn(),
-    associarPerfilColaborador: jest.fn(),
-    associarColaboradorCiclo: jest.fn(),
-    getAvaliacoesRecebidas: jest.fn(),
-    getHistoricoNotasPorCiclo: jest.fn(),
-    getHistoricoMediaNotasPorCiclo: jest.fn(),
-    getProgressoAtual: jest.fn(),
-    getAllColaborador: jest.fn(),
-  };
-
-  // Mock dos Guards
-  const mockJwtAuthGuard = {
-    canActivate: jest.fn((context: ExecutionContext) => {
-      const request = context.switchToHttp().getRequest();
-      request.user = { userId: 'user-id', roles: ['ADMIN'] };
-      return true;
-    }),
-  };
-
-  const mockRolesGuard = {
-    canActivate: jest.fn(() => true),
+  // Mock do PrismaService
+  const mockPrismaService = {
+    cicloAvaliacao: {
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+    },
   };
 
   // Dados de teste
-  const mockColaborador = {
-    idColaborador: '123e4567-e89b-12d3-a456-426614174000',
-    nomeCompleto: 'João da Silva',
-    email: 'joao@teste.com',
-    trilhaCarreira: 'DESENVOLVIMENTO',
-    cargo: 'DESENVOLVEDOR',
-    unidade: 'RECIFE',
-    primeiroLogin: true,
-    dataCriacao: new Date('2024-01-01'),
+  const mockCiclo = {
+    idCiclo: '123e4567-e89b-12d3-a456-426614174000',
+    nomeCiclo: '2026.1',
+    dataInicio: new Date('2026-01-01'),
+    dataFim: new Date('2026-04-30'), // 120 dias - dentro do limite
+    status: cicloStatus.AGENDADO,
+    duracaoEmAndamentoDias: 60,
+    duracaoEmRevisaoDias: 30,
+    duracaoEmEqualizacaoDias: 30,
+    updatedAt: new Date(),
   };
 
-  const mockUser = {
-    userId: '123e4567-e89b-12d3-a456-426614174000',
-    roles: ['ADMIN'],
+  const mockCreateCicloDto: CreateCicloDto = {
+    nome: '2026.2',
+    dataInicioAno: 2026,
+    dataInicioMes: 7,
+    dataInicioDia: 1,
+    dataFimAno: 2026,
+    dataFimMes: 11,
+    dataFimDia: 30, // Novembro = aproximadamente 153 dias
+    duracaoEmAndamentoDias: 60,
+    duracaoEmRevisaoDias: 30,
+    duracaoEmEqualizacaoDias: 63, // Ajustando para somar 153 dias
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [ColaboradorController],
       providers: [
+        CicloService,
         {
-          provide: ColaboradorService,
-          useValue: mockColaboradorService,
+          provide: PrismaService,
+          useValue: mockPrismaService,
         },
       ],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue(mockJwtAuthGuard)
-      .overrideGuard(RolesGuard)
-      .useValue(mockRolesGuard)
-      .compile();
+    }).compile();
 
-    controller = module.get<ColaboradorController>(ColaboradorController);
-    service = module.get<ColaboradorService>(ColaboradorService);
-  });
+    service = module.get<CicloService>(CicloService);
+    prismaService = module.get<PrismaService>(PrismaService);
 
-  afterEach(() => {
+    // Reset all mocks before each test
     jest.clearAllMocks();
   });
 
-  describe('Definição do controller', () => {
+  describe('Definição do service', () => {
     it('should be defined', () => {
-      expect(controller).toBeDefined();
+      expect(service).toBeDefined();
     });
   });
 
-  describe('criarColaborador', () => {
-    it('deve criar um colaborador com sucesso', async () => {
-      // Arrange
-      const createDto: CreateColaboradorDto = {
-        nomeCompleto: 'Novo Colaborador',
-        email: 'novo@teste.com',
-        senha: 'senha123',
-        colaboradorComum: true,
-      };
+  describe('createCiclo', () => {
+    beforeEach(() => {
+      mockPrismaService.cicloAvaliacao.findFirst.mockResolvedValue(null);
+      mockPrismaService.cicloAvaliacao.findMany.mockResolvedValue([]);
+      mockPrismaService.cicloAvaliacao.create.mockResolvedValue(mockCiclo);
+    });
 
-      mockColaboradorService.criarColaborador.mockResolvedValue(mockColaborador);
-
+    it('deve criar um ciclo com sucesso', async () => {
       // Act
-      const resultado = await controller.criarColaborador(createDto);
+      const resultado = await service.createCiclo(mockCreateCicloDto);
 
       // Assert
-      expect(resultado).toEqual(mockColaborador);
-      expect(mockColaboradorService.criarColaborador).toHaveBeenCalledWith(createDto);
-      expect(mockColaboradorService.criarColaborador).toHaveBeenCalledTimes(1);
-    });
-
-    it('deve retornar erro quando service retorna erro', async () => {
-      // Arrange
-      const createDto: CreateColaboradorDto = {
-        nomeCompleto: 'Colaborador Existente',
-        email: 'existente@teste.com',
-        senha: 'senha123',
-        colaboradorComum: true,
-      };
-
-      const mockError = {
-        status: 400,
-        message: 'Colaborador já existe',
-      };
-
-      mockColaboradorService.criarColaborador.mockResolvedValue(mockError);
-
-      // Act
-      const resultado = await controller.criarColaborador(createDto);
-
-      // Assert
-      expect(resultado).toEqual(mockError);
-      expect(mockColaboradorService.criarColaborador).toHaveBeenCalledWith(createDto);
-    });
-  });
-
-  describe('removerColaborador', () => {
-    it('deve remover um colaborador com sucesso', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      mockColaboradorService.removerColaborador.mockResolvedValue(mockColaborador);
-
-      // Act
-      const resultado = await controller.removerColaborador(id);
-
-      // Assert
-      expect(resultado).toEqual(mockColaborador);
-      expect(mockColaboradorService.removerColaborador).toHaveBeenCalledWith(id);
-      expect(mockColaboradorService.removerColaborador).toHaveBeenCalledTimes(1);
-    });
-
-    it('deve retornar erro quando colaborador não encontrado', async () => {
-      // Arrange
-      const id = 'inexistente';
-      const mockError = {
-        status: 404,
-        message: 'Colaborador não encontrado',
-      };
-
-      mockColaboradorService.removerColaborador.mockResolvedValue(mockError);
-
-      // Act
-      const resultado = await controller.removerColaborador(id);
-
-      // Assert
-      expect(resultado).toEqual(mockError);
-      expect(mockColaboradorService.removerColaborador).toHaveBeenCalledWith(id);
-    });
-  });
-
-  describe('getProfile', () => {
-    it('deve retornar o perfil do colaborador', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      mockColaboradorService.getProfile.mockResolvedValue(mockColaborador);
-
-      // Act
-      const resultado = await controller.getProfile(id);
-
-      // Assert
-      expect(resultado).toEqual(mockColaborador);
-      expect(mockColaboradorService.getProfile).toHaveBeenCalledWith(id);
-      expect(mockColaboradorService.getProfile).toHaveBeenCalledTimes(1);
-    });
-
-    it('deve retornar null quando colaborador não encontrado', async () => {
-      // Arrange
-      const id = 'inexistente';
-      mockColaboradorService.getProfile.mockResolvedValue(null);
-
-      // Act
-      const resultado = await controller.getProfile(id);
-
-      // Assert
-      expect(resultado).toBeNull();
-      expect(mockColaboradorService.getProfile).toHaveBeenCalledWith(id);
-    });
-  });
-
-  describe('getGestorColaborador', () => {
-    it('deve retornar colaborador para gestor autorizado', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      const req = { user: mockUser };
-
-      mockColaboradorService.getGestorColaborador.mockResolvedValue(mockColaborador);
-
-      // Act
-      const resultado = await controller.getGestorColaborador(id, req);
-
-      // Assert
-      expect(resultado).toEqual(mockColaborador);
-      expect(mockColaboradorService.getGestorColaborador).toHaveBeenCalledWith(id, mockUser);
-      expect(mockColaboradorService.getGestorColaborador).toHaveBeenCalledTimes(1);
-    });
-
-    it('deve retornar erro de acesso negado', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      const req = { user: { userId: 'outro-id', roles: ['COLABORADOR_COMUM'] } };
-      const mockError = {
-        status: 403,
-        message: 'Acesso negado.',
-      };
-
-      mockColaboradorService.getGestorColaborador.mockResolvedValue(mockError);
-
-      // Act
-      const resultado = await controller.getGestorColaborador(id, req);
-
-      // Assert
-      expect(resultado).toEqual(mockError);
-      expect(mockColaboradorService.getGestorColaborador).toHaveBeenCalledWith(id, req.user);
-    });
-  });
-
-  describe('atualizarColaborador', () => {
-    it('deve atualizar colaborador com sucesso', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      const updateDto: UpdateColaboradorDto = {
-        nomeCompleto: 'Nome Atualizado',
-        cargo: 'DESENVOLVEDOR',
-      };
-
-      const colaboradorAtualizado = { ...mockColaborador, ...updateDto };
-      mockColaboradorService.updateColaborador.mockResolvedValue(colaboradorAtualizado);
-
-      // Act
-      const resultado = await controller.atualizarColaborador(id, updateDto);
-
-      // Assert
-      expect(resultado).toEqual(colaboradorAtualizado);
-      expect(mockColaboradorService.updateColaborador).toHaveBeenCalledWith(id, updateDto);
-      expect(mockColaboradorService.updateColaborador).toHaveBeenCalledTimes(1);
-    });
-
-    it('deve retornar erro quando ID inválido', async () => {
-      // Arrange
-      const id = 'id-invalido';
-      const updateDto: UpdateColaboradorDto = { nomeCompleto: 'Nome' };
-      const mockError = {
-        status: 400,
-        message: 'ID do colaborador inválido',
-      };
-
-      mockColaboradorService.updateColaborador.mockResolvedValue(mockError);
-
-      // Act
-      const resultado = await controller.atualizarColaborador(id, updateDto);
-
-      // Assert
-      expect(resultado).toEqual(mockError);
-      expect(mockColaboradorService.updateColaborador).toHaveBeenCalledWith(id, updateDto);
-    });
-  });
-
-  describe('trocarSenhaPrimeiroLogin', () => {
-    it('deve trocar senha com sucesso', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      const dto: TrocarSenhaDto = {
-        senhaAtual: 'senhaAtual123',
-        novaSenha: 'novaSenha123',
-      };
-
-      const mockResponse = { message: 'Senha alterada com sucesso' };
-      mockColaboradorService.trocarSenhaPrimeiroLogin.mockResolvedValue(mockResponse);
-
-      // Act
-      const resultado = await controller.trocarSenhaPrimeiroLogin(id, dto);
-
-      // Assert
-      expect(resultado).toEqual(mockResponse);
-      expect(mockColaboradorService.trocarSenhaPrimeiroLogin).toHaveBeenCalledWith(id, dto);
-      expect(mockColaboradorService.trocarSenhaPrimeiroLogin).toHaveBeenCalledTimes(1);
-    });
-
-    it('deve lançar erro quando service lança erro', async () => {
-      // Arrange
-      const id = '123e4567-e89b-12d3-a456-426614174000';
-      const dto: TrocarSenhaDto = {
-        senhaAtual: 'senhaErrada',
-        novaSenha: 'novaSenha123',
-      };
-
-      mockColaboradorService.trocarSenhaPrimeiroLogin.mockRejectedValue(
-        new Error('Senha atual incorreta')
-      );
-
-      // Act & Assert
-      await expect(controller.trocarSenhaPrimeiroLogin(id, dto)).rejects.toThrow(
-        'Senha atual incorreta'
-      );
-      expect(mockColaboradorService.trocarSenhaPrimeiroLogin).toHaveBeenCalledWith(id, dto);
-    });
-  });
-
-  describe('associarPerfil', () => {
-    it('deve associar perfil com sucesso', async () => {
-      // Arrange
-      const data: AssociatePerfilDto = {
-        idColaborador: '123e4567-e89b-12d3-a456-426614174000',
-        tipoPerfil: 'GESTOR',
-      };
-
-      const mockPerfilAssociado = {
-        idColaborador: data.idColaborador,
-        tipoPerfil: 'GESTOR',
-      };
-
-      mockColaboradorService.associarPerfilColaborador.mockResolvedValue(mockPerfilAssociado);
-
-      // Act
-      const resultado = await controller.associarPerfil(data);
-
-      // Assert
-      expect(resultado).toEqual(mockPerfilAssociado);
-      expect(mockColaboradorService.associarPerfilColaborador).toHaveBeenCalledWith(
-        data.idColaborador,
-        data.tipoPerfil
-      );
-      expect(mockColaboradorService.associarPerfilColaborador).toHaveBeenCalledTimes(1);
-    });
-
-    it('deve retornar erro quando perfil já associado', async () => {
-      // Arrange
-      const data: AssociatePerfilDto = {
-        idColaborador: '123e4567-e89b-12d3-a456-426614174000',
-        tipoPerfil: 'GESTOR',
-      };
-
-      const mockError = {
-        status: 400,
-        message: 'Perfil já associado ao colaborador',
-      };
-
-      mockColaboradorService.associarPerfilColaborador.mockResolvedValue(mockError);
-
-      // Act
-      const resultado = await controller.associarPerfil(data);
-
-      // Assert
-      expect(resultado).toEqual(mockError);
-      expect(mockColaboradorService.associarPerfilColaborador).toHaveBeenCalledWith(
-        data.idColaborador,
-        data.tipoPerfil
-      );
-    });
-  });
-
-  describe('associarCiclo', () => {
-    it('deve associar colaborador ao ciclo com sucesso', async () => {
-      // Arrange
-      const data = {
-        idColaborador: '123e4567-e89b-12d3-a456-426614174000',
-        idCiclo: '456e7890-e89b-12d3-a456-426614174001',
-      };
-
-      const mockAssociacao = {
-        idColaborador: data.idColaborador,
-        idCiclo: data.idCiclo,
-      };
-
-      mockColaboradorService.associarColaboradorCiclo.mockResolvedValue(mockAssociacao);
-
-      // Act
-      const resultado = await controller.associarCiclo(data);
-
-      // Assert
-      expect(resultado).toEqual(mockAssociacao);
-      expect(mockColaboradorService.associarColaboradorCiclo).toHaveBeenCalledWith(
-        data.idColaborador,
-        data.idCiclo
-      );
-      expect(mockColaboradorService.associarColaboradorCiclo).toHaveBeenCalledTimes(1);
-    });
-
-    it('deve retornar erro quando colaborador não encontrado', async () => {
-      // Arrange
-      const data = {
-        idColaborador: 'inexistente',
-        idCiclo: '456e7890-e89b-12d3-a456-426614174001',
-      };
-
-      const mockError = {
-        status: 404,
-        message: 'Colaborador não encontrado',
-      };
-
-      mockColaboradorService.associarColaboradorCiclo.mockResolvedValue(mockError);
-
-      // Act
-      const resultado = await controller.associarCiclo(data);
-
-      // Assert
-      expect(resultado).toEqual(mockError);
-      expect(mockColaboradorService.associarColaboradorCiclo).toHaveBeenCalledWith(
-        data.idColaborador,
-        data.idCiclo
-      );
-    });
-  });
-
-  describe('getAvaliacoesRecebidas', () => {
-    it('deve retornar quantidade de avaliações recebidas', async () => {
-      // Arrange
-      const idColaborador = '123e4567-e89b-12d3-a456-426614174000';
-      const mockResponse = { quantidadeAvaliacoes: 5 };
-
-      mockColaboradorService.getAvaliacoesRecebidas.mockResolvedValue(mockResponse);
-
-      // Act
-      const resultado = await controller.getAvaliacoesRecebidas(idColaborador);
-
-      // Assert
-      expect(resultado).toEqual(mockResponse);
-      expect(mockColaboradorService.getAvaliacoesRecebidas).toHaveBeenCalledWith(idColaborador);
-      expect(mockColaboradorService.getAvaliacoesRecebidas).toHaveBeenCalledTimes(1);
-    });
-
-    it('deve retornar zero avaliações', async () => {
-      // Arrange
-      const idColaborador = '123e4567-e89b-12d3-a456-426614174000';
-      const mockResponse = { quantidadeAvaliacoes: 0 };
-
-      mockColaboradorService.getAvaliacoesRecebidas.mockResolvedValue(mockResponse);
-
-      // Act
-      const resultado = await controller.getAvaliacoesRecebidas(idColaborador);
-
-      // Assert
-      expect(resultado).toEqual(mockResponse);
-      expect(mockColaboradorService.getAvaliacoesRecebidas).toHaveBeenCalledWith(idColaborador);
-    });
-  });
-
-  describe('getHistoricoNotasPorCiclo', () => {
-    it('deve retornar histórico de notas por ciclo', async () => {
-      // Arrange
-      const idColaborador = '123e4567-e89b-12d3-a456-426614174000';
-      const mockHistorico = [
-        { ciclo: 'Ciclo 2024', notas: [8.5, 9.0, 7.5] },
-        { ciclo: 'Ciclo 2023', notas: [8.0, 8.5, 7.0] },
-      ];
-
-      mockColaboradorService.getHistoricoNotasPorCiclo.mockResolvedValue(mockHistorico);
-
-      // Act
-      const resultado = await controller.getHistoricoNotasPorCiclo(idColaborador);
-
-      // Assert
-      expect(resultado).toEqual(mockHistorico);
-      expect(mockColaboradorService.getHistoricoNotasPorCiclo).toHaveBeenCalledWith(idColaborador);
-      expect(mockColaboradorService.getHistoricoNotasPorCiclo).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('getHistoricoMediaNotasPorCiclo', () => {
-    it('deve retornar histórico de média de notas por ciclo', async () => {
-      // Arrange
-      const idColaborador = '123e4567-e89b-12d3-a456-426614174000';
-      const mockHistorico = [
-        { ciclo: 'Ciclo 2024', mediaNotas: 8.3 },
-        { ciclo: 'Ciclo 2023', mediaNotas: 7.8 },
-      ];
-
-      mockColaboradorService.getHistoricoMediaNotasPorCiclo.mockResolvedValue(mockHistorico);
-
-      // Act
-      const resultado = await controller.getHistoricoMediaNotasPorCiclo(idColaborador);
-
-      // Assert
-      expect(resultado).toEqual(mockHistorico);
-      expect(mockColaboradorService.getHistoricoMediaNotasPorCiclo).toHaveBeenCalledWith(idColaborador);
-      expect(mockColaboradorService.getHistoricoMediaNotasPorCiclo).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('getProgressoAtual', () => {
-    it('deve retornar progresso atual do colaborador', async () => {
-      // Arrange
-      const idColaborador = '123e4567-e89b-12d3-a456-426614174000';
-      const mockProgresso = [
-        { TipoAvaliacao: 'auto', porcentagemPreenchimento: 50 },
-        { TipoAvaliacao: '360', porcentagemPreenchimento: 75 },
-        { TipoAvaliacao: 'Lider/mentor', porcentagemPreenchimento: 100 },
-      ];
-
-      mockColaboradorService.getProgressoAtual.mockResolvedValue(mockProgresso);
-
-      // Act
-      const resultado = await controller.getProgressoAtual(idColaborador);
-
-      // Assert
-      expect(resultado).toEqual(mockProgresso);
-      expect(mockColaboradorService.getProgressoAtual).toHaveBeenCalledWith(idColaborador);
-      expect(mockColaboradorService.getProgressoAtual).toHaveBeenCalledTimes(1);
-    });
-
-    it('deve retornar array vazio quando não há progresso', async () => {
-      // Arrange
-      const idColaborador = '123e4567-e89b-12d3-a456-426614174000';
-      const mockProgresso: any[] = [];
-
-      mockColaboradorService.getProgressoAtual.mockResolvedValue(mockProgresso);
-
-      // Act
-      const resultado = await controller.getProgressoAtual(idColaborador);
-
-      // Assert
-      expect(resultado).toEqual([]);
-      expect(mockColaboradorService.getProgressoAtual).toHaveBeenCalledWith(idColaborador);
-    });
-  });
-
-  describe('getAllColaboradores', () => {
-    it('deve retornar todos os colaboradores', async () => {
-      // Arrange
-      const mockColaboradores = [
-        {
-          idColaborador: 'id1',
-          nomeCompleto: 'Colaborador 1',
-          email: 'collab1@teste.com',
-          trilhaCarreira: 'DESENVOLVIMENTO',
-          cargo: 'DESENVOLVEDOR',
-          unidade: 'RECIFE',
+      expect(resultado).toEqual(mockCiclo);
+      expect(mockPrismaService.cicloAvaliacao.create).toHaveBeenCalledWith({
+        data: {
+          nomeCiclo: mockCreateCicloDto.nome,
+          dataInicio: expect.any(Date),
+          dataFim: expect.any(Date),
+          status: expect.any(String),
+          duracaoEmAndamentoDias: mockCreateCicloDto.duracaoEmAndamentoDias,
+          duracaoEmRevisaoDias: mockCreateCicloDto.duracaoEmRevisaoDias,
+          duracaoEmEqualizacaoDias: mockCreateCicloDto.duracaoEmEqualizacaoDias,
         },
-        {
-          idColaborador: 'id2',
-          nomeCompleto: 'Colaborador 2',
-          email: 'collab2@teste.com',
-          trilhaCarreira: 'QA',
-          cargo: 'QA',
-          unidade: 'SAO PAULO',
-        },
-      ];
-
-      mockColaboradorService.getAllColaborador.mockResolvedValue(mockColaboradores);
-
-      // Act
-      const resultado = await controller.getAllColaboradores();
-
-      // Assert
-      expect(resultado).toEqual(mockColaboradores);
-      expect(mockColaboradorService.getAllColaborador).toHaveBeenCalledTimes(1);
-    });
-
-    it('deve retornar array vazio quando não há colaboradores', async () => {
-      // Arrange
-      mockColaboradorService.getAllColaborador.mockResolvedValue([]);
-
-      // Act
-      const resultado = await controller.getAllColaboradores();
-
-      // Assert
-      expect(resultado).toEqual([]);
-      expect(mockColaboradorService.getAllColaborador).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('getColaboradorConstantes', () => {
-    it('deve retornar constantes do colaborador', async () => {
-      // Act
-      const resultado = await controller.getColaboradorConstantes();
-
-      // Assert
-      expect(resultado).toEqual({
-        trilhas: Object.values(Trilha),
-        cargos: Object.values(Cargo),
-        unidades: Object.values(Unidade),
       });
     });
 
-    it('deve retornar todas as trilhas disponíveis', async () => {
-      // Act
-      const resultado = await controller.getColaboradorConstantes();
+    it('deve falhar quando nome do ciclo já existe', async () => {
+      // Arrange
+      mockPrismaService.cicloAvaliacao.findFirst.mockResolvedValue(mockCiclo);
 
-      // Assert
-      expect(resultado.trilhas).toContain('DESENVOLVIMENTO');
-      expect(resultado.trilhas).toContain('QA');
-      expect(resultado.trilhas).toContain('UX');
-      expect(resultado.trilhas.length).toBeGreaterThan(0);
+      // Act & Assert
+      await expect(service.createCiclo(mockCreateCicloDto)).rejects.toThrow(
+        ConflictException
+      );
+      await expect(service.createCiclo(mockCreateCicloDto)).rejects.toThrow(
+        'Já existe um ciclo com este nome.'
+      );
     });
 
-    it('deve retornar todos os cargos disponíveis', async () => {
-      // Act
-      const resultado = await controller.getColaboradorConstantes();
+    it('deve falhar quando nome não segue o padrão AAAA.S', async () => {
+      // Arrange
+      const dtoInvalido = { ...mockCreateCicloDto, nome: 'ciclo-invalido' };
 
-      // Assert
-      expect(resultado.cargos).toContain('DESENVOLVEDOR');
-      expect(resultado.cargos).toContain('QA');
-      expect(resultado.cargos.length).toBeGreaterThan(0);
+      // Act & Assert
+      await expect(service.createCiclo(dtoInvalido)).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.createCiclo(dtoInvalido)).rejects.toThrow(
+        'O nome do ciclo deve seguir o padrão AAAA.S'
+      );
     });
 
-    it('deve retornar todas as unidades disponíveis', async () => {
-      // Act
-      const resultado = await controller.getColaboradorConstantes();
+    it('deve falhar quando data de início é maior que data de fim', async () => {
+      // Arrange
+      const dtoInvalido = {
+        ...mockCreateCicloDto,
+        dataInicioAno: 2026,
+        dataInicioMes: 12,
+        dataInicioDia: 31,
+        dataFimAno: 2026,
+        dataFimMes: 1,
+        dataFimDia: 1,
+      };
 
-      // Assert
-      expect(resultado.unidades).toContain('RECIFE');
-      expect(resultado.unidades).toContain('SAO PAULO');
-      expect(resultado.unidades.length).toBeGreaterThan(0);
+      // Act & Assert
+      await expect(service.createCiclo(dtoInvalido)).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.createCiclo(dtoInvalido)).rejects.toThrow(
+        'Data de início não pode ser maior que a data de fim'
+      );
+    });
+
+    it('deve falhar quando soma das durações não confere com total de dias', async () => {
+      // Arrange
+      const dtoInvalido = {
+        ...mockCreateCicloDto,
+        duracaoEmAndamentoDias: 30,
+        duracaoEmRevisaoDias: 30,
+        duracaoEmEqualizacaoDias: 30, // Total: 90 dias, mas ciclo tem mais que isso
+      };
+
+      // Act & Assert
+      await expect(service.createCiclo(dtoInvalido)).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.createCiclo(dtoInvalido)).rejects.toThrow(
+        'soma das durações dos status do ciclo'
+      );
+    });
+
+    it('deve falhar quando ciclo tem menos que 30 dias', async () => {
+      // Arrange
+      const dtoInvalido = {
+        ...mockCreateCicloDto,
+        dataFimAno: 2026,
+        dataFimMes: 7,
+        dataFimDia: 15, // Apenas 15 dias de duração
+        duracaoEmAndamentoDias: 5,
+        duracaoEmRevisaoDias: 5,
+        duracaoEmEqualizacaoDias: 5,
+      };
+
+      // Act & Assert
+      await expect(service.createCiclo(dtoInvalido)).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.createCiclo(dtoInvalido)).rejects.toThrow(
+        'O ciclo deve ter pelo menos 30 dias'
+      );
+    });
+
+    it('deve falhar quando há sobreposição com ciclo existente', async () => {
+      // Arrange
+      const cicloExistente = {
+        idCiclo: 'outro-id',
+        dataInicio: new Date('2026-06-01'),
+        dataFim: new Date('2026-12-31'),
+      };
+      mockPrismaService.cicloAvaliacao.findMany.mockResolvedValue([cicloExistente]);
+
+      // Act & Assert
+      await expect(service.createCiclo(mockCreateCicloDto)).rejects.toThrow(
+        ConflictException
+      );
+      await expect(service.createCiclo(mockCreateCicloDto)).rejects.toThrow(
+        'O período informado'
+      );
+    });
+
+    it('deve falhar quando data é inválida', async () => {
+      // Arrange
+      const dtoInvalido = {
+        ...mockCreateCicloDto,
+        dataInicioMes: 13, // Mês inválido
+      };
+
+      // Act & Assert
+      await expect(service.createCiclo(dtoInvalido)).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.createCiclo(dtoInvalido)).rejects.toThrow(
+        'Data inválida fornecida'
+      );
     });
   });
 
-  describe('Guards e Autenticação', () => {
-    it('deve verificar se JwtAuthGuard está sendo aplicado', () => {
-      // Este teste verifica se os guards estão configurados
-      expect(mockJwtAuthGuard.canActivate).toBeDefined();
+  describe('updateCiclo', () => {
+    beforeEach(() => {
+      mockPrismaService.cicloAvaliacao.findUnique.mockResolvedValue(mockCiclo);
+      mockPrismaService.cicloAvaliacao.findFirst.mockResolvedValue(null);
+      mockPrismaService.cicloAvaliacao.findMany.mockResolvedValue([]);
+      mockPrismaService.cicloAvaliacao.update.mockResolvedValue(mockCiclo);
     });
 
-    it('deve verificar se RolesGuard está sendo aplicado', () => {
-      // Este teste verifica se os guards estão configurados
-      expect(mockRolesGuard.canActivate).toBeDefined();
-    });
-
-    it('deve simular usuário autenticado', () => {
+    it('deve atualizar um ciclo com sucesso', async () => {
       // Arrange
-      const mockContext = {
-        switchToHttp: () => ({
-          getRequest: () => ({
-            user: undefined,
-          }),
-        }),
-      } as ExecutionContext;
+      const id = '123e4567-e89b-12d3-a456-426614174000';
+      const updateDto: UpdateCicloDto = {
+        nome: '2026.3',
+      };
 
       // Act
-      const result = mockJwtAuthGuard.canActivate(mockContext);
+      const resultado = await service.updateCiclo(id, updateDto);
 
       // Assert
-      expect(result).toBe(true);
+      expect(resultado).toEqual(mockCiclo);
+      expect(mockPrismaService.cicloAvaliacao.update).toHaveBeenCalledWith({
+        where: { idCiclo: id },
+        data: expect.objectContaining({
+          nomeCiclo: updateDto.nome,
+          status: expect.any(String),
+        }),
+      });
+    });
+
+    it('deve falhar quando ciclo não existe', async () => {
+      // Arrange
+      const id = '123e4567-e89b-12d3-a456-426614174999'; // UUID válido mas inexistente
+      mockPrismaService.cicloAvaliacao.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.updateCiclo(id, {})).rejects.toThrow(
+        NotFoundException
+      );
+      await expect(service.updateCiclo(id, {})).rejects.toThrow(
+        'Ciclo não encontrado'
+      );
+    });
+
+    it('deve falhar quando ID é inválido', async () => {
+      // Arrange
+      const id = 'id-invalido';
+
+      // Act & Assert
+      await expect(service.updateCiclo(id, {})).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.updateCiclo(id, {})).rejects.toThrow(
+        'ID do ciclo inválido'
+      );
+    });
+
+    it('deve atualizar apenas campos fornecidos', async () => {
+      // Arrange
+      const id = '123e4567-e89b-12d3-a456-426614174000';
+      const updateDto: UpdateCicloDto = {
+        duracaoEmAndamentoDias: 50,
+        duracaoEmRevisaoDias: 35,
+        duracaoEmEqualizacaoDias: 35, // Total de 120 dias para corresponder ao período do mockCiclo
+      };
+
+      // Act
+      await service.updateCiclo(id, updateDto);
+
+      // Assert
+      expect(mockPrismaService.cicloAvaliacao.update).toHaveBeenCalledWith({
+        where: { idCiclo: id },
+        data: expect.objectContaining({
+          duracaoEmAndamentoDias: 50,
+          duracaoEmRevisaoDias: 35,
+          duracaoEmEqualizacaoDias: 35,
+          status: expect.any(String),
+        }),
+      });
+    });
+  });
+
+  describe('deleteCiclo', () => {
+    it('deve deletar um ciclo com sucesso', async () => {
+      // Arrange
+      const id = '123e4567-e89b-12d3-a456-426614174000';
+      mockPrismaService.cicloAvaliacao.findUnique.mockResolvedValue(mockCiclo);
+      mockPrismaService.cicloAvaliacao.delete.mockResolvedValue(mockCiclo);
+
+      // Act
+      const resultado = await service.deleteCiclo(id);
+
+      // Assert
+      expect(resultado).toEqual(mockCiclo);
+      expect(mockPrismaService.cicloAvaliacao.delete).toHaveBeenCalledWith({
+        where: { idCiclo: id },
+      });
+    });
+
+    it('deve falhar quando ciclo não existe', async () => {
+      // Arrange
+      const id = '123e4567-e89b-12d3-a456-426614174999'; // UUID válido mas inexistente
+      mockPrismaService.cicloAvaliacao.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.deleteCiclo(id)).rejects.toThrow(
+        NotFoundException
+      );
+      await expect(service.deleteCiclo(id)).rejects.toThrow(
+        'Ciclo não encontrado'
+      );
+    });
+
+    it('deve falhar quando ID é inválido', async () => {
+      // Arrange
+      const id = 'id-invalido';
+
+      // Act & Assert
+      await expect(service.deleteCiclo(id)).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.deleteCiclo(id)).rejects.toThrow(
+        'ID do ciclo inválido'
+      );
+    });
+  });
+
+  describe('getCiclo', () => {
+    it('deve retornar um ciclo com sucesso', async () => {
+      // Arrange
+      const id = '123e4567-e89b-12d3-a456-426614174000';
+      mockPrismaService.cicloAvaliacao.findUnique.mockResolvedValue(mockCiclo);
+
+      // Act
+      const resultado = await service.getCiclo(id);
+
+      // Assert
+      expect(resultado).toEqual(mockCiclo);
+      expect(mockPrismaService.cicloAvaliacao.findUnique).toHaveBeenCalledWith({
+        where: { idCiclo: id },
+      });
+    });
+
+    it('deve falhar quando ciclo não existe', async () => {
+      // Arrange
+      const id = '123e4567-e89b-12d3-a456-426614174999'; // UUID válido mas inexistente
+      mockPrismaService.cicloAvaliacao.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.getCiclo(id)).rejects.toThrow(
+        NotFoundException
+      );
+      await expect(service.getCiclo(id)).rejects.toThrow(
+        'Ciclo não encontrado'
+      );
+    });
+
+    it('deve falhar quando ID é inválido', async () => {
+      // Arrange
+      const id = 'id-invalido';
+
+      // Act & Assert
+      await expect(service.getCiclo(id)).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.getCiclo(id)).rejects.toThrow(
+        'ID do ciclo inválido'
+      );
+    });
+  });
+
+  describe('getCiclos', () => {
+    it('deve retornar todos os ciclos ordenados por data de início', async () => {
+      // Arrange
+      const ciclos = [mockCiclo, { ...mockCiclo, idCiclo: 'outro-id' }];
+      mockPrismaService.cicloAvaliacao.findMany.mockResolvedValue(ciclos);
+
+      // Act
+      const resultado = await service.getCiclos();
+
+      // Assert
+      expect(resultado).toEqual(ciclos);
+      expect(mockPrismaService.cicloAvaliacao.findMany).toHaveBeenCalledWith({
+        orderBy: {
+          dataInicio: 'desc',
+        },
+      });
+    });
+
+    it('deve retornar array vazio quando não há ciclos', async () => {
+      // Arrange
+      mockPrismaService.cicloAvaliacao.findMany.mockResolvedValue([]);
+
+      // Act
+      const resultado = await service.getCiclos();
+
+      // Assert
+      expect(resultado).toEqual([]);
+    });
+  });
+
+  describe('getCiclosAtivos', () => {
+    it('deve retornar ciclos ativos com tempo restante calculado', async () => {
+      // Arrange
+      const ciclosAtivos = [
+        {
+          ...mockCiclo,
+          status: cicloStatus.EM_ANDAMENTO,
+          dataFim: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias no futuro
+        },
+      ];
+      mockPrismaService.cicloAvaliacao.findMany.mockResolvedValue(ciclosAtivos);
+
+      // Act
+      const resultado = await service.getCiclosAtivos();
+
+      // Assert
+      expect(resultado).toHaveLength(1);
+      expect(resultado[0]).toMatchObject({
+        id: mockCiclo.idCiclo,
+        nome: mockCiclo.nomeCiclo,
+        status: cicloStatus.EM_ANDAMENTO,
+        tempoRestante: expect.stringContaining('dias'),
+      });
+      expect(mockPrismaService.cicloAvaliacao.findMany).toHaveBeenCalledWith({
+        where: {
+          status: {
+            in: [
+              cicloStatus.AGENDADO,
+              cicloStatus.EM_ANDAMENTO,
+              cicloStatus.EM_REVISAO,
+              cicloStatus.EM_EQUALIZAÇÃO,
+            ],
+          },
+        },
+      });
+    });
+
+    it('deve retornar array vazio quando não há ciclos ativos', async () => {
+      // Arrange
+      mockPrismaService.cicloAvaliacao.findMany.mockResolvedValue([]);
+
+      // Act
+      const resultado = await service.getCiclosAtivos();
+
+      // Assert
+      expect(resultado).toEqual([]);
+    });
+  });
+
+  describe('getHistoricoCiclos', () => {
+    it('deve retornar histórico de ciclos fechados', async () => {
+      // Arrange
+      const ciclosFechados = [
+        {
+          ...mockCiclo,
+          status: cicloStatus.FECHADO,
+        },
+      ];
+      mockPrismaService.cicloAvaliacao.findMany.mockResolvedValue(ciclosFechados);
+
+      // Act
+      const resultado = await service.getHistoricoCiclos();
+
+      // Assert
+      expect(resultado).toHaveLength(1);
+      expect(resultado[0]).toMatchObject({
+        id: mockCiclo.idCiclo,
+        nome: mockCiclo.nomeCiclo,
+        dataEncerramento: mockCiclo.dataFim,
+        status: cicloStatus.FECHADO,
+      });
+      expect(mockPrismaService.cicloAvaliacao.findMany).toHaveBeenCalledWith({
+        where: {
+          status: 'FECHADO',
+        },
+      });
+    });
+
+    it('deve retornar array vazio quando não há ciclos fechados', async () => {
+      // Arrange
+      mockPrismaService.cicloAvaliacao.findMany.mockResolvedValue([]);
+
+      // Act
+      const resultado = await service.getHistoricoCiclos();
+
+      // Assert
+      expect(resultado).toEqual([]);
+    });
+  });
+
+  describe('Métodos privados de validação', () => {
+    describe('_isValidUUID', () => {
+      it('deve validar UUIDs corretos', () => {
+        const uuidsValidos = [
+          '123e4567-e89b-12d3-a456-426614174000',
+          'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+        ];
+
+        for (const uuid of uuidsValidos) {
+          expect((service as any)._isValidUUID(uuid)).toBe(true);
+        }
+      });
+
+      it('deve rejeitar UUIDs inválidos', () => {
+        const uuidsInvalidos = [
+          'uuid-invalido',
+          '123',
+          '',
+          'g47ac10b-58cc-4372-a567-0e02b2c3d479',
+          '123e4567-e89b-12d3-a456-426614174000-extra',
+        ];
+
+        for (const uuid of uuidsInvalidos) {
+          expect((service as any)._isValidUUID(uuid)).toBe(false);
+        }
+      });
+    });
+
+    describe('_validarPadraoNomeCiclo', () => {
+      it('deve aceitar nomes válidos', () => {
+        const nomesValidos = ['2026.1', '2027.2', '2028.9'];
+
+        for (const nome of nomesValidos) {
+          expect(() => (service as any)._validarPadraoNomeCiclo(nome)).not.toThrow();
+        }
+      });
+
+      it('deve rejeitar nomes inválidos', () => {
+        const nomesInvalidos = [
+          'ciclo-2026',
+          '2026',
+          '26.1',
+          '2026.10',
+          '2026-1',
+          'CICLO2026.1',
+        ];
+
+        for (const nome of nomesInvalidos) {
+          expect(() => (service as any)._validarPadraoNomeCiclo(nome)).toThrow(
+            BadRequestException
+          );
+          expect(() => (service as any)._validarPadraoNomeCiclo(nome)).toThrow(
+            'O nome do ciclo deve seguir o padrão AAAA.S'
+          );
+        }
+      });
+    });
+
+    describe('_isDataValida', () => {
+      it('deve validar datas corretas', () => {
+        const datasValidas = [
+          [2026, 1, 1],
+          [2026, 12, 31],
+          [2028, 2, 29], // 2028 é ano bissexto
+          [2026, 4, 30],
+        ];
+
+        for (const [ano, mes, dia] of datasValidas) {
+          expect((service as any)._isDataValida(ano, mes, dia)).toBe(true);
+        }
+      });
+
+      it('deve rejeitar datas inválidas', () => {
+        const datasInvalidas = [
+          [2023, 2, 29], // Não é ano bissexto
+          [2026, 13, 1], // Mês inválido
+          [2026, 4, 31], // Abril não tem 31 dias
+          [2026, 0, 1], // Mês zero
+          [2026, 1, 0], // Dia zero
+        ];
+
+        for (const [ano, mes, dia] of datasInvalidas) {
+          expect((service as any)._isDataValida(ano, mes, dia)).toBe(false);
+        }
+      });
+    });
+
+    describe('_isSameDay', () => {
+      it('deve identificar datas iguais', () => {
+        const data1 = new Date('2026-01-01T00:00:00Z');
+        const data2 = new Date('2026-01-01T23:59:59Z');
+
+        expect((service as any)._isSameDay(data1, data2)).toBe(true);
+      });
+
+      it('deve identificar datas diferentes', () => {
+        const data1 = new Date('2026-01-01T00:00:00Z');
+        const data2 = new Date('2026-01-02T00:00:00Z');
+
+        expect((service as any)._isSameDay(data1, data2)).toBe(false);
+      });
+    });
+  });
+
+  describe('Integração e casos edge', () => {
+    it('deve definir status correto baseado na data de início', async () => {
+      // Arrange - Data de início igual a hoje
+      const hoje = new Date();
+      const amanha = new Date(hoje);
+      amanha.setDate(hoje.getDate() + 1);
+      const em3Meses = new Date(hoje); // Aproximadamente 92 dias para ficar dentro de 180 dias
+      em3Meses.setDate(hoje.getDate() + 92);
+      
+      const createDto = {
+        ...mockCreateCicloDto,
+        dataInicioAno: amanha.getUTCFullYear(),
+        dataInicioMes: amanha.getUTCMonth() + 1,
+        dataInicioDia: amanha.getUTCDate(),
+        dataFimAno: em3Meses.getUTCFullYear(),
+        dataFimMes: em3Meses.getUTCMonth() + 1,
+        dataFimDia: em3Meses.getUTCDate(),
+        duracaoEmAndamentoDias: 31,
+        duracaoEmRevisaoDias: 31,
+        duracaoEmEqualizacaoDias: 30, // Total de 92 dias
+      };
+
+      mockPrismaService.cicloAvaliacao.findFirst.mockResolvedValue(null);
+      mockPrismaService.cicloAvaliacao.findMany.mockResolvedValue([]);
+      mockPrismaService.cicloAvaliacao.create.mockResolvedValue({
+        ...mockCiclo,
+        status: cicloStatus.EM_ANDAMENTO,
+      });
+
+      // Act
+      const resultado = await service.createCiclo(createDto);
+
+      // Assert
+      expect(mockPrismaService.cicloAvaliacao.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          status: expect.any(String),
+        }),
+      });
+    });
+
+    it('deve lidar com erro de data muito antiga', async () => {
+      // Arrange
+      const createDto = {
+        ...mockCreateCicloDto,
+        dataInicioAno: 2020,
+        dataInicioMes: 1,
+        dataInicioDia: 1,
+        dataFimAno: 2020,
+        dataFimMes: 6,
+        dataFimDia: 30,
+      };
+
+      // Act & Assert
+      await expect(service.createCiclo(createDto)).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.createCiclo(createDto)).rejects.toThrow(
+        'Data de início'
+      );
+    });
+
+    it('deve calcular corretamente o tempo restante para ciclos ativos', async () => {
+      // Arrange
+      const dataFim = new Date();
+      dataFim.setDate(dataFim.getDate() + 5); // 5 dias no futuro
+
+      const cicloAtivo = {
+        ...mockCiclo,
+        status: cicloStatus.EM_ANDAMENTO,
+        dataFim,
+      };
+      mockPrismaService.cicloAvaliacao.findMany.mockResolvedValue([cicloAtivo]);
+
+      // Act
+      const resultado = await service.getCiclosAtivos();
+
+      // Assert
+      expect(resultado[0].tempoRestante).toMatch(/\d+ dias/);
     });
   });
 });

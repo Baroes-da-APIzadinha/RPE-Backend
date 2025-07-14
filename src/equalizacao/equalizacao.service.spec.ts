@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EqualizacaoService } from './equalizacao.service';
 import { PrismaService } from '../database/prismaService';
+import { HashService } from '../common/hash.service';
 import { CreateEqualizacaoDto, UpdateEqualizacaoDto } from './equalizacao.dto';
 import { preenchimentoStatus } from '@prisma/client';
 import { 
@@ -12,6 +13,7 @@ import {
 describe('EqualizacaoService', () => {
   let service: EqualizacaoService;
   let prismaService: PrismaService;
+  let hashService: HashService;
   let loggerSpy: jest.SpyInstance;
 
   // Mock do PrismaService
@@ -30,6 +32,12 @@ describe('EqualizacaoService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
+  };
+
+  // Mock do HashService
+  const mockHashService = {
+    hash: jest.fn(),
+    decrypt: jest.fn(),
   };
 
   // Dados de teste
@@ -113,16 +121,30 @@ describe('EqualizacaoService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: HashService,
+          useValue: mockHashService,
+        },
       ],
     }).compile();
 
     service = module.get<EqualizacaoService>(EqualizacaoService);
     prismaService = module.get<PrismaService>(PrismaService);
+    hashService = module.get<HashService>(HashService);
 
     // Mock do Logger
     loggerSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
     jest.spyOn(Logger.prototype, 'warn').mockImplementation();
     jest.spyOn(Logger.prototype, 'error').mockImplementation();
+
+    // Setup default mock behaviors
+    mockHashService.hash.mockImplementation((value: string) => `encrypted_${value}`);
+    mockHashService.decrypt.mockImplementation((value: string) => {
+      if (value?.startsWith('encrypted_')) {
+        return value.replace('encrypted_', '');
+      }
+      return value;
+    });
   });
 
   afterEach(() => {
@@ -314,14 +336,37 @@ describe('EqualizacaoService', () => {
   });
 
   describe('findAll', () => {
-    it('deve retornar todas as equalizações com relacionamentos', async () => {
+    it('deve retornar todas as equalizações com relacionamentos e justificativas descriptografadas', async () => {
       // Arrange
       const mockEqualizacoes = [
-        mockEqualizacaoComRelacionamentos,
+        {
+          ...mockEqualizacaoComRelacionamentos,
+          justificativa: 'encrypted_justificativa1',
+        },
         {
           ...mockEqualizacaoComRelacionamentos,
           idEqualizacao: 'another-id',
           idAvaliado: mockColaborador2.idColaborador,
+          justificativa: 'encrypted_justificativa2',
+          alvo: {
+            nomeCompleto: mockColaborador2.nomeCompleto,
+            cargo: mockColaborador2.cargo,
+            unidade: mockColaborador2.unidade,
+            trilhaCarreira: mockColaborador2.trilhaCarreira,
+          },
+        },
+      ];
+
+      const expectedResult = [
+        {
+          ...mockEqualizacaoComRelacionamentos,
+          justificativa: 'justificativa1',
+        },
+        {
+          ...mockEqualizacaoComRelacionamentos,
+          idEqualizacao: 'another-id',
+          idAvaliado: mockColaborador2.idColaborador,
+          justificativa: 'justificativa2',
           alvo: {
             nomeCompleto: mockColaborador2.nomeCompleto,
             cargo: mockColaborador2.cargo,
@@ -337,7 +382,9 @@ describe('EqualizacaoService', () => {
       const resultado = await service.findAll();
 
       // Assert
-      expect(resultado).toEqual(mockEqualizacoes);
+      expect(resultado).toEqual(expectedResult);
+      expect(mockHashService.decrypt).toHaveBeenCalledWith('encrypted_justificativa1');
+      expect(mockHashService.decrypt).toHaveBeenCalledWith('encrypted_justificativa2');
       expect(mockPrismaService.equalizacao.findMany).toHaveBeenCalledWith({
         include: {
           alvo: {
@@ -389,12 +436,24 @@ describe('EqualizacaoService', () => {
   });
 
   describe('findByAvaliado', () => {
-    it('deve retornar equalizações de um avaliado específico', async () => {
+    it('deve retornar equalizações de um avaliado específico com justificativas descriptografadas', async () => {
       // Arrange
       const idAvaliado = mockColaborador1.idColaborador;
       const mockEqualizacoesAvaliado = [
         {
           ...mockEqualizacao,
+          justificativa: 'encrypted_justificativa1',
+          alvo: {
+            nomeCompleto: mockColaborador1.nomeCompleto,
+            cargo: mockColaborador1.cargo,
+          },
+        },
+      ];
+
+      const expectedResult = [
+        {
+          ...mockEqualizacao,
+          justificativa: 'justificativa1',
           alvo: {
             nomeCompleto: mockColaborador1.nomeCompleto,
             cargo: mockColaborador1.cargo,
@@ -408,7 +467,8 @@ describe('EqualizacaoService', () => {
       const resultado = await service.findByAvaliado(idAvaliado);
 
       // Assert
-      expect(resultado).toEqual(mockEqualizacoesAvaliado);
+      expect(resultado).toEqual(expectedResult);
+      expect(mockHashService.decrypt).toHaveBeenCalledWith('encrypted_justificativa1');
       expect(mockPrismaService.equalizacao.findMany).toHaveBeenCalledWith({
         where: { idAvaliado },
         include: {
@@ -472,13 +532,26 @@ describe('EqualizacaoService', () => {
   });
 
   describe('findByComite', () => {
-    it('deve retornar equalizações feitas por um membro do comitê', async () => {
+    it('deve retornar equalizações feitas por um membro do comitê com justificativas descriptografadas', async () => {
       // Arrange
       const idMembroComite = 'membro-comite-id';
       const mockEqualizacoesComite = [
         {
           ...mockEqualizacao,
           idMembroComite,
+          justificativa: 'encrypted_justificativa1',
+          alvo: {
+            nomeCompleto: mockColaborador1.nomeCompleto,
+            cargo: mockColaborador1.cargo,
+          },
+        },
+      ];
+
+      const expectedResult = [
+        {
+          ...mockEqualizacao,
+          idMembroComite,
+          justificativa: 'justificativa1',
           alvo: {
             nomeCompleto: mockColaborador1.nomeCompleto,
             cargo: mockColaborador1.cargo,
@@ -492,7 +565,8 @@ describe('EqualizacaoService', () => {
       const resultado = await service.findByComite(idMembroComite);
 
       // Assert
-      expect(resultado).toEqual(mockEqualizacoesComite);
+      expect(resultado).toEqual(expectedResult);
+      expect(mockHashService.decrypt).toHaveBeenCalledWith('encrypted_justificativa1');
       expect(mockPrismaService.equalizacao.findMany).toHaveBeenCalledWith({
         where: { idMembroComite },
         include: {
@@ -525,16 +599,226 @@ describe('EqualizacaoService', () => {
     });
   });
 
+  describe('findByAvaliadoCiclo', () => {
+    it('deve retornar equalizações de um avaliado específico em um ciclo', async () => {
+      // Arrange
+      const idAvaliado = mockColaborador1.idColaborador;
+      const idCiclo = mockCiclo.idCiclo;
+      const mockEqualizacoesAvaliado = [
+        {
+          ...mockEqualizacao,
+          justificativa: 'encrypted_justificativa1',
+          alvo: {
+            nomeCompleto: mockColaborador1.nomeCompleto,
+            cargo: mockColaborador1.cargo,
+          },
+        },
+      ];
+
+      const expectedResult = [
+        {
+          ...mockEqualizacao,
+          justificativa: 'justificativa1',
+          alvo: {
+            nomeCompleto: mockColaborador1.nomeCompleto,
+            cargo: mockColaborador1.cargo,
+          },
+        },
+      ];
+
+      mockPrismaService.equalizacao.findMany.mockResolvedValue(mockEqualizacoesAvaliado);
+
+      // Act
+      const resultado = await service.findByAvaliadoCiclo(idAvaliado, idCiclo);
+
+      // Assert
+      expect(resultado).toEqual(expectedResult);
+      expect(mockHashService.decrypt).toHaveBeenCalledWith('encrypted_justificativa1');
+      expect(mockPrismaService.equalizacao.findMany).toHaveBeenCalledWith({
+        where: {
+          idAvaliado,
+          idCiclo,
+        },
+        include: {
+          alvo: {
+            select: {
+              nomeCompleto: true,
+              cargo: true,
+            },
+          },
+        },
+        orderBy: {
+          dataEqualizacao: 'desc',
+        },
+      });
+      expect(loggerSpy).toHaveBeenCalledWith(`Buscando equalizações para avaliado: ${idAvaliado} no ciclo ${idCiclo}`);
+    });
+
+    it('deve retornar array vazio quando avaliado não tem equalizações no ciclo', async () => {
+      // Arrange
+      const idAvaliado = 'avaliado-sem-equalizacoes';
+      const idCiclo = 'ciclo-sem-equalizacoes';
+      mockPrismaService.equalizacao.findMany.mockResolvedValue([]);
+
+      // Act
+      const resultado = await service.findByAvaliadoCiclo(idAvaliado, idCiclo);
+
+      // Assert
+      expect(resultado).toEqual([]);
+      expect(mockPrismaService.equalizacao.findMany).toHaveBeenCalledWith({
+        where: {
+          idAvaliado,
+          idCiclo,
+        },
+        include: {
+          alvo: {
+            select: {
+              nomeCompleto: true,
+              cargo: true,
+            },
+          },
+        },
+        orderBy: {
+          dataEqualizacao: 'desc',
+        },
+      });
+    });
+
+    it('deve lidar com justificativas nulas', async () => {
+      // Arrange
+      jest.clearAllMocks(); // Limpar chamadas anteriores
+      
+      const idAvaliado = mockColaborador1.idColaborador;
+      const idCiclo = mockCiclo.idCiclo;
+      const mockEqualizacoesAvaliado = [
+        {
+          ...mockEqualizacao,
+          justificativa: null,
+          alvo: {
+            nomeCompleto: mockColaborador1.nomeCompleto,
+            cargo: mockColaborador1.cargo,
+          },
+        },
+      ];
+
+      const expectedResult = [
+        {
+          ...mockEqualizacao,
+          justificativa: null,
+          alvo: {
+            nomeCompleto: mockColaborador1.nomeCompleto,
+            cargo: mockColaborador1.cargo,
+          },
+        },
+      ];
+
+      mockPrismaService.equalizacao.findMany.mockResolvedValue(mockEqualizacoesAvaliado);
+
+      // Act
+      const resultado = await service.findByAvaliadoCiclo(idAvaliado, idCiclo);
+
+      // Assert
+      expect(resultado).toEqual(expectedResult);
+      // Não deve chamar decrypt quando justificativa é null
+      expect(mockHashService.decrypt).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getEqualizacaoColaboradorCiclo', () => {
+    it('deve retornar equalização específica de um colaborador em um ciclo', async () => {
+      // Arrange
+      const idColaborador = mockColaborador1.idColaborador;
+      const idCiclo = mockCiclo.idCiclo;
+      const mockEqualizacaoResult = {
+        ...mockEqualizacao,
+        justificativa: 'encrypted_justificativa_teste',
+      };
+
+      const expectedResult = {
+        ...mockEqualizacao,
+        justificativa: 'justificativa_teste',
+      };
+
+      mockPrismaService.equalizacao.findFirst.mockResolvedValue(mockEqualizacaoResult);
+
+      // Act
+      const resultado = await service.getEqualizacaoColaboradorCiclo(idColaborador, idCiclo);
+
+      // Assert
+      expect(resultado).toEqual(expectedResult);
+      expect(mockHashService.decrypt).toHaveBeenCalledWith('encrypted_justificativa_teste');
+      expect(mockPrismaService.equalizacao.findFirst).toHaveBeenCalledWith({
+        where: {
+          idAvaliado: idColaborador,
+          idCiclo: idCiclo,
+        },
+      });
+    });
+
+    it('deve retornar null quando não encontra equalização', async () => {
+      // Arrange
+      const idColaborador = 'colaborador-inexistente';
+      const idCiclo = 'ciclo-inexistente';
+
+      mockPrismaService.equalizacao.findFirst.mockResolvedValue(null);
+
+      // Act
+      const resultado = await service.getEqualizacaoColaboradorCiclo(idColaborador, idCiclo);
+
+      // Assert
+      expect(resultado).toBeNull();
+      expect(mockPrismaService.equalizacao.findFirst).toHaveBeenCalledWith({
+        where: {
+          idAvaliado: idColaborador,
+          idCiclo: idCiclo,
+        },
+      });
+    });
+
+    it('deve lidar com justificativa nula', async () => {
+      // Arrange
+      jest.clearAllMocks(); // Limpar chamadas anteriores
+      
+      const idColaborador = mockColaborador1.idColaborador;
+      const idCiclo = mockCiclo.idCiclo;
+      const mockEqualizacaoResult = {
+        ...mockEqualizacao,
+        justificativa: null,
+      };
+
+      const expectedResult = {
+        ...mockEqualizacao,
+        justificativa: null,
+      };
+
+      mockPrismaService.equalizacao.findFirst.mockResolvedValue(mockEqualizacaoResult);
+
+      // Act
+      const resultado = await service.getEqualizacaoColaboradorCiclo(idColaborador, idCiclo);
+
+      // Assert
+      expect(resultado).toEqual(expectedResult);
+      // Não deve chamar decrypt quando justificativa é null
+      expect(mockHashService.decrypt).not.toHaveBeenCalled();
+    });
+  });
+
   describe('findOne', () => {
     it('deve retornar uma equalização específica com relacionamentos completos', async () => {
       // Arrange
       const idEqualizacao = mockEqualizacao.idEqualizacao;
       const mockEqualizacaoCompleta = {
         ...mockEqualizacaoComRelacionamentos,
+        justificativa: 'encrypted_justificativa_teste',
         membroComite: {
           idColaborador: 'membro-comite-id',
           nomeCompleto: 'Comitê Membro',
         },
+      };
+
+      const expectedResult = {
+        ...mockEqualizacaoCompleta,
+        justificativa: 'justificativa_teste',
       };
 
       mockPrismaService.equalizacao.findUnique.mockResolvedValue(mockEqualizacaoCompleta);
@@ -543,7 +827,8 @@ describe('EqualizacaoService', () => {
       const resultado = await service.findOne(idEqualizacao);
 
       // Assert
-      expect(resultado).toEqual(mockEqualizacaoCompleta);
+      expect(resultado).toEqual(expectedResult);
+      expect(mockHashService.decrypt).toHaveBeenCalledWith('encrypted_justificativa_teste');
       expect(mockPrismaService.equalizacao.findUnique).toHaveBeenCalledWith({
         where: { idEqualizacao },
         include: {
@@ -637,8 +922,9 @@ describe('EqualizacaoService', () => {
       const idEqualizacao = mockEqualizacao.idEqualizacao;
       const equalizacaoAtualizada = {
         ...mockEqualizacaoComRelacionamentos,
-        ...updateEqualizacaoDto,
-        status: preenchimentoStatus.CONCLUIDA,
+        notaAjustada: updateEqualizacaoDto.notaAjustada,
+        justificativa: 'encrypted_' + updateEqualizacaoDto.justificativa,
+        status: updateEqualizacaoDto.status,
       };
 
       mockPrismaService.equalizacao.findUnique.mockResolvedValue(mockEqualizacaoComRelacionamentos);
@@ -651,9 +937,14 @@ describe('EqualizacaoService', () => {
       expect(resultado).toEqual(equalizacaoAtualizada);
       expect(mockPrismaService.equalizacao.update).toHaveBeenCalledWith({
         where: { idEqualizacao },
-        data: updateEqualizacaoDto,
+        data: {
+          notaAjustada: updateEqualizacaoDto.notaAjustada,
+          justificativa: 'encrypted_' + updateEqualizacaoDto.justificativa,
+          status: updateEqualizacaoDto.status,
+        },
         include: { alvo: true },
       });
+      expect(mockHashService.hash).toHaveBeenCalledWith(updateEqualizacaoDto.justificativa);
       expect(loggerSpy).toHaveBeenCalledWith(`Atualizando equalização: ${idEqualizacao}`);
       expect(loggerSpy).toHaveBeenCalledWith(`Equalização atualizada com sucesso: ${idEqualizacao}`);
     });
@@ -763,6 +1054,7 @@ describe('EqualizacaoService', () => {
       const equalizacaoAtualizada = {
         ...mockEqualizacaoComRelacionamentos,
         ...updateDtoSemStatus,
+        justificativa: 'encrypted_Justificativa válida', // Justificativa criptografada
         status: preenchimentoStatus.CONCLUIDA,
       };
 
@@ -777,11 +1069,13 @@ describe('EqualizacaoService', () => {
       expect(mockPrismaService.equalizacao.update).toHaveBeenCalledWith({
         where: { idEqualizacao },
         data: {
-          ...updateDtoSemStatus,
+          notaAjustada: updateDtoSemStatus.notaAjustada,
+          justificativa: 'encrypted_Justificativa válida',
           status: preenchimentoStatus.CONCLUIDA,
         },
         include: { alvo: true },
       });
+      expect(mockHashService.hash).toHaveBeenCalledWith('Justificativa válida');
       expect(loggerSpy).toHaveBeenCalledWith(`Marcando equalização ${idEqualizacao} como CONCLUIDA`);
     });
 
@@ -799,8 +1093,16 @@ describe('EqualizacaoService', () => {
 
       mockPrismaService.equalizacao.findUnique.mockResolvedValue(mockEqualizacaoComRelacionamentos);
       mockPrismaService.equalizacao.update
-        .mockResolvedValueOnce({ ...mockEqualizacaoComRelacionamentos, ...updateDtoNota1 })
-        .mockResolvedValueOnce({ ...mockEqualizacaoComRelacionamentos, ...updateDtoNota5 });
+        .mockResolvedValueOnce({ 
+          ...mockEqualizacaoComRelacionamentos, 
+          notaAjustada: 1,
+          justificativa: 'encrypted_Nota mínima'
+        })
+        .mockResolvedValueOnce({ 
+          ...mockEqualizacaoComRelacionamentos, 
+          notaAjustada: 5,
+          justificativa: 'encrypted_Nota máxima'
+        });
 
       // Act
       const resultado1 = await service.update(idEqualizacao, updateDtoNota1);
@@ -809,6 +1111,8 @@ describe('EqualizacaoService', () => {
       // Assert
       expect(resultado1.notaAjustada).toBe(1);
       expect(resultado5.notaAjustada).toBe(5);
+      expect(mockHashService.hash).toHaveBeenCalledWith('Nota mínima');
+      expect(mockHashService.hash).toHaveBeenCalledWith('Nota máxima');
       expect(mockPrismaService.equalizacao.update).toHaveBeenCalledTimes(2);
     });
 
@@ -824,7 +1128,9 @@ describe('EqualizacaoService', () => {
       mockPrismaService.equalizacao.findUnique.mockResolvedValue(mockEqualizacaoComRelacionamentos);
       mockPrismaService.equalizacao.update.mockResolvedValue({
         ...mockEqualizacaoComRelacionamentos,
-        ...updateDtoComStatus,
+        notaAjustada: updateDtoComStatus.notaAjustada,
+        justificativa: 'encrypted_Justificativa',
+        status: updateDtoComStatus.status,
       });
 
       // Act
@@ -834,9 +1140,14 @@ describe('EqualizacaoService', () => {
       expect(resultado.status).toBe(preenchimentoStatus.PENDENTE);
       expect(mockPrismaService.equalizacao.update).toHaveBeenCalledWith({
         where: { idEqualizacao },
-        data: updateDtoComStatus,
+        data: {
+          notaAjustada: updateDtoComStatus.notaAjustada,
+          justificativa: 'encrypted_Justificativa',
+          status: updateDtoComStatus.status,
+        },
         include: { alvo: true },
       });
+      expect(mockHashService.hash).toHaveBeenCalledWith('Justificativa');
     });
   });
 
@@ -917,7 +1228,8 @@ describe('EqualizacaoService', () => {
       mockPrismaService.equalizacao.findUnique.mockResolvedValue(mockEqualizacaoComRelacionamentos);
       mockPrismaService.equalizacao.update.mockResolvedValue({
         ...mockEqualizacaoComRelacionamentos,
-        ...updateDtoDecimal,
+        notaAjustada: 3.75,
+        justificativa: 'encrypted_Nota decimal válida',
       });
 
       // Act
@@ -925,6 +1237,7 @@ describe('EqualizacaoService', () => {
 
       // Assert
       expect(resultado.notaAjustada).toBe(3.75);
+      expect(mockHashService.hash).toHaveBeenCalledWith('Nota decimal válida');
     });
 
     it('deve lidar com justificativas longas', async () => {
@@ -939,14 +1252,15 @@ describe('EqualizacaoService', () => {
       mockPrismaService.equalizacao.findUnique.mockResolvedValue(mockEqualizacaoComRelacionamentos);
       mockPrismaService.equalizacao.update.mockResolvedValue({
         ...mockEqualizacaoComRelacionamentos,
-        ...updateDtoJustificativaLonga,
+        notaAjustada: 4.0,
+        justificativa: `encrypted_${justificativaLonga}`,
       });
 
       // Act
       const resultado = await service.update(idEqualizacao, updateDtoJustificativaLonga);
 
       // Assert
-      expect(resultado.justificativa).toBe(justificativaLonga);
+      expect(mockHashService.hash).toHaveBeenCalledWith(justificativaLonga);
     });
 
     it('deve fazer logs de erro quando criação falha', async () => {
@@ -1000,7 +1314,17 @@ describe('EqualizacaoService', () => {
 
     it('deve lidar com múltiplas operações simultâneas', async () => {
       // Arrange
-      mockPrismaService.equalizacao.findMany.mockResolvedValue([mockEqualizacaoComRelacionamentos]);
+      const mockEqualizacaoWithEncrypted = {
+        ...mockEqualizacaoComRelacionamentos,
+        justificativa: 'encrypted_test',
+      };
+      
+      const expectedResult = {
+        ...mockEqualizacaoComRelacionamentos,
+        justificativa: 'test',
+      };
+
+      mockPrismaService.equalizacao.findMany.mockResolvedValue([mockEqualizacaoWithEncrypted]);
 
       // Act
       const promessas = [
@@ -1015,7 +1339,7 @@ describe('EqualizacaoService', () => {
       expect(resultados).toHaveLength(3);
       expect(mockPrismaService.equalizacao.findMany).toHaveBeenCalledTimes(3);
       resultados.forEach(resultado => {
-        expect(resultado).toEqual([mockEqualizacaoComRelacionamentos]);
+        expect(resultado).toEqual([expectedResult]);
       });
     });
 
@@ -1028,10 +1352,18 @@ describe('EqualizacaoService', () => {
       mockPrismaService.colaboradorCiclo.findMany.mockResolvedValue([mockParticipantes[0]]);
       mockPrismaService.equalizacao.findFirst.mockResolvedValue(null);
       mockPrismaService.equalizacao.create.mockResolvedValue({ ...mockEqualizacao, alvo: mockColaborador1 });
-      mockPrismaService.equalizacao.findUnique.mockResolvedValue(mockEqualizacaoComRelacionamentos);
+      
+      const mockEqualizacaoWithEncrypted = {
+        ...mockEqualizacaoComRelacionamentos,
+        justificativa: 'encrypted_' + updateEqualizacaoDto.justificativa,
+      };
+      
+      mockPrismaService.equalizacao.findUnique.mockResolvedValue(mockEqualizacaoWithEncrypted);
       mockPrismaService.equalizacao.update.mockResolvedValue({
         ...mockEqualizacaoComRelacionamentos,
-        ...updateEqualizacaoDto,
+        notaAjustada: updateEqualizacaoDto.notaAjustada,
+        justificativa: 'encrypted_' + updateEqualizacaoDto.justificativa,
+        status: updateEqualizacaoDto.status,
       });
       mockPrismaService.equalizacao.delete.mockResolvedValue(mockEqualizacao);
 
@@ -1044,6 +1376,7 @@ describe('EqualizacaoService', () => {
       // Assert
       expect(criado.equalizacoes).toHaveLength(1);
       expect(encontrado.idEqualizacao).toBe(id);
+      expect(encontrado.justificativa).toBe(updateEqualizacaoDto.justificativa); // Descriptografada
       expect(atualizado.notaAjustada).toBe(updateEqualizacaoDto.notaAjustada);
       expect(removido).toEqual({ message: 'Equalização removida com sucesso' });
     });

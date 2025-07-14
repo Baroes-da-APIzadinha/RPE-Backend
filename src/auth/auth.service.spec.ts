@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../database/prismaService';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 
@@ -13,6 +14,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let jwtService: JwtService;
   let prismaService: PrismaService;
+  let auditoriaService: AuditoriaService;
 
   // Mock do PrismaService
   const mockPrismaService = {
@@ -24,6 +26,11 @@ describe('AuthService', () => {
   // Mock do JwtService
   const mockJwtService = {
     sign: jest.fn(),
+  };
+
+  // Mock do AuditoriaService
+  const mockAuditoriaService = {
+    log: jest.fn(),
   };
 
   // Dados de teste
@@ -74,12 +81,17 @@ describe('AuthService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: AuditoriaService,
+          useValue: mockAuditoriaService,
+        },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     jwtService = module.get<JwtService>(JwtService);
     prismaService = module.get<PrismaService>(PrismaService);
+    auditoriaService = module.get<AuditoriaService>(AuditoriaService);
   });
 
   afterEach(() => {
@@ -98,6 +110,10 @@ describe('AuthService', () => {
     it('deve ter PrismaService injetado', () => {
       expect(prismaService).toBeDefined();
     });
+
+    it('deve ter AuditoriaService injetado', () => {
+      expect(auditoriaService).toBeDefined();
+    });
   });
 
   describe('login', () => {
@@ -107,6 +123,7 @@ describe('AuthService', () => {
         mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
         mockedBcrypt.compare.mockResolvedValue(true as never);
         mockJwtService.sign.mockReturnValue(mockToken);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
 
         // Act
         const resultado = await service.login(mockLoginDto);
@@ -119,6 +136,13 @@ describe('AuthService', () => {
         });
         expect(bcrypt.compare).toHaveBeenCalledWith(mockLoginDto.senha, mockColaborador.senha);
         expect(mockJwtService.sign).toHaveBeenCalledWith(mockPayload);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockColaborador.idColaborador,
+          action: 'login_success',
+          resource: 'Auth',
+          details: { email: mockColaborador.email },
+          ip: undefined,
+        });
       });
 
       it('deve fazer login com usuário sem perfis', async () => {
@@ -132,6 +156,7 @@ describe('AuthService', () => {
         mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaboradorSemPerfis);
         mockedBcrypt.compare.mockResolvedValue(true as never);
         mockJwtService.sign.mockReturnValue(mockToken);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
 
         // Act
         const resultado = await service.login(mockLoginDto);
@@ -139,6 +164,13 @@ describe('AuthService', () => {
         // Assert
         expect(resultado).toBe(mockToken);
         expect(mockJwtService.sign).toHaveBeenCalledWith(payloadSemPerfis);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockColaborador.idColaborador,
+          action: 'login_success',
+          resource: 'Auth',
+          details: { email: mockColaborador.email },
+          ip: undefined,
+        });
       });
 
       it('deve mapear múltiplos perfis corretamente', async () => {
@@ -162,6 +194,7 @@ describe('AuthService', () => {
         mockPrismaService.colaborador.findUnique.mockResolvedValue(colaboradorMultiplosPerfis);
         mockedBcrypt.compare.mockResolvedValue(true as never);
         mockJwtService.sign.mockReturnValue(mockToken);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
 
         // Act
         const resultado = await service.login(mockLoginDto);
@@ -181,6 +214,7 @@ describe('AuthService', () => {
         mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
         mockedBcrypt.compare.mockResolvedValue(true as never);
         mockJwtService.sign.mockReturnValue(mockToken);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
 
         // Act
         const resultado = await service.login(loginDtoUpperCase);
@@ -192,12 +226,35 @@ describe('AuthService', () => {
           include: { perfis: true },
         });
       });
+
+      it('deve fazer login com sucesso e registrar IP na auditoria', async () => {
+        // Arrange
+        const ipTeste = '192.168.1.100';
+        mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
+        mockedBcrypt.compare.mockResolvedValue(true as never);
+        mockJwtService.sign.mockReturnValue(mockToken);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
+
+        // Act
+        const resultado = await service.login(mockLoginDto, ipTeste);
+
+        // Assert
+        expect(resultado).toBe(mockToken);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockColaborador.idColaborador,
+          action: 'login_success',
+          resource: 'Auth',
+          details: { email: mockColaborador.email },
+          ip: ipTeste,
+        });
+      });
     });
 
     describe('Casos de falha', () => {
       it('deve retornar null quando usuário não existe', async () => {
         // Arrange
         mockPrismaService.colaborador.findUnique.mockResolvedValue(null);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
 
         // Act
         const resultado = await service.login(mockLoginDto);
@@ -210,12 +267,20 @@ describe('AuthService', () => {
         });
         expect(bcrypt.compare).not.toHaveBeenCalled();
         expect(mockJwtService.sign).not.toHaveBeenCalled();
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: undefined,
+          action: 'login_failed',
+          resource: 'Auth',
+          details: { email: mockLoginDto.email },
+          ip: undefined,
+        });
       });
 
       it('deve retornar null quando senha está incorreta', async () => {
         // Arrange
         mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
         mockedBcrypt.compare.mockResolvedValue(false as never);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
 
         // Act
         const resultado = await service.login(mockLoginDto);
@@ -228,6 +293,13 @@ describe('AuthService', () => {
         });
         expect(bcrypt.compare).toHaveBeenCalledWith(mockLoginDto.senha, mockColaborador.senha);
         expect(mockJwtService.sign).not.toHaveBeenCalled();
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockColaborador.idColaborador,
+          action: 'login_failed',
+          resource: 'Auth',
+          details: { email: mockLoginDto.email },
+          ip: undefined,
+        });
       });
 
       it('deve retornar null quando usuário existe mas senha está vazia/null no banco', async () => {
@@ -239,6 +311,7 @@ describe('AuthService', () => {
 
         mockPrismaService.colaborador.findUnique.mockResolvedValue(colaboradorSemSenha);
         mockedBcrypt.compare.mockResolvedValue(false as never);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
 
         // Act
         const resultado = await service.login(mockLoginDto);
@@ -256,6 +329,7 @@ describe('AuthService', () => {
         };
 
         mockPrismaService.colaborador.findUnique.mockResolvedValue(null);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
 
         // Act
         const resultado = await service.login(loginDtoEmailVazio);
@@ -277,6 +351,7 @@ describe('AuthService', () => {
 
         mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
         mockedBcrypt.compare.mockResolvedValue(false as never);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
 
         // Act
         const resultado = await service.login(loginDtoSenhaVazia);
@@ -501,6 +576,156 @@ describe('AuthService', () => {
       });
     });
 
+    describe('Testes de auditoria', () => {
+      it('deve registrar auditoria de sucesso com todos os campos', async () => {
+        // Arrange
+        const ipTeste = '203.0.113.1';
+        mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
+        mockedBcrypt.compare.mockResolvedValue(true as never);
+        mockJwtService.sign.mockReturnValue(mockToken);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
+
+        // Act
+        await service.login(mockLoginDto, ipTeste);
+
+        // Assert
+        expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockColaborador.idColaborador,
+          action: 'login_success',
+          resource: 'Auth',
+          details: { email: mockColaborador.email },
+          ip: ipTeste,
+        });
+      });
+
+      it('deve registrar auditoria de falha com userId undefined quando usuário não existe', async () => {
+        // Arrange
+        const ipTeste = '198.51.100.1';
+        mockPrismaService.colaborador.findUnique.mockResolvedValue(null);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
+
+        // Act
+        await service.login(mockLoginDto, ipTeste);
+
+        // Assert
+        expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: undefined,
+          action: 'login_failed',
+          resource: 'Auth',
+          details: { email: mockLoginDto.email },
+          ip: ipTeste,
+        });
+      });
+
+      it('deve registrar auditoria de falha com userId quando senha está incorreta', async () => {
+        // Arrange
+        const ipTeste = '192.0.2.1';
+        mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
+        mockedBcrypt.compare.mockResolvedValue(false as never);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
+
+        // Act
+        await service.login(mockLoginDto, ipTeste);
+
+        // Assert
+        expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockColaborador.idColaborador,
+          action: 'login_failed',
+          resource: 'Auth',
+          details: { email: mockLoginDto.email },
+          ip: ipTeste,
+        });
+      });
+
+      it('deve propagar erro quando auditoria de sucesso falha', async () => {
+        // Arrange
+        const auditoriaError = new Error('Falha na auditoria');
+        mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
+        mockedBcrypt.compare.mockResolvedValue(true as never);
+        mockJwtService.sign.mockReturnValue(mockToken);
+        mockAuditoriaService.log.mockRejectedValue(auditoriaError);
+
+        // Act & Assert
+        await expect(service.login(mockLoginDto)).rejects.toThrow(auditoriaError);
+      });
+
+      it('deve propagar erro quando auditoria de falha falha', async () => {
+        // Arrange
+        const auditoriaError = new Error('Falha na auditoria de login_failed');
+        mockPrismaService.colaborador.findUnique.mockResolvedValue(null);
+        mockAuditoriaService.log.mockRejectedValue(auditoriaError);
+
+        // Act & Assert
+        await expect(service.login(mockLoginDto)).rejects.toThrow(auditoriaError);
+      });
+
+      it('deve funcionar sem IP fornecido', async () => {
+        // Arrange
+        mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
+        mockedBcrypt.compare.mockResolvedValue(true as never);
+        mockJwtService.sign.mockReturnValue(mockToken);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
+
+        // Act
+        await service.login(mockLoginDto);
+
+        // Assert
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: mockColaborador.idColaborador,
+          action: 'login_success',
+          resource: 'Auth',
+          details: { email: mockColaborador.email },
+          ip: undefined,
+        });
+      });
+    });
+
+    describe('Verificações de tipos', () => {
+      it('deve retornar string quando login é bem-sucedido', async () => {
+        // Arrange
+        mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
+        mockedBcrypt.compare.mockResolvedValue(true as never);
+        mockJwtService.sign.mockReturnValue(mockToken);
+
+        // Act
+        const resultado = await service.login(mockLoginDto);
+
+        // Assert
+        expect(typeof resultado).toBe('string');
+        expect(resultado).toBeTruthy();
+      });
+
+      it('deve retornar null quando login falha', async () => {
+        // Arrange
+        mockPrismaService.colaborador.findUnique.mockResolvedValue(null);
+
+        // Act
+        const resultado = await service.login(mockLoginDto);
+
+        // Assert
+        expect(resultado).toBeNull();
+        expect(typeof resultado).toBe('object'); // null é tipo object em JavaScript
+      });
+
+      it('deve trabalhar com Promise<string | null>', async () => {
+        // Arrange
+        mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
+        mockedBcrypt.compare.mockResolvedValue(true as never);
+        mockJwtService.sign.mockReturnValue(mockToken);
+
+        // Act
+        const promiseResultado = service.login(mockLoginDto);
+
+        // Assert
+        expect(promiseResultado).toBeInstanceOf(Promise);
+        const resultado = await promiseResultado;
+        expect(resultado).toBe(mockToken);
+      });
+    });
+
     describe('Testes de integração simulada', () => {
       it('deve simular fluxo completo de login bem-sucedido', async () => {
         // Arrange
@@ -521,111 +746,69 @@ describe('AuthService', () => {
         };
 
         const tokenCompleto = 'jwt.token.completo.gerado';
+        const ipCompleto = '10.0.0.100';
 
         mockPrismaService.colaborador.findUnique.mockResolvedValue(colaboradorCompleto);
         mockedBcrypt.compare.mockResolvedValue(true as never);
         mockJwtService.sign.mockReturnValue(tokenCompleto);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
 
         // Act
-        const resultado = await service.login(loginCompleto);
+        const resultado = await service.login(loginCompleto, ipCompleto);
 
         // Assert
         expect(resultado).toBe(tokenCompleto);
-
-        // Verificar sequência completa de chamadas
-        expect(mockPrismaService.colaborador.findUnique).toHaveBeenCalledTimes(1);
-        expect(bcrypt.compare).toHaveBeenCalledTimes(1);
-        expect(mockJwtService.sign).toHaveBeenCalledTimes(1);
-
-        // Verificar dados passados entre as etapas
+        
+        // Verificar todas as chamadas na ordem correta
         expect(mockPrismaService.colaborador.findUnique).toHaveBeenCalledWith({
           where: { email: loginCompleto.email },
           include: { perfis: true },
         });
-
-        expect(bcrypt.compare).toHaveBeenCalledWith(
-          loginCompleto.senha,
-          colaboradorCompleto.senha
-        );
-
+        expect(bcrypt.compare).toHaveBeenCalledWith(loginCompleto.senha, colaboradorCompleto.senha);
         expect(mockJwtService.sign).toHaveBeenCalledWith({
           sub: colaboradorCompleto.idColaborador,
           email: colaboradorCompleto.email,
           roles: ['ADMIN', 'USER'],
         });
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: colaboradorCompleto.idColaborador,
+          action: 'login_success',
+          resource: 'Auth',
+          details: { email: colaboradorCompleto.email },
+          ip: ipCompleto,
+        });
       });
 
-      it('deve simular tentativa de login com credenciais inválidas', async () => {
+      it('deve simular fluxo completo de login falhado', async () => {
         // Arrange
-        const loginInvalido: LoginDto = {
-          email: 'usuario@empresa.com',
+        const loginFalho: LoginDto = {
+          email: 'hacker@fake.com',
           senha: 'senhaErrada',
         };
+        const ipSuspeito = '1.2.3.4';
 
-        const colaboradorExistente = {
-          idColaborador: 'user-uuid-456',
-          email: 'usuario@empresa.com',
-          senha: '$2b$10$hashDaSenhaCorreta',
-          perfis: [{ idPerfil: 'perfil-user', tipoPerfil: 'USER' }],
-        };
-
-        mockPrismaService.colaborador.findUnique.mockResolvedValue(colaboradorExistente);
-        mockedBcrypt.compare.mockResolvedValue(false as never);
+        mockPrismaService.colaborador.findUnique.mockResolvedValue(null);
+        mockAuditoriaService.log.mockResolvedValue(undefined);
 
         // Act
-        const resultado = await service.login(loginInvalido);
+        const resultado = await service.login(loginFalho, ipSuspeito);
 
         // Assert
         expect(resultado).toBeNull();
-
-        // Verificar que processo parou na verificação da senha
-        expect(mockPrismaService.colaborador.findUnique).toHaveBeenCalledTimes(1);
-        expect(bcrypt.compare).toHaveBeenCalledTimes(1);
+        expect(mockPrismaService.colaborador.findUnique).toHaveBeenCalledWith({
+          where: { email: loginFalho.email },
+          include: { perfis: true },
+        });
+        expect(bcrypt.compare).not.toHaveBeenCalled();
         expect(mockJwtService.sign).not.toHaveBeenCalled();
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: undefined,
+          action: 'login_failed',
+          resource: 'Auth',
+          details: { email: loginFalho.email },
+          ip: ipSuspeito,
+        });
       });
-    });
-  });
-
-  describe('Verificações de tipos', () => {
-    it('deve retornar string quando login é bem-sucedido', async () => {
-      // Arrange
-      mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
-      mockedBcrypt.compare.mockResolvedValue(true as never);
-      mockJwtService.sign.mockReturnValue(mockToken);
-
-      // Act
-      const resultado = await service.login(mockLoginDto);
-
-      // Assert
-      expect(typeof resultado).toBe('string');
-      expect(resultado).toBeTruthy();
-    });
-
-    it('deve retornar null quando login falha', async () => {
-      // Arrange
-      mockPrismaService.colaborador.findUnique.mockResolvedValue(null);
-
-      // Act
-      const resultado = await service.login(mockLoginDto);
-
-      // Assert
-      expect(resultado).toBeNull();
-      expect(typeof resultado).toBe('object'); // null é tipo object em JavaScript
-    });
-
-    it('deve trabalhar com Promise<string | null>', async () => {
-      // Arrange
-      mockPrismaService.colaborador.findUnique.mockResolvedValue(mockColaborador);
-      mockedBcrypt.compare.mockResolvedValue(true as never);
-      mockJwtService.sign.mockReturnValue(mockToken);
-
-      // Act
-      const promiseResultado = service.login(mockLoginDto);
-
-      // Assert
-      expect(promiseResultado).toBeInstanceOf(Promise);
-      const resultado = await promiseResultado;
-      expect(resultado).toBe(mockToken);
     });
   });
 });
