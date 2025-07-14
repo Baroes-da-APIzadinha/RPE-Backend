@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CriteriosController } from './criterios.controller';
 import { CriteriosService } from './criterios.service';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 import { pilarCriterio } from '@prisma/client';
 import { CreateCriterioDto, UpdateCriterioDto } from './criterios.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import 'reflect-metadata';
-
 
 // Mock do CriteriosService
 const mockCriteriosService = {
@@ -16,6 +16,12 @@ const mockCriteriosService = {
   createCriterio: jest.fn(),
   updateCriterio: jest.fn(),
   deleteCriterio: jest.fn(),
+};
+
+// Mock do AuditoriaService
+const mockAuditoriaService = {
+  log: jest.fn(),
+  getLogs: jest.fn(),
 };
 
 // Mock dos Guards
@@ -30,6 +36,17 @@ const mockRolesGuard = {
 describe('CriteriosController', () => {
   let controller: CriteriosController;
   let service: CriteriosService;
+  let auditoriaService: AuditoriaService;
+
+  // Mock do request com dados de usuário
+  const mockRequest = {
+    user: { 
+      userId: 'user-123',
+      email: 'admin@empresa.com',
+      roles: ['ADMIN'] 
+    },
+    ip: '127.0.0.1',
+  };
 
   // Dados de teste
   const mockCriterio = {
@@ -57,6 +74,20 @@ describe('CriteriosController', () => {
     },
   ];
 
+  // DTOs de teste
+  const createCriterioDto: CreateCriterioDto = {
+    nomeCriterio: 'Novo Critério',
+    descricao: 'Descrição do novo critério',
+    peso: 1.0,
+    obrigatorio: true,
+    pilar: pilarCriterio.Execucao,
+  };
+
+  const updateCriterioDto: UpdateCriterioDto = {
+    nomeCriterio: 'Critério Atualizado',
+    peso: 2.5,
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CriteriosController],
@@ -64,6 +95,10 @@ describe('CriteriosController', () => {
         {
           provide: CriteriosService,
           useValue: mockCriteriosService,
+        },
+        {
+          provide: AuditoriaService,
+          useValue: mockAuditoriaService,
         },
       ],
     })
@@ -75,6 +110,7 @@ describe('CriteriosController', () => {
 
     controller = module.get<CriteriosController>(CriteriosController);
     service = module.get<CriteriosService>(CriteriosService);
+    auditoriaService = module.get<AuditoriaService>(AuditoriaService);
   });
 
   afterEach(() => {
@@ -88,6 +124,10 @@ describe('CriteriosController', () => {
 
     it('deve ter o service injetado', () => {
       expect(service).toBeDefined();
+    });
+
+    it('deve ter o auditoriaService injetado', () => {
+      expect(auditoriaService).toBeDefined();
     });
   });
 
@@ -103,6 +143,9 @@ describe('CriteriosController', () => {
       expect(resultado).toEqual(mockCriterios);
       expect(mockCriteriosService.getCriterios).toHaveBeenCalledWith();
       expect(mockCriteriosService.getCriterios).toHaveBeenCalledTimes(1);
+      
+      // Verifica que auditoria NÃO foi chamada para operação de leitura
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar array vazio quando não há critérios', async () => {
@@ -115,6 +158,7 @@ describe('CriteriosController', () => {
       // Assert
       expect(resultado).toEqual([]);
       expect(mockCriteriosService.getCriterios).toHaveBeenCalledTimes(1);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve propagar erros do service', async () => {
@@ -124,6 +168,7 @@ describe('CriteriosController', () => {
 
       // Act & Assert
       await expect(controller.getCriterios()).rejects.toThrow('Erro interno do servidor');
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
   });
 
@@ -140,6 +185,7 @@ describe('CriteriosController', () => {
       expect(resultado).toEqual(mockCriterio);
       expect(mockCriteriosService.getCriterio).toHaveBeenCalledWith(id);
       expect(mockCriteriosService.getCriterio).toHaveBeenCalledTimes(1);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar null quando critério não encontrado', async () => {
@@ -153,6 +199,7 @@ describe('CriteriosController', () => {
       // Assert
       expect(resultado).toBeNull();
       expect(mockCriteriosService.getCriterio).toHaveBeenCalledWith(id);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve aceitar qualquer string como ID', async () => {
@@ -165,6 +212,7 @@ describe('CriteriosController', () => {
         await controller.getCriterio(id);
         expect(mockCriteriosService.getCriterio).toHaveBeenCalledWith(id);
       }
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
   });
 
@@ -182,6 +230,7 @@ describe('CriteriosController', () => {
       expect(resultado).toEqual(criteriosFiltrados);
       expect(mockCriteriosService.getCriterioPorPilar).toHaveBeenCalledWith(pilar);
       expect(mockCriteriosService.getCriterioPorPilar).toHaveBeenCalledTimes(1);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar critérios filtrados por pilar Gestão e Liderança', async () => {
@@ -196,6 +245,7 @@ describe('CriteriosController', () => {
       // Assert
       expect(resultado).toEqual(criteriosFiltrados);
       expect(mockCriteriosService.getCriterioPorPilar).toHaveBeenCalledWith(pilar);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve retornar array vazio quando não há critérios para o pilar', async () => {
@@ -208,6 +258,7 @@ describe('CriteriosController', () => {
 
       // Assert
       expect(resultado).toEqual([]);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
     it('deve testar todos os pilares disponíveis', async () => {
@@ -220,139 +271,170 @@ describe('CriteriosController', () => {
         await controller.getCriterioPorPilar(pilar);
         expect(mockCriteriosService.getCriterioPorPilar).toHaveBeenCalledWith(pilar);
       }
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
   });
 
   describe('createCriterio', () => {
-    it('deve criar um novo critério com sucesso', async () => {
+    it('deve criar um novo critério com sucesso e registrar auditoria', async () => {
       // Arrange
-      const createDto: CreateCriterioDto = {
-        nomeCriterio: 'Novo Critério',
-        descricao: 'Descrição do novo critério',
-        peso: 1.0,
-        obrigatorio: true,
-        pilar: pilarCriterio.Execucao,
-      };
-
       const criterioCreated = {
         ...mockCriterio,
-        ...createDto,
+        ...createCriterioDto,
         idCriterio: 'novo-id',
       };
 
       mockCriteriosService.createCriterio.mockResolvedValue(criterioCreated);
-
-      // Spy no console.log
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
-      const resultado = await controller.createCriterio(createDto);
+      const resultado = await controller.createCriterio(createCriterioDto, mockRequest);
 
       // Assert
       expect(resultado).toEqual(criterioCreated);
-      expect(mockCriteriosService.createCriterio).toHaveBeenCalledWith(createDto);
+      expect(mockCriteriosService.createCriterio).toHaveBeenCalledWith(createCriterioDto);
       expect(mockCriteriosService.createCriterio).toHaveBeenCalledTimes(1);
-      expect(consoleSpy).toHaveBeenCalledWith('Body recebido:', createDto);
 
-      // Cleanup
-      consoleSpy.mockRestore();
+      // Verifica se auditoria foi registrada corretamente
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'criar_criterio',
+        resource: 'Criterio',
+        details: { ...createCriterioDto, result: criterioCreated },
+        ip: mockRequest.ip,
+      });
     });
 
-    it('deve criar critério com dados mínimos', async () => {
+    it('deve criar critério com dados mínimos e registrar auditoria', async () => {
       // Arrange
-      const createDto: CreateCriterioDto = {
+      const createDtoMinimo: CreateCriterioDto = {
         nomeCriterio: 'Critério Mínimo',
       };
 
       const criterioCreated = {
         ...mockCriterio,
-        nomeCriterio: createDto.nomeCriterio,
+        nomeCriterio: createDtoMinimo.nomeCriterio,
       };
 
       mockCriteriosService.createCriterio.mockResolvedValue(criterioCreated);
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
-      const resultado = await controller.createCriterio(createDto);
+      const resultado = await controller.createCriterio(createDtoMinimo, mockRequest);
 
       // Assert
       expect(resultado).toEqual(criterioCreated);
-      expect(mockCriteriosService.createCriterio).toHaveBeenCalledWith(createDto);
-      expect(consoleSpy).toHaveBeenCalledWith('Body recebido:', createDto);
-
-      consoleSpy.mockRestore();
+      expect(mockCriteriosService.createCriterio).toHaveBeenCalledWith(createDtoMinimo);
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'criar_criterio',
+        resource: 'Criterio',
+        details: { ...createDtoMinimo, result: criterioCreated },
+        ip: mockRequest.ip,
+      });
     });
 
-    it('deve propagar erros de validação do service', async () => {
+    it('deve propagar erros de validação do service sem registrar auditoria', async () => {
       // Arrange
-      const createDto: CreateCriterioDto = {
+      const createDtoInvalido: CreateCriterioDto = {
         nomeCriterio: '',
       };
       const erro = new Error('Nome do critério é obrigatório');
       mockCriteriosService.createCriterio.mockRejectedValue(erro);
 
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
       // Act & Assert
-      await expect(controller.createCriterio(createDto)).rejects.toThrow('Nome do critério é obrigatório');
-      expect(consoleSpy).toHaveBeenCalledWith('Body recebido:', createDto);
-
-      consoleSpy.mockRestore();
+      await expect(controller.createCriterio(createDtoInvalido, mockRequest)).rejects.toThrow('Nome do critério é obrigatório');
+      
+      // Verifica que auditoria NÃO foi chamada em caso de erro
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
-    it('deve logar dados recebidos independente do resultado', async () => {
+    it('deve continuar funcionando mesmo se auditoria falhar', async () => {
       // Arrange
-      const createDto: CreateCriterioDto = {
-        nomeCriterio: 'Teste Log',
+      const criterioCreated = {
+        ...mockCriterio,
+        ...createCriterioDto,
+        idCriterio: 'novo-id',
       };
-      mockCriteriosService.createCriterio.mockRejectedValue(new Error('Erro qualquer'));
 
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      mockCriteriosService.createCriterio.mockResolvedValue(criterioCreated);
+      mockAuditoriaService.log.mockRejectedValue(new Error('Erro na auditoria'));
+
+      // Act & Assert
+      await expect(controller.createCriterio(createCriterioDto, mockRequest)).rejects.toThrow('Erro na auditoria');
+      
+      // Verifica que o service foi chamado normalmente
+      expect(mockCriteriosService.createCriterio).toHaveBeenCalledWith(createCriterioDto);
+    });
+
+    it('deve funcionar com usuário sem informações completas', async () => {
+      // Arrange
+      const requestSemUserCompleto = {
+        user: undefined,
+        ip: '192.168.1.1',
+      };
+
+      const criterioCreated = {
+        ...mockCriterio,
+        ...createCriterioDto,
+        idCriterio: 'novo-id',
+      };
+
+      mockCriteriosService.createCriterio.mockResolvedValue(criterioCreated);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
-      try {
-        await controller.createCriterio(createDto);
-      } catch (error) {
-        // Esperado falhar
-      }
+      const resultado = await controller.createCriterio(createCriterioDto, requestSemUserCompleto);
 
       // Assert
-      expect(consoleSpy).toHaveBeenCalledWith('Body recebido:', createDto);
-
-      consoleSpy.mockRestore();
+      expect(resultado).toEqual(criterioCreated);
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: undefined,
+        action: 'criar_criterio',
+        resource: 'Criterio',
+        details: { ...createCriterioDto, result: criterioCreated },
+        ip: requestSemUserCompleto.ip,
+      });
     });
   });
 
   describe('updateCriterio', () => {
-    it('deve atualizar um critério com sucesso', async () => {
+    it('deve atualizar um critério com sucesso e registrar auditoria', async () => {
       // Arrange
       const id = '123e4567-e89b-12d3-a456-426614174000';
-      const updateDto: UpdateCriterioDto = {
-        nomeCriterio: 'Critério Atualizado',
-        peso: 2.5,
-      };
-
       const criterioUpdated = {
         ...mockCriterio,
-        ...updateDto,
+        ...updateCriterioDto,
         dataUltimaModificacao: new Date(),
       };
 
       mockCriteriosService.updateCriterio.mockResolvedValue(criterioUpdated);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
-      const resultado = await controller.updateCriterio(id, updateDto);
+      const resultado = await controller.updateCriterio(id, updateCriterioDto, mockRequest);
 
       // Assert
       expect(resultado).toEqual(criterioUpdated);
-      expect(mockCriteriosService.updateCriterio).toHaveBeenCalledWith(id, updateDto);
+      expect(mockCriteriosService.updateCriterio).toHaveBeenCalledWith(id, updateCriterioDto);
       expect(mockCriteriosService.updateCriterio).toHaveBeenCalledTimes(1);
+
+      // Verifica auditoria
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'atualizar_criterio',
+        resource: 'Criterio',
+        details: { id, ...updateCriterioDto, result: criterioUpdated },
+        ip: mockRequest.ip,
+      });
     });
 
-    it('deve atualizar apenas campos fornecidos', async () => {
+    it('deve atualizar apenas campos fornecidos e registrar auditoria', async () => {
       // Arrange
       const id = '123e4567-e89b-12d3-a456-426614174000';
-      const updateDto: UpdateCriterioDto = {
+      const updateDtoParcial: UpdateCriterioDto = {
         peso: 3.0,
       };
 
@@ -362,198 +444,190 @@ describe('CriteriosController', () => {
       };
 
       mockCriteriosService.updateCriterio.mockResolvedValue(criterioUpdated);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
-      const resultado = await controller.updateCriterio(id, updateDto);
+      const resultado = await controller.updateCriterio(id, updateDtoParcial, mockRequest);
 
       // Assert
       expect(resultado).toEqual(criterioUpdated);
-      expect(mockCriteriosService.updateCriterio).toHaveBeenCalledWith(id, updateDto);
+      expect(mockCriteriosService.updateCriterio).toHaveBeenCalledWith(id, updateDtoParcial);
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'atualizar_criterio',
+        resource: 'Criterio',
+        details: { id, ...updateDtoParcial, result: criterioUpdated },
+        ip: mockRequest.ip,
+      });
     });
 
-    it('deve aceitar DTO vazio', async () => {
+    it('deve aceitar DTO vazio e registrar auditoria', async () => {
       // Arrange
       const id = '123e4567-e89b-12d3-a456-426614174000';
-      const updateDto: UpdateCriterioDto = {};
+      const updateDtoVazio: UpdateCriterioDto = {};
 
       mockCriteriosService.updateCriterio.mockResolvedValue(mockCriterio);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
-      const resultado = await controller.updateCriterio(id, updateDto);
+      const resultado = await controller.updateCriterio(id, updateDtoVazio, mockRequest);
 
       // Assert
       expect(resultado).toEqual(mockCriterio);
-      expect(mockCriteriosService.updateCriterio).toHaveBeenCalledWith(id, updateDto);
+      expect(mockCriteriosService.updateCriterio).toHaveBeenCalledWith(id, updateDtoVazio);
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'atualizar_criterio',
+        resource: 'Criterio',
+        details: { id, result: mockCriterio },
+        ip: mockRequest.ip,
+      });
     });
 
-    it('deve propagar erro quando critério não encontrado', async () => {
+    it('deve propagar erro quando critério não encontrado sem registrar auditoria', async () => {
       // Arrange
       const id = 'inexistente';
-      const updateDto: UpdateCriterioDto = {
-        nomeCriterio: 'Teste',
-      };
       const erro = new Error('Critério não encontrado');
       mockCriteriosService.updateCriterio.mockRejectedValue(erro);
 
       // Act & Assert
-      await expect(controller.updateCriterio(id, updateDto)).rejects.toThrow('Critério não encontrado');
+      await expect(controller.updateCriterio(id, updateCriterioDto, mockRequest)).rejects.toThrow('Critério não encontrado');
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
   });
 
   describe('deleteCriterio', () => {
-    it('deve deletar um critério com sucesso', async () => {
+    it('deve deletar um critério com sucesso e registrar auditoria', async () => {
       // Arrange
       const id = '123e4567-e89b-12d3-a456-426614174000';
       mockCriteriosService.deleteCriterio.mockResolvedValue(mockCriterio);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
-      const resultado = await controller.deleteCriterio(id);
+      const resultado = await controller.deleteCriterio(id, mockRequest);
 
       // Assert
       expect(resultado).toEqual(mockCriterio);
       expect(mockCriteriosService.deleteCriterio).toHaveBeenCalledWith(id);
       expect(mockCriteriosService.deleteCriterio).toHaveBeenCalledTimes(1);
+
+      // Verifica auditoria
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(1);
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'deletar_criterio',
+        resource: 'Criterio',
+        details: { id, result: mockCriterio },
+        ip: mockRequest.ip,
+      });
     });
 
-    it('deve propagar erro quando critério não encontrado', async () => {
+    it('deve propagar erro quando critério não encontrado sem registrar auditoria', async () => {
       // Arrange
       const id = 'inexistente';
       const erro = new Error('Critério não encontrado para exclusão');
       mockCriteriosService.deleteCriterio.mockRejectedValue(erro);
 
       // Act & Assert
-      await expect(controller.deleteCriterio(id)).rejects.toThrow('Critério não encontrado para exclusão');
+      await expect(controller.deleteCriterio(id, mockRequest)).rejects.toThrow('Critério não encontrado para exclusão');
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
 
-    it('deve propagar erro de constraint', async () => {
+    it('deve propagar erro de constraint sem registrar auditoria', async () => {
       // Arrange
       const id = '123e4567-e89b-12d3-a456-426614174000';
       const erro = new Error('Não é possível deletar: critério está sendo usado');
       mockCriteriosService.deleteCriterio.mockRejectedValue(erro);
 
       // Act & Assert
-      await expect(controller.deleteCriterio(id)).rejects.toThrow('Não é possível deletar: critério está sendo usado');
+      await expect(controller.deleteCriterio(id, mockRequest)).rejects.toThrow('Não é possível deletar: critério está sendo usado');
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+    });
+
+    it('deve continuar funcionando mesmo se auditoria falhar', async () => {
+      // Arrange
+      const id = '123e4567-e89b-12d3-a456-426614174000';
+      mockCriteriosService.deleteCriterio.mockResolvedValue(mockCriterio);
+      mockAuditoriaService.log.mockRejectedValue(new Error('Erro na auditoria'));
+
+      // Act & Assert
+      await expect(controller.deleteCriterio(id, mockRequest)).rejects.toThrow('Erro na auditoria');
+      expect(mockCriteriosService.deleteCriterio).toHaveBeenCalledWith(id);
     });
   });
-
-  // ...existing code...
 
   describe('Guards e Autorizações', () => {
     it('deve ter JwtAuthGuard aplicado em todas as rotas', () => {
-      // Verifica cada método individualmente
-      const getCriteriosGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.getCriterios);
-      const getCriterioGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.getCriterio);
-      const getCriterioPorPilarGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.getCriterioPorPilar);
-      const createCriterioGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.createCriterio);
-      const updateCriterioGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.updateCriterio);
-      const deleteCriterioGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.deleteCriterio);
+      const metodos = [
+        'getCriterios',
+        'getCriterio',
+        'getCriterioPorPilar',
+        'createCriterio',
+        'updateCriterio',
+        'deleteCriterio'
+      ];
 
-      // Verifica se todos os métodos têm guards
-      expect(getCriteriosGuards).toBeDefined();
-      expect(getCriterioGuards).toBeDefined();
-      expect(getCriterioPorPilarGuards).toBeDefined();
-      expect(createCriterioGuards).toBeDefined();
-      expect(updateCriterioGuards).toBeDefined();
-      expect(deleteCriterioGuards).toBeDefined();
-
-      // Verifica se JwtAuthGuard está presente em todos
-      expect(getCriteriosGuards).toContain(JwtAuthGuard);
-      expect(getCriterioGuards).toContain(JwtAuthGuard);
-      expect(getCriterioPorPilarGuards).toContain(JwtAuthGuard);
-      expect(createCriterioGuards).toContain(JwtAuthGuard);
-      expect(updateCriterioGuards).toContain(JwtAuthGuard);
-      expect(deleteCriterioGuards).toContain(JwtAuthGuard);
+      metodos.forEach(metodo => {
+        const guards = Reflect.getMetadata('__guards__', CriteriosController.prototype[metodo]);
+        expect(guards).toBeDefined();
+        expect(guards).toContain(JwtAuthGuard);
+      });
     });
 
     it('deve ter RolesGuard aplicado nas rotas de modificação', () => {
-      // Apenas rotas POST, PATCH e DELETE devem ter RolesGuard
-      const createCriterioGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.createCriterio);
-      const updateCriterioGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.updateCriterio);
-      const deleteCriterioGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.deleteCriterio);
+      const metodosModificacao = ['createCriterio', 'updateCriterio', 'deleteCriterio'];
 
-      // Verifica se RolesGuard está presente nas rotas de modificação
-      expect(createCriterioGuards).toContain(RolesGuard);
-      expect(updateCriterioGuards).toContain(RolesGuard);
-      expect(deleteCriterioGuards).toContain(RolesGuard);
+      metodosModificacao.forEach(metodo => {
+        const guards = Reflect.getMetadata('__guards__', CriteriosController.prototype[metodo]);
+        expect(guards).toContain(RolesGuard);
+      });
     });
 
     it('deve NOT ter RolesGuard aplicado nas rotas de consulta', () => {
-      // Rotas GET não devem ter RolesGuard
-      const getCriteriosGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.getCriterios);
-      const getCriterioGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.getCriterio);
-      const getCriterioPorPilarGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.getCriterioPorPilar);
+      const metodosConsulta = ['getCriterios', 'getCriterio', 'getCriterioPorPilar'];
 
-      // Verifica se RolesGuard NÃO está presente nas rotas de consulta
-      expect(getCriteriosGuards).not.toContain(RolesGuard);
-      expect(getCriterioGuards).not.toContain(RolesGuard);
-      expect(getCriterioPorPilarGuards).not.toContain(RolesGuard);
+      metodosConsulta.forEach(metodo => {
+        const guards = Reflect.getMetadata('__guards__', CriteriosController.prototype[metodo]);
+        expect(guards).not.toContain(RolesGuard);
+      });
     });
 
     it('deve ter roles ADMIN e RH nas rotas de modificação', () => {
-      // Verifica se @Roles('ADMIN', 'RH') está aplicado
-      const createRoles = Reflect.getMetadata('roles', CriteriosController.prototype.createCriterio);
-      const updateRoles = Reflect.getMetadata('roles', CriteriosController.prototype.updateCriterio);
-      const deleteRoles = Reflect.getMetadata('roles', CriteriosController.prototype.deleteCriterio);
+      const metodosModificacao = ['createCriterio', 'updateCriterio', 'deleteCriterio'];
 
-      expect(createRoles).toEqual(['ADMIN', 'RH']);
-      expect(updateRoles).toEqual(['ADMIN', 'RH']);
-      expect(deleteRoles).toEqual(['ADMIN', 'RH']);
+      metodosModificacao.forEach(metodo => {
+        const roles = Reflect.getMetadata('roles', CriteriosController.prototype[metodo]);
+        expect(roles).toEqual(['ADMIN', 'RH']);
+      });
     });
 
     it('deve NOT ter roles nas rotas de consulta', () => {
-      // Rotas GET não devem ter roles definidas
-      const getCriteriosRoles = Reflect.getMetadata('roles', CriteriosController.prototype.getCriterios);
-      const getCriterioRoles = Reflect.getMetadata('roles', CriteriosController.prototype.getCriterio);
-      const getCriterioPorPilarRoles = Reflect.getMetadata('roles', CriteriosController.prototype.getCriterioPorPilar);
+      const metodosConsulta = ['getCriterios', 'getCriterio', 'getCriterioPorPilar'];
 
-      expect(getCriteriosRoles).toBeUndefined();
-      expect(getCriterioRoles).toBeUndefined();
-      expect(getCriterioPorPilarRoles).toBeUndefined();
-    });
-
-    it('deve verificar estrutura específica de guards por método', () => {
-      // GET routes: apenas JwtAuthGuard
-      const getCriteriosGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.getCriterios);
-      expect(getCriteriosGuards).toHaveLength(1);
-      expect(getCriteriosGuards[0]).toBe(JwtAuthGuard);
-
-      // POST/PATCH/DELETE routes: JwtAuthGuard + RolesGuard
-      const createGuards = Reflect.getMetadata('__guards__', CriteriosController.prototype.createCriterio);
-      expect(createGuards).toHaveLength(2);
-      expect(createGuards).toContain(JwtAuthGuard);
-      expect(createGuards).toContain(RolesGuard);
+      metodosConsulta.forEach(metodo => {
+        const roles = Reflect.getMetadata('roles', CriteriosController.prototype[metodo]);
+        expect(roles).toBeUndefined();
+      });
     });
   });
 
-// ...existing code...
-
-  describe('Integração de fluxos', () => {
-    it('deve executar fluxo completo: criar -> buscar -> atualizar -> deletar', async () => {
+  describe('Integração de fluxos com auditoria', () => {
+    it('deve executar fluxo completo: criar -> buscar -> atualizar -> deletar com auditoria', async () => {
       // Arrange
-      const createDto: CreateCriterioDto = {
-        nomeCriterio: 'Fluxo Teste',
-        pilar: pilarCriterio.Execucao,
-      };
-
-      const updateDto: UpdateCriterioDto = {
-        nomeCriterio: 'Fluxo Teste Atualizado',
-      };
-
-      const criterioCreated = { ...mockCriterio, ...createDto, idCriterio: 'novo-id' };
-      const criterioUpdated = { ...criterioCreated, ...updateDto };
+      const criterioCreated = { ...mockCriterio, ...createCriterioDto, idCriterio: 'novo-id' };
+      const criterioUpdated = { ...criterioCreated, ...updateCriterioDto };
 
       mockCriteriosService.createCriterio.mockResolvedValue(criterioCreated);
       mockCriteriosService.getCriterio.mockResolvedValue(criterioCreated);
       mockCriteriosService.updateCriterio.mockResolvedValue(criterioUpdated);
       mockCriteriosService.deleteCriterio.mockResolvedValue(criterioUpdated);
-
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
 
       // Act
-      const criado = await controller.createCriterio(createDto);
+      const criado = await controller.createCriterio(createCriterioDto, mockRequest);
       const buscado = await controller.getCriterio(criado.idCriterio);
-      const atualizado = await controller.updateCriterio(criado.idCriterio, updateDto);
-      const deletado = await controller.deleteCriterio(criado.idCriterio);
+      const atualizado = await controller.updateCriterio(criado.idCriterio, updateCriterioDto, mockRequest);
+      const deletado = await controller.deleteCriterio(criado.idCriterio, mockRequest);
 
       // Assert
       expect(criado).toEqual(criterioCreated);
@@ -561,15 +635,17 @@ describe('CriteriosController', () => {
       expect(atualizado).toEqual(criterioUpdated);
       expect(deletado).toEqual(criterioUpdated);
 
-      expect(mockCriteriosService.createCriterio).toHaveBeenCalledWith(createDto);
+      // Verifica chamadas do service
+      expect(mockCriteriosService.createCriterio).toHaveBeenCalledWith(createCriterioDto);
       expect(mockCriteriosService.getCriterio).toHaveBeenCalledWith(criado.idCriterio);
-      expect(mockCriteriosService.updateCriterio).toHaveBeenCalledWith(criado.idCriterio, updateDto);
+      expect(mockCriteriosService.updateCriterio).toHaveBeenCalledWith(criado.idCriterio, updateCriterioDto);
       expect(mockCriteriosService.deleteCriterio).toHaveBeenCalledWith(criado.idCriterio);
 
-      consoleSpy.mockRestore();
+      // Verifica que auditoria foi chamada 3 vezes (criar, atualizar, deletar)
+      expect(mockAuditoriaService.log).toHaveBeenCalledTimes(3);
     });
 
-    it('deve listar critérios por pilar após criação', async () => {
+    it('deve listar critérios por pilar após criação sem auditoria', async () => {
       // Arrange
       const pilar = pilarCriterio.Execucao;
       const criteriosDoPilar = [mockCriterio];
@@ -581,6 +657,7 @@ describe('CriteriosController', () => {
       // Assert
       expect(resultado).toEqual(criteriosDoPilar);
       expect(mockCriteriosService.getCriterioPorPilar).toHaveBeenCalledWith(pilar);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
     });
   });
 
@@ -598,6 +675,92 @@ describe('CriteriosController', () => {
       for (const erro of erros) {
         mockCriteriosService.getCriterios.mockRejectedValue(erro);
         await expect(controller.getCriterios()).rejects.toThrow(erro.message);
+        expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe('Auditoria específica', () => {
+    it('deve registrar auditoria com dados corretos para cada operação', async () => {
+      // Arrange
+      const operacoes = [
+        {
+          metodo: 'createCriterio',
+          args: [createCriterioDto, mockRequest],
+          expectedAction: 'criar_criterio',
+          mockResult: { ...mockCriterio, ...createCriterioDto },
+        },
+        {
+          metodo: 'updateCriterio',
+          args: ['test-id', updateCriterioDto, mockRequest],
+          expectedAction: 'atualizar_criterio',
+          mockResult: { ...mockCriterio, ...updateCriterioDto },
+        },
+        {
+          metodo: 'deleteCriterio',
+          args: ['test-id', mockRequest],
+          expectedAction: 'deletar_criterio',
+          mockResult: mockCriterio,
+        },
+      ];
+
+      // Act & Assert
+      for (const operacao of operacoes) {
+        // Setup mock
+        if (operacao.metodo === 'createCriterio') {
+          mockCriteriosService.createCriterio.mockResolvedValue(operacao.mockResult);
+        } else if (operacao.metodo === 'updateCriterio') {
+          mockCriteriosService.updateCriterio.mockResolvedValue(operacao.mockResult);
+        } else if (operacao.metodo === 'deleteCriterio') {
+          mockCriteriosService.deleteCriterio.mockResolvedValue(operacao.mockResult);
+        }
+
+        mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+        // Execute
+        await controller[operacao.metodo](...operacao.args);
+
+        // Verify
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith(
+          expect.objectContaining({
+            userId: mockRequest.user.userId,
+            action: operacao.expectedAction,
+            resource: 'Criterio',
+            ip: mockRequest.ip,
+          })
+        );
+
+        // Reset
+        jest.clearAllMocks();
+      }
+    });
+
+    it('deve funcionar com diferentes tipos de request', async () => {
+      // Arrange
+      const requestTypes = [
+        { user: { userId: 'user-1' }, ip: '127.0.0.1' },
+        { user: { userId: 'user-2', roles: ['ADMIN'] }, ip: '192.168.1.1' },
+        { user: undefined, ip: '10.0.0.1' },
+        { user: { userId: null }, ip: undefined },
+      ];
+
+      const criterioCreated = { ...mockCriterio, ...createCriterioDto };
+      mockCriteriosService.createCriterio.mockResolvedValue(criterioCreated);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+      // Act & Assert
+      for (const request of requestTypes) {
+        await controller.createCriterio(createCriterioDto, request);
+
+        expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+          userId: request.user?.userId,
+          action: 'criar_criterio',
+          resource: 'Criterio',
+          details: { ...createCriterioDto, result: criterioCreated },
+          ip: request.ip,
+        });
+
+        jest.clearAllMocks();
       }
     });
   });
