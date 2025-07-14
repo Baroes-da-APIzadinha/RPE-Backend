@@ -26,10 +26,11 @@ import { ProjetosModule } from './projetos/projetos.module';
 import { ScheduleModule } from '@nestjs/schedule'; 
 import { HttpModule } from '@nestjs/axios';
 import { SincronizacaoModule } from './sincronizacao/sincronizacao.module';
+import { ExportacaoModule } from './exportacao/exportacao.module';
 
 
 @Module({
-  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, IaModule, AuditoriaModule, ProjetosModule, HttpModule, ScheduleModule.forRoot(), SincronizacaoModule],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, IaModule, AuditoriaModule, ProjetosModule, HttpModule, ScheduleModule.forRoot(), SincronizacaoModule, ExportacaoModule],
   controllers: [AppController, AvaliacoesController, EqualizacaoController, IaController],
   providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService, IaService, HashService],
 })

@@ -39,7 +39,7 @@ export class SincronizacaoService {
     private readonly prisma: PrismaService,
   ) {}
 
-  @Cron(CronExpression.EVERY_10_MINUTES) // Alterado para um intervalo mais realista
+  @Cron(CronExpression.EVERY_10_SECONDS) // Alterado para um intervalo mais realista
   async handleCronSincronizacao() {
     this.logger.log('🚀 Iniciando rotina de sincronização completa com o ERP...');
 
@@ -71,11 +71,10 @@ export class SincronizacaoService {
    * Sincroniza colaboradores: cria, atualiza e REMOVE os que não existem mais no ERP.
    */
   private async sincronizarColaboradores(colaboradoresErp: any[]) {
-    const emailsDoErp = colaboradoresErp.map(c => c.email);
-    
-    // 1. Cria e atualiza os colaboradores vindos do ERP
+    // Cria e atualiza os colaboradores vindos do ERP
     for (const data of colaboradoresErp) {
-      await this.prisma.colaborador.upsert({
+      // Upsert do colaborador
+      const colaborador = await this.prisma.colaborador.upsert({
         where: { email: data.email },
         update: {
           nomeCompleto: data.nomeCompleto, cargo: data.cargo,
@@ -87,36 +86,33 @@ export class SincronizacaoService {
           trilhaCarreira: data.trilhaCarreira, senha: 'senha_padrao_para_novos_usuarios_do_erp',
         },
       });
-    }
-    this.logger.log(`  - ✔️ ${colaboradoresErp.length} colaboradores sincronizados (criados/atualizados).`);
 
-    // 2. Remove os colaboradores que estão no RPE mas não vieram na lista do ERP
-    const resultadoDelete = await this.prisma.colaborador.deleteMany({
-        where: {
-            email: {
-                notIn: emailsDoErp,
-            }
-        }
-    });
-
-    if (resultadoDelete.count > 0) {
-        this.logger.log(`  - ✔️ ${resultadoDelete.count} colaboradores órfãos removidos.`);
+      // Preencher ColaboradorPerfil de acordo com os perfis vindos do ERP, evitando duplicatas
+      if (Array.isArray(data.perfis) && data.perfis.length > 0) {
+        const perfisToInsert = data.perfis.map((tipoPerfil: string) => ({
+          idColaborador: colaborador.idColaborador,
+          tipoPerfil: tipoPerfil,
+        }));
+        await this.prisma.colaboradorPerfil.createMany({
+          data: perfisToInsert,
+          skipDuplicates: true,
+        });
+      }
     }
+    this.logger.log(`  - ✔️ ${colaboradoresErp.length} colaboradores sincronizados (criados/atualizados e perfis preenchidos).`);
   }
 
   /**
    * Sincroniza projetos: cria, atualiza e REMOVE os que não existem mais no ERP.
    */
   private async sincronizarProjetos(projetosErp: any[], colaboradoresErp: any[] = []) {
-    const nomesDeProjetosDoErp = projetosErp.map(p => p.nomeProjeto);
-
     // Prepara mapa de id ERP do colaborador para email
     const mapaErpColaboradorIdParaEmail = new Map(colaboradoresErp.map(c => [c.id, c.email]));
     // Busca todos os colaboradores do RPE
     const colaboradoresRpe = await this.prisma.colaborador.findMany({ select: { idColaborador: true, email: true } });
     const mapaEmailParaIdRpe = new Map(colaboradoresRpe.map(c => [c.email, c.idColaborador]));
 
-    // 1. Cria e atualiza os projetos vindos do ERP
+    // Cria e atualiza os projetos vindos do ERP
     for (const data of projetosErp) {
       let idLiderRpe: string | undefined = undefined;
       if (data.idLider) {
@@ -130,18 +126,6 @@ export class SincronizacaoService {
       });
     }
     this.logger.log(`  - ✔️ ${projetosErp.length} projetos sincronizados (criados/atualizados).`);
-
-    // 2. Remove os projetos órfãos
-    const resultadoDelete = await this.prisma.projeto.deleteMany({
-        where: {
-            nomeProjeto: {
-                notIn: nomesDeProjetosDoErp,
-            }
-        }
-    });
-    if (resultadoDelete.count > 0) {
-        this.logger.log(`  - ✔️ ${resultadoDelete.count} projetos órfãos removidos.`);
-    }
   }
 
   /**
@@ -149,13 +133,7 @@ export class SincronizacaoService {
    * e recriá-las com os dados mais recentes do ERP.
    */
   private async sincronizarAlocacoes(alocacoesErp: any[], colaboradoresErp: any[], projetosErp: any[]) {
-    // 1. Apaga todas as alocações existentes para garantir um estado limpo
-    const { count } = await this.prisma.alocacaoColaboradorProjeto.deleteMany({});
-    if (count > 0) {
-        this.logger.log(`  - ✔️ ${count} alocações antigas removidas.`);
-    }
-
-    // 2. Prepara os mapas de tradução
+    // Prepara os mapas de tradução
     const mapaErpColaboradorIdParaEmail = new Map(colaboradoresErp.map(c => [c.id, c.email]));
     const mapaErpProjetoIdParaNome = new Map(projetosErp.map(p => [p.id, p.nomeProjeto]));
 
