@@ -264,6 +264,46 @@ Content-Type: application/json
     ]
 }
 
+### Preencher rascunho autoavaliação
+POST http://localhost:3000/avaliacoes/rascunho-auto-avaliacao
+Content-Type: application/json
+
+{
+    "idAvaliacao": "600af205-a5bc-4203-a282-7f86899f117f",
+    "criterios": [
+        {
+            "nome": "Comunicação",
+            "nota": 3.0,
+            "justificativa": "Me comuniquei de forma clara na maioria das situações, mas posso melhorar em reuniões grandes."
+        },
+        {
+            "nome": "Trabalho em Equipe",
+            "nota": 3.5,
+            "justificativa": "Participei das atividades em grupo e ajudei colegas, mas em alguns momentos poderia ter colaborado mais."
+        },
+        {
+            "nome": "Adaptabilidade",
+            "nota": 3.0,
+            "justificativa": "Consegui me adaptar às mudanças, embora precise ser mais proativo em situações inesperadas."
+        },
+        {
+            "nome": "Qualidade das Entregas",
+            "nota": 3.0,
+            "justificativa": "Minhas entregas atenderam aos requisitos, mas algumas poderiam ter mais atenção aos detalhes."
+        },
+        {
+            "nome": "Cumprimento de Prazos",
+            "nota": 2.5,
+            "justificativa": "Cumpri a maioria dos prazos, mas tive dificuldades em alguns momentos de maior demanda."
+        },
+        {
+            "nome": "Resolução de Problemas",
+            "nota": 3.0,
+            "justificativa": "Resolvi problemas do dia a dia, mas em casos mais complexos precisei de apoio do time."
+        }
+    ]
+}
+
 ### Preencher lide-colaborador
 
 POST http://localhost:3000/avaliacoes/preencher-lider-colaborador
@@ -318,6 +358,46 @@ Content-Type: application/json
 "justificativa": "Apoia o desenvolvimento dos colegas quando solicitado. Seria benéfico que fosse mais ativo na disseminação de conhecimento e melhores práticas de forma espontânea."
 }
 ]
+}
+
+### Preencher rascunho lider colaborador
+POST http://localhost:3000/avaliacoes/rascunho-lider-colaborador
+Content-Type: application/json
+
+{
+    "idAvaliacao": "8b60161e-7716-4267-afc1-7784cd8c7ada",
+    "criterios": [
+        {
+            "nome": "Comunicação",
+            "nota": 3.0,
+            "justificativa": "Me comuniquei de forma clara na maioria das situações, mas posso melhorar em reuniões grandes."
+        },
+        {
+            "nome": "Trabalho em Equipe",
+            "nota": 3.5,
+            "justificativa": "Participei das atividades em grupo e ajudei colegas, mas em alguns momentos poderia ter colaborado mais."
+        },
+        {
+            "nome": "Adaptabilidade",
+            "nota": 3.0,
+            "justificativa": "Consegui me adaptar às mudanças, embora precise ser mais proativo em situações inesperadas."
+        },
+        {
+            "nome": "Qualidade das Entregas",
+            "nota": 3.0,
+            "justificativa": "Minhas entregas atenderam aos requisitos, mas algumas poderiam ter mais atenção aos detalhes."
+        },
+        {
+            "nome": "Cumprimento de Prazos",
+            "nota": 2.5,
+            "justificativa": "Cumpri a maioria dos prazos, mas tive dificuldades em alguns momentos de maior demanda."
+        },
+        {
+            "nome": "Resolução de Problemas",
+            "nota": 3.0,
+            "justificativa": "Resolvi problemas do dia a dia, mas em casos mais complexos precisei de apoio do time."
+        }
+    ]
 }
 
 ### Buscar forms de autoavaliação agrupados por pilar

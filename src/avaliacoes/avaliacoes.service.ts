@@ -712,6 +712,86 @@ export class AvaliacoesService {
         })
     }
 
+    async preencherRascunhoAutoAvaliacao(idAvaliacao: string, criterios: { nome: string, nota: number, justificativa: string }[]): Promise<void> {
+        const avaliacao = await this.prisma.avaliacao.findUnique({
+            where: { idAvaliacao },
+            include: { autoAvaliacao: true },
+        });
+        await this.verificarAvaliacaoExiste(idAvaliacao);
+        this.verificarAvaliacaoTipo(avaliacao, 'AUTOAVALIACAO');
+        this.verificarAvaliacaoStatus(avaliacao);
+
+        // Verificar se o número de critérios não excede o número de cards existentes
+
+        for (const criterio of criterios) {
+            this.verificarNota(criterio.nota);
+
+            const card = await this.prisma.cardAutoAvaliacao.findFirst({
+                where: {
+                    idAvaliacao: idAvaliacao,
+                    nomeCriterio: criterio.nome
+                }
+            });
+
+            if (!card) {
+                throw new HttpException(`Card não encontrado para critério: ${criterio.nome}`, HttpStatus.NOT_FOUND);
+            }
+
+            await this.prisma.cardAutoAvaliacao.update({
+                where: { idCardAvaliacao: card.idCardAvaliacao },
+                data: {
+                    nota: criterio.nota,
+                    justificativa: this.hashService.hash(criterio.justificativa)
+                }
+            });
+        }
+
+        await this.prisma.avaliacao.update({
+            where: { idAvaliacao },
+            data: { status: 'EM_RASCUNHO' },
+        });
+    }
+
+    async preencherRascunhoLiderColaborador(idAvaliacao: string, criterios: { nome: string, nota: number, justificativa: string }[]): Promise<void> {
+        const avaliacao = await this.prisma.avaliacao.findUnique({
+            where: { idAvaliacao },
+            include: { autoAvaliacao: true },
+        });
+        await this.verificarAvaliacaoExiste(idAvaliacao);
+        this.verificarAvaliacaoTipo(avaliacao, 'LIDER_COLABORADOR');
+        this.verificarAvaliacaoStatus(avaliacao);
+
+        // Verificar se o número de critérios não excede o número de cards existentes
+
+        for (const criterio of criterios) {
+            this.verificarNota(criterio.nota);
+
+            const card = await this.prisma.cardAvaliacaoLiderColaborador.findFirst({
+                where: {
+                    idAvaliacao: idAvaliacao,
+                    nomeCriterio: criterio.nome
+                }
+            });
+
+            if (!card) {
+                throw new HttpException(`Card não encontrado para critério: ${criterio.nome}`, HttpStatus.NOT_FOUND);
+            }
+
+            await this.prisma.cardAvaliacaoLiderColaborador.update({
+                where: { idCardAvaliacao: card.idCardAvaliacao },
+                data: {
+                    nota: criterio.nota,
+                    justificativa: this.hashService.hash(criterio.justificativa)
+                }
+            });
+        }
+
+        await this.prisma.avaliacao.update({
+            where: { idAvaliacao },
+            data: { status: 'EM_RASCUNHO' },
+        });
+    }
+
     async preencherAvaliacaoLiderColaborador(idAvaliacao: string, criterios: { nome: string, nota: number, justificativa: string }[]): Promise<void> {
         const avaliacao = await this.prisma.avaliacao.findUnique({
             where: { idAvaliacao },
