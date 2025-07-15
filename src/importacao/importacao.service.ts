@@ -142,7 +142,6 @@ export class ImportacaoService {
     }
   }
 
-  // Cria ou busca ciclo pelo nome
   private async upsertCiclo(cicloNome: string) {
     let ciclo = await this.prisma.cicloAvaliacao.findFirst({ where: { nomeCiclo: cicloNome } });
     if (!ciclo) {
@@ -164,7 +163,6 @@ export class ImportacaoService {
     return ciclo;
   }
 
-  // Mapeamento dos critérios antigos para os novos
   private readonly MAPA_CRITERIOS_ANTIGOS_PARA_NOVOS = {
     'Organização': 'Organização no Trabalho',
     'Imagem': 'Atender aos prazos',
@@ -302,9 +300,7 @@ export class ImportacaoService {
     }
   }
 
-  // Novo método para gerar e baixar o template de importação
   async baixarTemplateImportacao(@Res() res: Response) {
-    // Define o esquema das abas e colunas
     const sheets = {
       'Perfil': [
         ['Email', 'Nome ( nome.sobrenome )', 'Unidade', 'Ciclo (ano.semestre)']

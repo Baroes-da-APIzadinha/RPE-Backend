@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../database/prismaService'; // Ajuste o caminho se necessário
+import { PrismaService } from '../database/prismaService'; 
 import * as xlsx from 'xlsx';
 
 @Injectable()
@@ -18,8 +18,6 @@ export class ExportacaoService {
     const totalConcluidas = await this.prisma.avaliacao.count({ where: { idCiclo, status: 'CONCLUIDA' } });
     const totalParticipantes = await this.prisma.colaboradorCiclo.count({ where: { idCiclo } });
     
-    // 3. Buscar dados para a aba de Detalhes por Colaborador
-    // Esta query busca os colaboradores e suas notas de equalização (comitê)
     const detalhesColaboradores = await this.prisma.colaborador.findMany({
         where: {
             colaboradoresCiclos: {
@@ -39,23 +37,35 @@ export class ExportacaoService {
         }
     });
 
-    // 4. Criar o arquivo Excel em memória
     const workbook = xlsx.utils.book_new();
 
-    // --- Criação da Aba 1: Resumo do Ciclo ---
-    const dadosResumo = [
-      { Chave: 'Nome do Ciclo', Valor: ciclo.nomeCiclo },
-      { Chave: 'Data de Início', Valor: ciclo.dataInicio.toLocaleDateString('pt-BR') },
-      { Chave: 'Data de Fim', Valor: ciclo.dataFim.toLocaleDateString('pt-BR') },
-      { Chave: 'Status', Valor: ciclo.status },
-      { Chave: 'Total de Participantes', Valor: totalParticipantes },
-      { Chave: 'Total de Avaliações Lançadas', Valor: totalAvaliacoes },
-      { Chave: 'Total de Avaliações Concluídas', Valor: totalConcluidas },
+    const titulosResumo = [
+      'Nome do Ciclo',
+      'Data de Início',
+      'Data de Fim',
+      'Status',
+      'Total de Participantes',
+      'Total de Avaliações Lançadas',
+      'Total de Avaliações Concluídas',
+      'Duração Em Andamento (dias)',
+      'Duração Em Revisão (dias)',
+      'Duração Em Equalização (dias)',
     ];
-    const worksheetResumo = xlsx.utils.json_to_sheet(dadosResumo);
+    const valoresResumo = [
+      ciclo.nomeCiclo,
+      ciclo.dataInicio.toLocaleDateString('pt-BR'),
+      ciclo.dataFim.toLocaleDateString('pt-BR'),
+      ciclo.status,
+      totalParticipantes,
+      totalAvaliacoes,
+      totalConcluidas,
+      ciclo.duracaoEmAndamentoDias,
+      ciclo.duracaoEmRevisaoDias,
+      ciclo.duracaoEmEqualizacaoDias,
+    ];
+    const worksheetResumo = xlsx.utils.aoa_to_sheet([titulosResumo, valoresResumo]);
     xlsx.utils.book_append_sheet(workbook, worksheetResumo, 'Resumo do Ciclo');
 
-    // --- Criação da Aba 2: Detalhes por Colaborador ---
     const dadosDetalhados = detalhesColaboradores.map(colab => ({
       'Nome do Colaborador': colab.nomeCompleto,
       'Email': colab.email,
@@ -65,7 +75,6 @@ export class ExportacaoService {
     const worksheetDetalhes = xlsx.utils.json_to_sheet(dadosDetalhados);
     xlsx.utils.book_append_sheet(workbook, worksheetDetalhes, 'Detalhes por Colaborador');
 
-    // 5. Converte o workbook para um buffer binário
     const buffer = xlsx.write(workbook, { bookType: 'xlsx', type: 'buffer' });
 
     return buffer;

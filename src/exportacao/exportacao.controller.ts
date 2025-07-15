@@ -15,13 +15,11 @@ export class ExportacaoController {
 
     const nomeArquivo = `relatorio_ciclo_${idCiclo}.xlsx`;
 
-    // Configura os headers da resposta para o download do arquivo
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="relatorio_ciclo_${idCiclo}.xlsx"`,
     });
 
-    // Retorna o buffer como um arquivo "streamable"
     return new StreamableFile(buffer);
   }
 }
