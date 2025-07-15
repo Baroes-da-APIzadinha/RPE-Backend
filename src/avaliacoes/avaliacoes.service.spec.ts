@@ -4,7 +4,7 @@ import { PrismaService } from '../database/prismaService';
 import { HashService } from '../common/hash.service';
 import { HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
-import { Motivacao } from './avaliacoes.contants';
+import { Motivacao, Status } from './avaliacoes.constants';
 import { 
   AvaliacaoParesDto, 
   AvaliacaoColaboradorMentorDto, 
@@ -206,6 +206,7 @@ describe('AvaliacoesService', () => {
   // DTOs de teste
   const mockAvaliacaoParesDto: AvaliacaoParesDto = {
     idAvaliacao: mockIdAvaliacao,
+    status: Status.PENDENTE,
     nota: 4.5,
     motivacao: Motivacao.Concordo_Totalmente,
     pontosFortes: 'Excelente comunicação e proatividade',
@@ -214,6 +215,7 @@ describe('AvaliacoesService', () => {
 
   const mockAvaliacaoMentorDto: AvaliacaoColaboradorMentorDto = {
     idAvaliacao: mockIdAvaliacao,
+    status: Status.PENDENTE,
     nota: 4.0,
     justificativa: 'Excelente trabalho de mentoria',
   };
@@ -645,6 +647,7 @@ describe('AvaliacoesService', () => {
       // Act
       await service.preencherAvaliacaoPares(
         mockIdAvaliacao,
+        Status.CONCLUIDA,
         mockAvaliacaoParesDto.nota,
         mockAvaliacaoParesDto.motivacao,
         mockAvaliacaoParesDto.pontosFortes,
@@ -676,6 +679,7 @@ describe('AvaliacoesService', () => {
       await expect(
         service.preencherAvaliacaoPares(
           mockIdAvaliacao,
+          Status.PENDENTE,
           4.5,
           Motivacao.Concordo_Totalmente,
           'Pontos fortes',
@@ -695,6 +699,7 @@ describe('AvaliacoesService', () => {
       await expect(
         service.preencherAvaliacaoPares(
           mockIdAvaliacao,
+          Status.PENDENTE,
           4.5,
           Motivacao.Concordo_Totalmente,
           'Pontos fortes',
@@ -716,6 +721,7 @@ describe('AvaliacoesService', () => {
       await expect(
         service.preencherAvaliacaoPares(
           mockIdAvaliacao,
+          Status.PENDENTE,
           4.5,
           Motivacao.Concordo_Totalmente,
           'Pontos fortes',
@@ -729,6 +735,7 @@ describe('AvaliacoesService', () => {
       await expect(
         service.preencherAvaliacaoPares(
           mockIdAvaliacao,
+          Status.PENDENTE,
           6.0, // Nota inválida > 5
           Motivacao.Concordo_Totalmente,
           'Pontos fortes',
@@ -739,6 +746,7 @@ describe('AvaliacoesService', () => {
       await expect(
         service.preencherAvaliacaoPares(
           mockIdAvaliacao,
+          Status.PENDENTE,
           4.3, // Nota não múltipla de 0.5
           Motivacao.Concordo_Totalmente,
           'Pontos fortes',
@@ -763,6 +771,7 @@ describe('AvaliacoesService', () => {
       // Act
       await service.preencherAvaliacaoColaboradorMentor(
         mockIdAvaliacao,
+        Status.CONCLUIDA,
         mockAvaliacaoMentorDto.nota,
         mockAvaliacaoMentorDto.justificativa
       );
@@ -791,7 +800,7 @@ describe('AvaliacoesService', () => {
 
       // Act & Assert
       await expect(
-        service.preencherAvaliacaoColaboradorMentor(mockIdAvaliacao, 4.5, 'Justificativa')
+        service.preencherAvaliacaoColaboradorMentor(mockIdAvaliacao, Status.PENDENTE, 4.5, 'Justificativa')
       ).rejects.toThrow(HttpException);
     });
   });
