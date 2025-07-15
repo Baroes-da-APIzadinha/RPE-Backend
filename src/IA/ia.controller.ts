@@ -34,7 +34,7 @@ export class IaController {
             throw error;
         }
     }
-    @Get('brutalfacts/:idColaborador/:idCiclo')
+    @Get('brutalfacts/data/:idColaborador/:idCiclo')
     async getAll_Infos_Colaborador(@Param('idColaborador') idColaborador: string, @Param('idCiclo') idCiclo: string): Promise<any> {
         try {
             const resultado = await this.iaService.getAll_Infos_Colaborador(idColaborador, idCiclo);
@@ -55,6 +55,20 @@ export class IaController {
             return resultado;
         } catch (error) {
             console.error('Erro ao gerar Brutal Facts:', error);
+            throw error;
+        }
+    }
+
+    @Get('brutalfacts/:idColaborador/:idCiclo')
+    async getBrutalFacts(
+        @Param('idColaborador') idColaborador: string,
+        @Param('idCiclo') idCiclo: string
+    ): Promise<any> {
+        try {
+            const resultado = await this.iaService.getBrutalFacts(idColaborador, idCiclo);
+            return resultado;
+        } catch (error) {
+            console.error('Erro ao buscar Brutal Facts:', error);
             throw error;
         }
     }

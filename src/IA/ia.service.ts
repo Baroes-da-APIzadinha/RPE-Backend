@@ -482,6 +482,25 @@ export class IaService {
         }
     }
 
+    
+    async getBrutalFacts(idColaborador: string, idCiclo: string): Promise<string | null> {
+        try {
+            const brutalFactsRecord = await this.prisma.brutalFacts.findUnique({
+                where: {
+                    idColaborador_idCiclo: {
+                        idColaborador,
+                        idCiclo
+                    }
+                }
+            });
+
+            return brutalFactsRecord?.brutalFact || null;
+        } catch (error) {
+            console.error(`Erro ao buscar Brutal Facts para colaborador ${idColaborador} no ciclo ${idCiclo}`, error);
+            throw error;
+        }
+    }
+
     // Função auxiliar para montar prompt específico do brutal facts
     private criarPromptBrutalFacts(dados: any, equalizacao: any, referencias?: any[]): string {
         let prompt = `=== DADOS PARA BRUTAL FACTS ===\n`;
@@ -517,7 +536,7 @@ export class IaService {
         }
         // Equalização
         if (equalizacao) {
-            prompt += `\n=== EQUALIZAÇÃO ===\nNota Final Equalizada: ${equalizacao.notaFinal || 'Não informada'}\nJustificativa do Comitê: \"${equalizacao.justificativa || 'Não informada'}\"`;
+            prompt += `\n=== EQUALIZAÇÃO ===\nNota Final Equalizada: ${equalizacao.notaAjustada || 'Não informada'}\nJustificativa do Comitê: \"${equalizacao.justificativa || 'Não informada'}\"`;
         } else {
             prompt += `\n=== EQUALIZAÇÃO ===\n❌ Equalização não realizada`;
         }

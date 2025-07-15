@@ -10,6 +10,7 @@ SET CONSTRAINTS ALL DEFERRED;
     TRUNCATE "AvaliacaoColaboradorMentor" CASCADE;
     TRUNCATE TABLE "AvaliacaoPares" CASCADE;
     TRUNCATE TABLE "AutoAvaliacao" CASCADE;
+    TRUNCATE TABLE "alocacoes_colaborador_projeto" CASCADE;
     TRUNCATE TABLE "Equalizacao" CASCADE;
     TRUNCATE TABLE "IndicacaoReferencia" CASCADE;
     TRUNCATE TABLE "Avaliacao" CASCADE;
@@ -24,6 +25,8 @@ SET CONSTRAINTS ALL DEFERRED;
     TRUNCATE TABLE "ColaboradorPerfil" CASCADE;
     TRUNCATE TABLE "Colaborador" CASCADE;
     TRUNCATE TABLE "projetos" CASCADE;
+    TRUNCATE TABLE "BrutalFacts" CASCADE;
+    TRUNCATE TABLE "AuditLog" CASCADE;
 SET CONSTRAINTS ALL IMMEDIATE;
 
     -- Reabilitar as verificações de chave estrangeira
@@ -444,6 +447,13 @@ VALUES
     (uuid_generate_v4(), ciclo_2025_1_id, colaborador_comercial_id, colaborador_comite_id, NULL, NULL, 'PENDENTE'),
     (uuid_generate_v4(), ciclo_2025_1_id, colaborador_comum_sem_avaliação_id, colaborador_comite_id, NULL, NULL, 'PENDENTE');
 
+-- Inserir Alocação de Colaboradores aos Projetos
+INSERT INTO "alocacoes_colaborador_projeto" ("idAlocacao", "idColaborador", "idProjeto", "dataEntrada", "dataSaida")
+VALUES
+    (uuid_generate_v4(), colaborador_comum_id, projeto_rocket_id, '2025-01-01', NULL),
+    (uuid_generate_v4(), colaborador_qa_id, projeto_rocket_id, '2025-01-01', NULL),
+    (uuid_generate_v4(), colaborador_mentor_id, projeto_apollo_id, '2025-02-01', NULL),
+    (uuid_generate_v4(), colaborador_ux_id, projeto_apollo_id, '2025-02-01', NULL);
 
 
 END $$;
