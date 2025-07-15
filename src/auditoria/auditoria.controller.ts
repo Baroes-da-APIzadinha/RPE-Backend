@@ -34,4 +34,9 @@ export class AuditoriaController {
 
     return this.auditoriaService.getLogsPaginacao(inicioNum, fimNum);
   }
+
+  @Get('all-users')
+  async getAllUsers() {
+    return this.auditoriaService.getAllUsers();
+  }
 }

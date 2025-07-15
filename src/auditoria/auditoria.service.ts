@@ -62,4 +62,33 @@ export class AuditoriaService {
       })),
     };
   }
+
+  async getAllUsers() {
+    const users = await this.prisma.colaborador.findMany({
+      select: {
+        idColaborador: true,
+        nomeCompleto: true,
+        email: true,
+        cargo: true,
+        trilhaCarreira: true,
+        unidade: true,
+        perfis: {
+          select: {
+            tipoPerfil: true,
+          },
+        },
+      },
+    });
+
+    return {
+      users: users.map(user => ({
+        idColaborador: user.idColaborador,
+        nome: user.nomeCompleto,
+        cargos: user.perfis.map(perfil => perfil.tipoPerfil),
+        email: user.email,
+        trilha: user.trilhaCarreira || '',
+        unidade: user.unidade || '',
+      })),
+    };
+  }
 }
