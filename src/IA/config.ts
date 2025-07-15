@@ -194,6 +194,7 @@ const brutalFactsConfig = {
     - Nota Final Equalizada: [Informe a nota final e a justificativa do comitê, se houver]
     - Recomendações do Comitê: [Sugestões práticas e personalizadas para o próximo ciclo]
     - Mensagem para o Colaborador: [Uma frase de incentivo ou reflexão, encerrando o feedback de forma construtiva]
+    - Nota final equalizada
   `.trim(),
   temperature: 0.4,
   topP: 0.85,
