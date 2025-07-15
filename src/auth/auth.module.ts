@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { DatabaseModule } from '../database/database.module';
 import { AuditoriaModule } from '../auditoria/auditoria.module';
+import { RemindersModule } from '../reminders/reminders.module'; // ajuste o caminho conforme seu projeto
 
 @Module({
   imports: [
@@ -14,6 +15,8 @@ import { AuditoriaModule } from '../auditoria/auditoria.module';
     }),
     DatabaseModule,
     AuditoriaModule,
+    RemindersModule,
+
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

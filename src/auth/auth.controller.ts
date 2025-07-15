@@ -3,11 +3,12 @@ import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RemindersService } from '../reminders/reminders.service'; 
 
 @Controller('auth')
 export class AuthController {
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService, private readonly remindersService: RemindersService) {}
   @HttpCode(200)
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response, @Req() req) {
@@ -23,7 +24,9 @@ export class AuthController {
       maxAge: 1000 * 60 * 60 * 24, // 1 dia
     });
 
-    return { message: 'Login bem-sucedido' };
+    const reminder = await this.remindersService.getGlobalReminder();
+
+    return { message: 'Login bem-sucedido', reminder };
   }
 
   @Get('me')
