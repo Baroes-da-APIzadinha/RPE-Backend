@@ -60,7 +60,8 @@ export class CicloService {
             ? cicloStatus.EM_ANDAMENTO
             : cicloStatus.AGENDADO;
 
-        return this.prisma.cicloAvaliacao.create({
+        // Cria o ciclo
+        const ciclo = await this.prisma.cicloAvaliacao.create({
             data: {
                 nomeCiclo: data.nome,
                 dataInicio,
@@ -70,6 +71,26 @@ export class CicloService {
                 duracaoEmRevisaoDias: data.duracaoEmRevisaoDias,
                 duracaoEmEqualizacaoDias: data.duracaoEmEqualizacaoDias,
             },
+        });
+
+        await this._associarColaboradoresAtivosAoCiclo(ciclo.idCiclo);
+
+        return ciclo;
+    }
+
+    private async _associarColaboradoresAtivosAoCiclo(idCiclo: string) {
+        // Busca apenas colaboradores ativos (campo ativo === true)
+        const colaboradores = await this.prisma.colaborador.findMany({
+            where: { ativo: true }
+        });
+        if (!colaboradores.length) return;
+        const dadosParaCriar = colaboradores.map(colab => ({
+            idColaborador: colab.idColaborador,
+            idCiclo,
+        }));
+        await this.prisma.colaboradorCiclo.createMany({
+            data: dadosParaCriar,
+            skipDuplicates: true,
         });
     }
 
