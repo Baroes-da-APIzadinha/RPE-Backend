@@ -4,105 +4,118 @@
       "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
       "nomeCompleto": "Ana Júlia Paiva",
       "email": "ana.julia@empresa.com",
-      "cargo": "Desenvolvedora Backend Pleno",
-      "unidade": "Engenharia",
-      "trilhaCarreira": "Especialista"
+      "cargo": "DESENVOLVEDOR",
+      "unidade": "RECIFE",
+      "trilhaCarreira": "DESENVOLVIMENTO",
+      "perfis": ["COLABORADOR_COMUM"]
     },
     {
       "id": "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
       "nomeCompleto": "Carlos Andrade",
       "email": "carlos.andrade@empresa.com",
-      "cargo": "Desenvolvedor Frontend Sênior",
-      "unidade": "Engenharia",
-      "trilhaCarreira": "Especialista"
+      "cargo": "DESENVOLVEDOR",
+      "unidade": "SAO PAULO",
+      "trilhaCarreira": "DESENVOLVIMENTO",
+      "perfis": ["COLABORADOR_COMUM", "GESTOR"]
     },
     {
       "id": "c3d4e5f6-a7b8-9012-3456-7890abcdef12",
       "nomeCompleto": "Mariana Costa",
       "email": "mariana.costa@empresa.com",
-      "cargo": "Gerente de Projetos",
-      "unidade": "Produto",
-      "trilhaCarreira": "Gestão"
+      "cargo": "COMERCIAL",
+      "unidade": "RECIFE",
+      "trilhaCarreira": "GERENCIAMENTO",
+      "perfis": ["GESTOR", "ADMIN"]
     },
     {
       "id": "d4e5f6a7-b8c9-0123-4567-890abcdef123",
       "nomeCompleto": "Lucas Oliveira",
       "email": "lucas.oliveira@empresa.com",
-      "cargo": "Cientista de Dados",
-      "unidade": "Dados",
-      "trilhaCarreira": "Especialista"
+      "cargo": "SUPORTE",
+      "unidade": "FLORIANOPOLIS",
+      "trilhaCarreira": "SUPORTE",
+      "perfis": ["MENTOR", "COLABORADOR_COMUM"]
     },
     {
       "id": "e5f6a7b8-c9d0-1234-5678-90abcdef1234",
       "nomeCompleto": "Beatriz Santos",
       "email": "beatriz.santos@empresa.com",
-      "cargo": "UX/UI Designer Sênior",
-      "unidade": "Produto",
-      "trilhaCarreira": "Especialista"
+      "cargo": "UX",
+      "unidade": "SAO PAULO",
+      "trilhaCarreira": "UX",
+      "perfis": ["RH", "MENTOR"]
     },
     {
       "id": "f6a7b8c9-d0e1-2345-6789-0abcdef12345",
       "nomeCompleto": "Rafael Ferreira",
       "email": "rafael.ferreira@empresa.com",
-      "cargo": "Engenheiro DevOps",
-      "unidade": "Engenharia",
-      "trilhaCarreira": "Especialista"
+      "cargo": "QA",
+      "unidade": "RECIFE",
+      "trilhaCarreira": "QA",
+      "perfis": ["ADMIN", "LIDER"]
     },
     {
       "id": "a7b8c9d0-e1f2-3456-7890-bcdef1234567",
       "nomeCompleto": "Juliana Souza",
       "email": "juliana.souza@empresa.com",
-      "cargo": "Analista de QA",
-      "unidade": "Engenharia",
-      "trilhaCarreira": "Especialista"
+      "cargo": "QA",
+      "unidade": "FLORIANOPOLIS",
+      "trilhaCarreira": "QA",
+      "perfis": ["LIDER", "MENTOR"]
     },
     {
       "id": "b8c9d0e1-f2a3-4567-8901-cdef12345678",
       "nomeCompleto": "Fernando Martins",
       "email": "fernando.martins@empresa.com",
-      "cargo": "Product Owner",
-      "unidade": "Produto",
-      "trilhaCarreira": "Gestão"
+      "cargo": "RH",
+      "unidade": "RECIFE",
+      "trilhaCarreira": "GERENCIAMENTO",
+      "perfis": ["GESTOR", "MEMBRO_COMITE"]
     },
     {
       "id": "c9d0e1f2-a3b4-5678-9012-def123456789",
       "nomeCompleto": "Camila Lima",
       "email": "camila.lima@empresa.com",
-      "cargo": "Scrum Master",
-      "unidade": "Agilidade",
-      "trilhaCarreira": "Gestão"
+      "cargo": "SUPORTE",
+      "unidade": "SAO PAULO",
+      "trilhaCarreira": "SUPORTE",
+      "perfis": ["COLABORADOR_COMUM", "MEMBRO_COMITE"]
     },
     {
       "id": "d0e1f2a3-b4c5-6789-0123-ef1234567890",
       "nomeCompleto": "Gustavo Almeida",
       "email": "gustavo.almeida@empresa.com",
-      "cargo": "Desenvolvedor Mobile (iOS)",
-      "unidade": "Engenharia",
-      "trilhaCarreira": "Especialista"
+      "cargo": "DESENVOLVEDOR",
+      "unidade": "FLORIANOPOLIS",
+      "trilhaCarreira": "DESENVOLVIMENTO",
+      "perfis": ["MENTOR", "MEMBRO_COMITE"]
     },
     {
       "id": "e1f2a3b4-c5d6-7890-1234-f12345678901",
       "nomeCompleto": "Larissa Barbosa",
       "email": "larissa.barbosa@empresa.com",
-      "cargo": "Desenvolvedora Mobile (Android)",
-      "unidade": "Engenharia",
-      "trilhaCarreira": "Especialista"
+      "cargo": "RH",
+      "unidade": "RECIFE",
+      "trilhaCarreira": "RH",
+      "perfis": ["RH", "ADMIN"]
     },
     {
       "id": "f2a3b4c5-d6e7-8901-2345-123456789012",
       "nomeCompleto": "Thiago Rocha",
       "email": "thiago.rocha@empresa.com",
-      "cargo": "Engenheiro de Dados",
-      "unidade": "Dados",
-      "trilhaCarreira": "Especialista"
+      "cargo": "FINANCEIRO",
+      "unidade": "SAO PAULO",
+      "trilhaCarreira": "FINANCEIRO",
+      "perfis": ["GESTOR", "LIDER"]
     },
     {
       "id": "a3b4c5d6-e7f8-9012-3456-234567890123",
       "nomeCompleto": "Sofia Ribeiro",
       "email": "sofia.ribeiro@empresa.com",
-      "cargo": "Especialista de Marketing",
-      "unidade": "Marketing",
-      "trilhaCarreira": "Especialista"
+      "cargo": "MARKETING",
+      "unidade": "FLORIANOPOLIS",
+      "trilhaCarreira": "MARKETING",
+      "perfis": ["LIDER"]
     }
   ],
   "projetos": [
