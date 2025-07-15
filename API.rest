@@ -190,8 +190,9 @@ POST http://localhost:3000/avaliacoes/preencher-avaliacao-pares
 Content-Type: application/json
 
 {
-    "idAvaliacao": "29503727-2b67-4621-a2af-c31d06032509",
+    "idAvaliacao": "c6e01aeb-df0a-4982-a5a3-e9d146d30ceb",
     "nota": 3,
+    "status": "CONCLUIDA",
     "motivacao": "Discordo Parcialmente",
     "pontosFortes": "Se adapta bem a mudanças e é muito empenhado em suas tarefas",
     "pontosFracos": "Pode melhorar a comunicação em situações de pressão e ser mais proativo em projetos coletivos."
@@ -202,9 +203,10 @@ POST http://localhost:3000/avaliacoes/preencher-avaliacao-colaborador-mentor
 Content-Type: application/json
 
 {
-    "idAvaliacao": "317215a6-8a7c-457c-98cb-47da3792b821",
+    "idAvaliacao": "dddddddd-dddd-dddd-dddd-dddddddddddd",
     "nota": 3.5,
-    "justificativa": "Justificativa"
+    "justificativa": "Foi ausente em alguns momentos",
+    "status": "CONCLUIDA"
 }
 
 ### Preencher autoavaliação

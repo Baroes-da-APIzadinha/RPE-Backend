@@ -2,9 +2,8 @@ import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
 import { Prisma } from '@prisma/client';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
-import { Motivacao } from './avaliacoes.contants';
+import { Motivacao, RelatorioItem, Status } from './avaliacoes.constants';
 import { Decimal } from '@prisma/client/runtime/library';
-import { RelatorioItem } from './avaliacoes.constants';
 import { HashService } from '../common/hash.service';
 
 @Injectable()
@@ -38,84 +37,84 @@ export class AvaliacoesService {
 
     async lancarAvaliacaoPares(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
         this.logger.log(`Iniciando lançamento de avaliações de pares para ciclo ${idCiclo}`);
-    
-    try {
-        await this.gerarParesPorProjetos(idCiclo);
 
-        const [pares, avaliacoesExistentes] = await Promise.all([
-            this.prisma.pares.findMany({
-                where: { idCiclo },
-                select: { idColaborador1: true, idColaborador2: true }
-            }),
-            this.prisma.avaliacao.findMany({
-                where: { idCiclo, tipoAvaliacao: 'AVALIACAO_PARES' },
-            select: { idAvaliador: true, idAvaliado: true }
-            })
-        ]);
-        this.logger.log(`Total de pares encontrados para o ciclo ${idCiclo}: ${pares.length}`);
+        try {
+            await this.gerarParesPorProjetos(idCiclo);
 
-        const avaliacaoSet = new Set(avaliacoesExistentes.map(a => `${a.idAvaliador}-${a.idAvaliado}`));
-        const novasAvaliacoesParaCriar: Prisma.AvaliacaoCreateManyInput[] = [];
+            const [pares, avaliacoesExistentes] = await Promise.all([
+                this.prisma.pares.findMany({
+                    where: { idCiclo },
+                    select: { idColaborador1: true, idColaborador2: true }
+                }),
+                this.prisma.avaliacao.findMany({
+                    where: { idCiclo, tipoAvaliacao: 'AVALIACAO_PARES' },
+                    select: { idAvaliador: true, idAvaliado: true }
+                })
+            ]);
+            this.logger.log(`Total de pares encontrados para o ciclo ${idCiclo}: ${pares.length}`);
 
-        for (const par of pares) {
-            if (!par.idColaborador1 || !par.idColaborador2) continue;
+            const avaliacaoSet = new Set(avaliacoesExistentes.map(a => `${a.idAvaliador}-${a.idAvaliado}`));
+            const novasAvaliacoesParaCriar: Prisma.AvaliacaoCreateManyInput[] = [];
 
-            if (!avaliacaoSet.has(`${par.idColaborador1}-${par.idColaborador2}`)) {
-                novasAvaliacoesParaCriar.push({
-                    idCiclo,
-                    idAvaliador: par.idColaborador1,
-                    idAvaliado: par.idColaborador2,
-                    status: 'PENDENTE',
-                    tipoAvaliacao: 'AVALIACAO_PARES',
-                });
-            }
-            if (!avaliacaoSet.has(`${par.idColaborador2}-${par.idColaborador1}`)) {
-                novasAvaliacoesParaCriar.push({
-                    idCiclo,
-                    idAvaliador: par.idColaborador2,
-                    idAvaliado: par.idColaborador1,
-                    status: 'PENDENTE',
-                    tipoAvaliacao: 'AVALIACAO_PARES',
-                });
-            }
-        }
-        
-        const existentes = (pares.length * 2) - novasAvaliacoesParaCriar.length;
-        if (novasAvaliacoesParaCriar.length === 0) {
-            this.logger.log('Nenhuma nova avaliação de pares a ser lançada.');
-            return { lancadas: 0, existentes, erros: 0 };
-        }
+            for (const par of pares) {
+                if (!par.idColaborador1 || !par.idColaborador2) continue;
 
-        await this.prisma.$transaction(async (tx) => {
-            await tx.avaliacao.createMany({
-                data: novasAvaliacoesParaCriar,
-            });
-
-            const chavesUnicas = novasAvaliacoesParaCriar.map(d => ({
-                idAvaliador: d.idAvaliador,
-                idAvaliado: d.idAvaliado,
-            }));
-            const avaliacoesCriadas = await tx.avaliacao.findMany({
-                where: { idCiclo, tipoAvaliacao: 'AVALIACAO_PARES', OR: chavesUnicas },
-                select: { idAvaliacao: true }
-            });
-
-            const dadosAvaliacaoPares = avaliacoesCriadas.map(a => ({
-                idAvaliacao: a.idAvaliacao
-            }));
-            
-            await tx.avaliacaoPares.createMany({
-                data: dadosAvaliacaoPares,
-            });
-        });
-
-        this.logger.log(`${novasAvaliacoesParaCriar.length} avaliações de pares lançadas com sucesso.`);
-        return { lancadas: novasAvaliacoesParaCriar.length, existentes, erros: 0 };
-
-                } catch (error) {
-        this.logger.error(`Falha catastrófica ao lançar avaliações de pares para o ciclo ${idCiclo}`, error.stack);
-        return { lancadas: 0, existentes: 0, erros: 1 };
+                if (!avaliacaoSet.has(`${par.idColaborador1}-${par.idColaborador2}`)) {
+                    novasAvaliacoesParaCriar.push({
+                        idCiclo,
+                        idAvaliador: par.idColaborador1,
+                        idAvaliado: par.idColaborador2,
+                        status: 'PENDENTE',
+                        tipoAvaliacao: 'AVALIACAO_PARES',
+                    });
                 }
+                if (!avaliacaoSet.has(`${par.idColaborador2}-${par.idColaborador1}`)) {
+                    novasAvaliacoesParaCriar.push({
+                        idCiclo,
+                        idAvaliador: par.idColaborador2,
+                        idAvaliado: par.idColaborador1,
+                        status: 'PENDENTE',
+                        tipoAvaliacao: 'AVALIACAO_PARES',
+                    });
+                }
+            }
+
+            const existentes = (pares.length * 2) - novasAvaliacoesParaCriar.length;
+            if (novasAvaliacoesParaCriar.length === 0) {
+                this.logger.log('Nenhuma nova avaliação de pares a ser lançada.');
+                return { lancadas: 0, existentes, erros: 0 };
+            }
+
+            await this.prisma.$transaction(async (tx) => {
+                await tx.avaliacao.createMany({
+                    data: novasAvaliacoesParaCriar,
+                });
+
+                const chavesUnicas = novasAvaliacoesParaCriar.map(d => ({
+                    idAvaliador: d.idAvaliador,
+                    idAvaliado: d.idAvaliado,
+                }));
+                const avaliacoesCriadas = await tx.avaliacao.findMany({
+                    where: { idCiclo, tipoAvaliacao: 'AVALIACAO_PARES', OR: chavesUnicas },
+                    select: { idAvaliacao: true }
+                });
+
+                const dadosAvaliacaoPares = avaliacoesCriadas.map(a => ({
+                    idAvaliacao: a.idAvaliacao
+                }));
+
+                await tx.avaliacaoPares.createMany({
+                    data: dadosAvaliacaoPares,
+                });
+            });
+
+            this.logger.log(`${novasAvaliacoesParaCriar.length} avaliações de pares lançadas com sucesso.`);
+            return { lancadas: novasAvaliacoesParaCriar.length, existentes, erros: 0 };
+
+        } catch (error) {
+            this.logger.error(`Falha catastrófica ao lançar avaliações de pares para o ciclo ${idCiclo}`, error.stack);
+            return { lancadas: 0, existentes: 0, erros: 1 };
+        }
     }
 
     async lancarAutoAvaliacoes(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
@@ -577,10 +576,11 @@ export class AvaliacoesService {
 
     async preencherAvaliacaoPares(
         idAvaliacao: string,
-        nota: number,
-        motivacao: Motivacao,
-        pontosFortes: string,
-        pontosFracos: string
+        status : Status,
+        nota?: number,
+        motivacao?: Motivacao,
+        pontosFortes?: string,
+        pontosFracos?: string
     ): Promise<void> {
         // Verificações extraídas
         const avaliacao = await this.prisma.avaliacao.findUnique({
@@ -590,27 +590,39 @@ export class AvaliacoesService {
         await this.verificarAvaliacaoExiste(idAvaliacao);
         this.verificarAvaliacaoTipo(avaliacao, 'AVALIACAO_PARES');
         this.verificarAvaliacaoStatus(avaliacao);
-        this.verificarNota(nota);
+        
+        const data: any = {};
+        if (nota !== undefined) {
+            this.verificarNota(nota);
+            data.nota = nota;
+        }
+        if (motivacao !== undefined){
+            data.motivadoTrabalharNovamente = motivacao
+        }
+
+        if (pontosFortes !== undefined){
+            data.pontosFortes = this.hashService.hash(pontosFortes)
+        }
+        if (pontosFracos !== undefined){
+            data.pontosFracos = this.hashService.hash(pontosFracos)
+        }
 
         await this.prisma.avaliacaoPares.update({
             where: { idAvaliacao },
-            data: {
-                nota, // Prisma converte number para Decimal
-                motivadoTrabalharNovamente: motivacao,
-                pontosFortes: this.hashService.hash(pontosFortes),
-                pontosFracos: this.hashService.hash(pontosFracos),
-            },
+            data,
         });
+
         await this.prisma.avaliacao.update({
             where: { idAvaliacao },
-            data: { status: 'CONCLUIDA' },
+            data: { status: status },
         });
     }
 
     async preencherAvaliacaoColaboradorMentor(
         idAvaliacao: string,
-        nota: number,
-        justificativa: string
+        status : Status,
+        nota?: number,
+        justificativa?: string
     ): Promise<void> {
         const avaliacao = await this.prisma.avaliacao.findUnique({
             where: { idAvaliacao },
@@ -619,19 +631,24 @@ export class AvaliacoesService {
         await this.verificarAvaliacaoExiste(idAvaliacao);
         this.verificarAvaliacaoTipo(avaliacao, 'COLABORADOR_MENTOR');
         this.verificarAvaliacaoStatus(avaliacao);
-        this.verificarNota(nota);
 
+        const data: any = {};
+        if (nota !== undefined) {
+            this.verificarNota(nota);
+            data.nota = nota;
+        }
+        if (justificativa !== undefined) {
+            data.justificativa = this.hashService.hash(justificativa);
+        }
+        
         await this.prisma.avaliacaoColaboradorMentor.update({
             where: { idAvaliacao },
-            data: { 
-                nota: nota,
-                justificativa: this.hashService.hash(justificativa)
-            },
+            data,
         });
 
         await this.prisma.avaliacao.update({
             where: { idAvaliacao },
-            data: { status: 'CONCLUIDA' }
+            data: { status: status }
         })
     }
 
@@ -733,7 +750,7 @@ export class AvaliacoesService {
             await this.prisma.cardAvaliacaoLiderColaborador.update({
                 where: { idCardAvaliacao: card.idCardAvaliacao },
                 data: {
-                    nota:criterio.nota,
+                    nota: criterio.nota,
                     justificativa: this.hashService.hash(criterio.justificativa)
                 }
             });
@@ -900,38 +917,38 @@ export class AvaliacoesService {
     }
 
     async discrepanciaAllcolaboradores(idCiclo: string) {
-    try {
-        // Filtro base para colaboradores
-        const whereClause: any = {};
-        
-        if (idCiclo && this.isValidUUID(idCiclo)) {
-            whereClause.colaboradoresCiclos = {
-                some: { idCiclo: idCiclo }
-            };
-        }
+        try {
+            // Filtro base para colaboradores
+            const whereClause: any = {};
 
-        // Buscar todos os colaboradores (sem includes pesados)
-        const colaboradores = await this.prisma.colaboradorCiclo.findMany({
-            where: { idCiclo: idCiclo },
-            include: {
-                colaborador: {
-                    select: {
-                        idColaborador: true,
-                        nomeCompleto: true,
-                        cargo: true,
-                        trilhaCarreira: true,
-                        unidade: true
+            if (idCiclo && this.isValidUUID(idCiclo)) {
+                whereClause.colaboradoresCiclos = {
+                    some: { idCiclo: idCiclo }
+                };
+            }
+
+            // Buscar todos os colaboradores (sem includes pesados)
+            const colaboradores = await this.prisma.colaboradorCiclo.findMany({
+                where: { idCiclo: idCiclo },
+                include: {
+                    colaborador: {
+                        select: {
+                            idColaborador: true,
+                            nomeCompleto: true,
+                            cargo: true,
+                            trilhaCarreira: true,
+                            unidade: true
+                        }
                     }
                 }
-            }
-        });
+            });
 
-        // Processar cada colaborador usando a função existente
-        const relatorio: RelatorioItem[] = [];
-        
+            // Processar cada colaborador usando a função existente
+            const relatorio: RelatorioItem[] = [];
+
             for (const colaborador of colaboradores) {
                 const resultadoDiscrepancia = await this.discrepanciaColaborador(
-                    colaborador.idColaborador, 
+                    colaborador.idColaborador,
                     idCiclo
                 );
 
@@ -946,19 +963,19 @@ export class AvaliacoesService {
                 const discrepancia = resultadoDiscrepancia.discrepancia;
 
                 if (avaliacoes && discrepancia) {
-                        relatorio.push({
-                            idColaborador: colaborador.idColaborador,
-                            nomeColaborador: colaborador.colaborador.nomeCompleto,
-                            cargoColaborador: colaborador.colaborador.cargo || 'Não informado',
-                            trilhaColaborador: colaborador.colaborador.trilhaCarreira || null,
-                            equipeColaborador: colaborador.colaborador.unidade || null,
-                            notas: {
-                                notaAuto: avaliacoes.autoAvaliacao?.media || null,
-                                nota360media: avaliacoes.avaliacaoPares?.media || null,
-                                notaGestor: avaliacoes.avaliacaoLider?.media || null,
-                                discrepancia: discrepancia.calculada ? discrepancia.desvioPadrao : null
-                            }
-                        });
+                    relatorio.push({
+                        idColaborador: colaborador.idColaborador,
+                        nomeColaborador: colaborador.colaborador.nomeCompleto,
+                        cargoColaborador: colaborador.colaborador.cargo || 'Não informado',
+                        trilhaColaborador: colaborador.colaborador.trilhaCarreira || null,
+                        equipeColaborador: colaborador.colaborador.unidade || null,
+                        notas: {
+                            notaAuto: avaliacoes.autoAvaliacao?.media || null,
+                            nota360media: avaliacoes.avaliacaoPares?.media || null,
+                            notaGestor: avaliacoes.avaliacaoLider?.media || null,
+                            discrepancia: discrepancia.calculada ? discrepancia.desvioPadrao : null
+                        }
+                    });
                 }
             }
             return relatorio;
@@ -1131,7 +1148,7 @@ export class AvaliacoesService {
 
     private desvioPadrao(nota1: number, nota2: number, nota3: number): number {
         const media = (nota1 + nota2 + nota3) / 3;
-        const variancia = (Math.pow(nota1 - media, 2) + Math.pow(nota2 - media, 2) + Math.pow(nota3 - media, 2)) / 3; 
+        const variancia = (Math.pow(nota1 - media, 2) + Math.pow(nota2 - media, 2) + Math.pow(nota3 - media, 2)) / 3;
         return Math.sqrt(variancia);
     }
 
@@ -1152,7 +1169,7 @@ export class AvaliacoesService {
         return soma / notasValidas.length;
     }
 
- 
+
     private calcularMediaAvaliacaoPares(avaliacoes: any[]): number | null {
         if (!avaliacoes || avaliacoes.length === 0) {
             return null;
@@ -1244,7 +1261,7 @@ export class AvaliacoesService {
         // Retorna como array
         return Object.values(agrupado);
     }
-    
+
     /**
      * Busca o histórico de avaliações em que o usuário é líder
      */
@@ -1361,7 +1378,7 @@ export class AvaliacoesService {
             return acc;
         }, {});
 
-        const paresParaSalvar = new Set<string>(); 
+        const paresParaSalvar = new Set<string>();
 
         for (const idProjeto in alocacoesPorProjeto) {
             const alocacoes = alocacoesPorProjeto[idProjeto];
@@ -1401,7 +1418,7 @@ export class AvaliacoesService {
                         idCiclo: idCiclo,
                     },
                 },
-                update: {}, 
+                update: {},
                 create: {
                     idColaborador1: par.idColaborador1,
                     idColaborador2: par.idColaborador2,
@@ -1420,7 +1437,7 @@ export class AvaliacoesService {
 
         const projetos = await this.prisma.projeto.findMany({
             where: { idLider: { not: null } },
-            select: { idProjeto: true, idLider: true } 
+            select: { idProjeto: true, idLider: true }
         });
 
         if (!projetos.length) {

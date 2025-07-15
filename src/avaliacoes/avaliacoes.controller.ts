@@ -80,7 +80,7 @@ export class AvaliacoesController {
     @UseGuards(JwtAuthGuard)
     @Post('preencher-avaliacao-pares')
     async preencherAvaliacaoPares(@Body() dto: AvaliacaoParesDto, @Req() req) {
-        await this.service.preencherAvaliacaoPares(dto.idAvaliacao, dto.nota, dto.motivacao, dto.pontosFortes, dto.pontosFracos);
+        await this.service.preencherAvaliacaoPares(dto.idAvaliacao, dto.status, dto.nota, dto.motivacao, dto.pontosFortes, dto.pontosFracos);
         await this.auditoriaService.log({
             userId: req.user?.userId,
             action: 'preencher_avaliacao_pares',
@@ -94,7 +94,7 @@ export class AvaliacoesController {
     @UseGuards(JwtAuthGuard)
     @Post('preencher-avaliacao-colaborador-mentor')
     async preencherAvaliacaoColaboradorMentor(@Body() dto: AvaliacaoColaboradorMentorDto, @Req() req) {
-        await this.service.preencherAvaliacaoColaboradorMentor(dto.idAvaliacao, dto.nota, dto.justificativa);
+        await this.service.preencherAvaliacaoColaboradorMentor(dto.idAvaliacao, dto.status, dto.nota, dto.justificativa);
         await this.auditoriaService.log({
             userId: req.user?.userId,
             action: 'preencher_avaliacao_colaborador_mentor',
