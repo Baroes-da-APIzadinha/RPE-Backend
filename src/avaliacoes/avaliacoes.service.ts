@@ -1569,5 +1569,90 @@ export class AvaliacoesService {
         this.logger.log(`${relacoesCriadas} relações líder-colaborador processadas para o ciclo ${idCiclo}.`);
         return { message: `${relacoesCriadas} relações líder-colaborador processadas.` };
     }
+
+    async getLideradosPorCiclo(idColaborador: string, idCiclo: string) {
+        // 1. Busca todas as relações líder-colaborador para o ciclo
+        const relacoes = await this.prisma.liderColaborador.findMany({
+            where: {
+            idLider: idColaborador,
+            idCiclo: idCiclo,
+            },
+            include: {
+            colaborador: true,
+            },
+        });
+
+        // 2. Busca avaliações de todos os liderados do ciclo, dos 3 tipos relevantes
+        const avaliacoes = await this.prisma.avaliacao.findMany({
+            where: {
+            idCiclo,
+            tipoAvaliacao: {
+                in: ['AUTOAVALIACAO', 'AVALIACAO_PARES', 'LIDER_COLABORADOR'],
+            },
+            idAvaliado: {
+                in: relacoes.map((r) => r.idColaborador),
+            },
+            },
+            include: {
+            autoAvaliacao: true,
+            avaliacaoLiderColaborador: true,
+            },
+        });
+
+        // 3. Organiza as avaliações por colaborador avaliado
+        const avaliacoesMap = new Map<string, any[]>();
+        for (const a of avaliacoes) {
+            if (!avaliacoesMap.has(a.idAvaliado)) {
+            avaliacoesMap.set(a.idAvaliado, []);
+            }
+            avaliacoesMap.get(a.idAvaliado)?.push(a);
+        }
+
+        // 4. Monta o objeto de retorno por colaborador liderado
+        const liderados = relacoes.map((relacao) => {
+            const colaborador = relacao.colaborador;
+            const avals = avaliacoesMap.get(colaborador.idColaborador) || [];
+
+            const auto = avals.find((a) => a.tipoAvaliacao === 'AUTOAVALIACAO');
+            const lider = avals.find((a) => a.tipoAvaliacao === 'LIDER_COLABORADOR');
+            const todasPares = avals.filter((a) => a.tipoAvaliacao === 'AVALIACAO_PARES');
+
+            // 5. Lógica para status da avaliação 360
+            let statusAvaliacao360 = 'PENDENTE';
+            if (todasPares.length > 0 && todasPares.every((a) => a.status === 'CONCLUIDA')) {
+            statusAvaliacao360 = 'CONCLUIDA';
+            }
+
+
+            return {
+            idColaborador: colaborador.idColaborador,
+            nomeCompleto: colaborador.nomeCompleto,
+            cargo: colaborador.cargo,
+            notaAutoavaliacao: auto?.autoAvaliacao?.notaFinal || null,
+            notaLider: lider?.avaliacaoLiderColaborador?.notaFinal || null,
+            statusAutoavaliacao: (auto?.status ?? 'PENDENTE') as Status,
+            statusAvaliacao360: statusAvaliacao360 as Status,
+
+            };
+        });
+
+        // 7. Retorna dados do avaliador + lista dos liderados
+        const lider = await this.prisma.colaborador.findUnique({
+            where: { idColaborador },
+            select: { nomeCompleto: true },
+            });
+
+        return {
+            avaliador: {
+                id: idColaborador,
+                nomeLider: lider?.nomeCompleto ?? 'Nome não encontrado',
+            },
+            liderados,
+        };
+
+    }
+
+
+
 }
 

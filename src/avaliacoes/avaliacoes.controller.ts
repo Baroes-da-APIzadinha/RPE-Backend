@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, UseGuards, Req, Query, Param } from '@nest
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AvaliacoesService } from './avaliacoes.service';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
-import { AvaliacaoColaboradorMentorDto, AvaliacaoParesDto, PreencherAuto_ou_Lider_Dto } from './avaliacoes.dto';
+import { AvaliacaoColaboradorMentorDto, AvaliacaoParesDto, PreencherAuto_ou_Lider_Dto, LideradosPorCicloResponseDto } from './avaliacoes.dto';
 import { Logger } from '@nestjs/common';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -274,5 +274,16 @@ export class AvaliacoesController {
     async getFormsLiderColaborador(@Param('idAvaliacao') idAvaliacao: string) {
         return this.service.getFormsLiderColaborador(idAvaliacao);
     }
+
+
+    @Get('meus-liderados/:idColaborador/:idCiclo')
+    async getLiderados(
+    @Param('idColaborador') idColaborador: string,
+    @Param('idCiclo') idCiclo: string,
+    ): Promise<LideradosPorCicloResponseDto> {
+    return this.service.getLideradosPorCiclo(idColaborador, idCiclo);
+    }
+
+
 
 }
