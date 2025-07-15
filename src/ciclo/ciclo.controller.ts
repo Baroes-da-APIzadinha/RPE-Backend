@@ -2,13 +2,15 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Patch, HttpCode, HttpS
 import { CicloService } from './ciclo.service';
 import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
 import { AuditoriaService } from '../auditoria/auditoria.service';
+import { CiclosStatus } from './cicloStatus.service';
 
 @Controller('ciclo')
 export class CicloController {
     constructor(
         private readonly cicloService: CicloService,
         private readonly auditoriaService: AuditoriaService,
-    ) {}
+        private readonly ciclosStatus: CiclosStatus,
+    ) { }
 
     @Post()
     async criarCiclo(@Body() data: CreateCicloDto, @Req() req) {
@@ -48,6 +50,12 @@ export class CicloController {
             ip: req.ip,
         });
         return result;
+    }
+
+    @Patch('status')
+    async changeStatus(@Body() body: { idCiclo: string, current_status: string; next_status: string }) {
+        await this.ciclosStatus.changeStatus(body.idCiclo, body.current_status, body.next_status);
+        return { message: 'Status atualizado com sucesso' };
     }
 
     @Patch(':id')
