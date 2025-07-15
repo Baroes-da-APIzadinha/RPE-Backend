@@ -26,12 +26,13 @@ import { ProjetosModule } from './projetos/projetos.module';
 import { ScheduleModule } from '@nestjs/schedule'; 
 import { HttpModule } from '@nestjs/axios';
 import { SincronizacaoModule } from './sincronizacao/sincronizacao.module';
+import { ExportacaoModule } from './exportacao/exportacao.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { RemindersService } from './reminders/reminders.service';
 import { RemindersModule } from './reminders/reminders.module';
 
 @Module({
-  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, IaModule, AuditoriaModule, ProjetosModule, HttpModule, ScheduleModule.forRoot(), SincronizacaoModule, CacheModule.register({ttl: 60 * 60 * 24, max: 100, isGlobal: true,}), RemindersModule],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, IaModule, AuditoriaModule, ProjetosModule, HttpModule, ScheduleModule.forRoot(), SincronizacaoModule, CacheModule.register({ttl: 60 * 60 * 24, max: 100, isGlobal: true,}), RemindersModule, ExportacaoModule],
   controllers: [AppController, AvaliacoesController, EqualizacaoController, IaController],
   providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService, IaService, HashService, RemindersService],
 })

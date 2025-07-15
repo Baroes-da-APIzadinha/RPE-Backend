@@ -1,73 +1,91 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsEnum, IsNotEmpty, IsString } from "class-validator";
 import { IsNumber } from "class-validator";
-import { Motivacao } from "./avaliacoes.contants";
+import { Motivacao, Status } from "./avaliacoes.constants";
 import { IsArray, ValidateNested, IsOptional, Min, Max, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class AvaliacaoParesDto {
+
+    @ApiProperty({ description: 'ID da avaliação' })
     @IsNotEmpty()
     @IsString()
     @IsUUID()
     idAvaliacao: string;
 
+    @ApiProperty({ description: 'Status da avaliação' })
     @IsNotEmpty()
+    @IsEnum(Status)
+    status : Status;
+
+    @ApiPropertyOptional({ description: 'Nota da avaliação' })
+    @IsOptional()
     @IsNumber()
-    nota: number;
+    nota?: number;
 
-    @IsNotEmpty()
-    @IsString()
-    motivacao: Motivacao;
+    @ApiPropertyOptional({ description: 'Motivação da nota', enum: Motivacao })
+    @IsOptional()
+    @IsEnum(Motivacao)
+    motivacao?: Motivacao;
 
-    @IsNotEmpty()
+    @ApiPropertyOptional({ description: 'Pontos fortes identificados' })
+    @IsOptional()
     @IsString()
-    pontosFortes: string;
+    pontosFortes?: string;
 
-    @IsNotEmpty()
+    @ApiPropertyOptional({ description: 'Pontos fracos identificados' })
+    @IsOptional()
     @IsString()
-    pontosFracos: string;
+    pontosFracos?: string;
     
 }
 
 export class AvaliacaoColaboradorMentorDto {
+    @ApiProperty({ description: 'ID da avaliação' })
     @IsNotEmpty()
     @IsString()
-    @IsUUID()
     idAvaliacao: string;
 
+    @ApiProperty({ description: 'Status da avaliação', enum: Status })
     @IsNotEmpty()
+    @IsEnum(Status)
+    status : Status
+
+    @ApiPropertyOptional({ description: 'Nota da avaliação' })
+    @IsOptional()
     @IsNumber()
-    nota: number;
+    nota?: number;
 
-    @IsNotEmpty()
+    @ApiPropertyOptional({ description: 'Justificativa da nota' })
+    @IsOptional()
     @IsString()
-    justificativa: string;
-    
-    
-}
-
-export class Autoavaliação{
-
+    justificativa?: string;
     
 }
 
 export class CriterioAutoAvaliacaoDto {
+    @ApiProperty({ description: 'Nome do critério' })
     @IsString()
     nome: string;
 
+    @ApiProperty({ description: 'Nota do critério' })
     @IsNumber()
     @Min(0)
     @Max(5)
     nota: number;
 
+    @ApiProperty({ description: 'Justificativa da nota'})
     @IsString()
     justificativa: string;
 }
 
 export class PreencherAuto_ou_Lider_Dto {
+    @ApiProperty({ description: 'ID da avaliação' })
     @IsString()
     @IsUUID()
     idAvaliacao: string;
 
+    @ApiProperty({ description: 'Critérios de avaliação' })
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => CriterioAutoAvaliacaoDto)

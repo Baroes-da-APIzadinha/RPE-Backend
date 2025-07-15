@@ -17,96 +17,98 @@ describe('SincronizacaoService', () => {
     get: jest.fn(),
   };
 
-  // Mock do PrismaService
+  // Mock do PrismaService (baseado no service atual)
   const mockPrismaService = {
     colaborador: {
       upsert: jest.fn(),
-      deleteMany: jest.fn(),
       findMany: jest.fn(),
+    },
+    colaboradorPerfil: {
+      createMany: jest.fn(),
     },
     projeto: {
       upsert: jest.fn(),
-      deleteMany: jest.fn(),
       findMany: jest.fn(),
     },
     alocacaoColaboradorProjeto: {
-      deleteMany: jest.fn(),
       createMany: jest.fn(),
     },
   };
 
-  // Dados de teste para ERP
+  // Dados de teste para ERP (com o novo formato)
   const mockColaboradoresErp = [
     {
-      id: 'erp-1',
+      id: 'erp-col-1',
       nomeCompleto: 'João Silva',
       email: 'joao@empresa.com',
-      cargo: 'Desenvolvedor',
+      cargo: 'Desenvolvedor Senior',
       unidade: 'TI',
       trilhaCarreira: 'Técnica',
+      perfis: ['COLABORADOR', 'TECH_LEAD'],
     },
     {
-      id: 'erp-2',
+      id: 'erp-col-2',
       nomeCompleto: 'Maria Santos',
       email: 'maria@empresa.com',
-      cargo: 'Analista',
-      unidade: 'RH',
+      cargo: 'Analista de RH',
+      unidade: 'Recursos Humanos',
       trilhaCarreira: 'Gestão',
+      perfis: ['COLABORADOR', 'RH'],
     },
   ];
 
   const mockProjetosErp = [
     {
-      id: 'proj-1',
-      nomeProjeto: 'Projeto Alpha',
+      id: 'erp-proj-1',
+      nomeProjeto: 'Sistema de Vendas',
       status: projetoStatus.EM_ANDAMENTO,
-      idLider: 'erp-1',
+      idLider: 'erp-col-1', // João será o líder
     },
     {
-      id: 'proj-2',
-      nomeProjeto: 'Projeto Beta',
+      id: 'erp-proj-2',
+      nomeProjeto: 'Migração de Dados',
       status: projetoStatus.PLANEJADO,
-      idLider: null,
+      idLider: null, // Sem líder
     },
   ];
 
   const mockAlocacoesErp = [
     {
-      id: 'aloc-1',
-      idColaborador: 'erp-1',
-      idProjeto: 'proj-1',
-      dataEntrada: '2026-01-01',
+      id: 'erp-aloc-1',
+      idColaborador: 'erp-col-1',
+      idProjeto: 'erp-proj-1',
+      dataEntrada: '2025-01-15',
       dataSaida: null,
     },
     {
-      id: 'aloc-2',
-      idColaborador: 'erp-2',
-      idProjeto: 'proj-2',
-      dataEntrada: '2026-02-01',
-      dataSaida: '2026-06-30',
+      id: 'erp-aloc-2',
+      idColaborador: 'erp-col-2',
+      idProjeto: 'erp-proj-2',
+      dataEntrada: '2025-02-01',
+      dataSaida: '2025-06-30',
     },
   ];
 
-  // Dados de teste para RPE
+  // Dados de teste para RPE (IDs internos do sistema)
   const mockColaboradoresRpe = [
     {
-      idColaborador: 'rpe-1',
+      idColaborador: 'uuid-colaborador-1',
       email: 'joao@empresa.com',
     },
     {
-      idColaborador: 'rpe-2',
+      idColaborador: 'uuid-colaborador-2',
       email: 'maria@empresa.com',
     },
   ];
 
   const mockProjetosRpe = [
     {
-      idProjeto: 'rpe-proj-1',
-      nomeProjeto: 'Projeto Alpha',
+      idProjeto: 'uuid-projeto-1',
+      nomeProjeto: 'Sistema de Vendas',
     },
     {
-      idProjeto: 'rpe-proj-2',
-      nomeProjeto: 'Projeto Beta',
+      idProjeto: 'uuid-projeto-2',
+      nomeProjeto: 'Migração de Dados',
     },
   ];
 
@@ -153,7 +155,7 @@ describe('SincronizacaoService', () => {
   });
 
   describe('handleCronSincronizacao', () => {
-    it('deve executar sincronização completa com sucesso', async () => {
+    it('deve executar sincronização automática com sucesso', async () => {
       // Arrange
       const mockResponses = [
         { data: mockColaboradoresErp },
@@ -167,17 +169,18 @@ describe('SincronizacaoService', () => {
         .mockReturnValueOnce(of(mockResponses[2]));
 
       // Mocks para sincronização de colaboradores
-      mockPrismaService.colaborador.upsert.mockResolvedValue({});
-      mockPrismaService.colaborador.deleteMany.mockResolvedValue({ count: 0 });
+      mockPrismaService.colaborador.upsert.mockResolvedValue({ 
+        idColaborador: 'uuid-mocked', 
+        email: 'test@email.com' 
+      });
+      mockPrismaService.colaboradorPerfil.createMany.mockResolvedValue({ count: 2 });
 
       // Mocks para sincronização de projetos
       mockPrismaService.colaborador.findMany.mockResolvedValue(mockColaboradoresRpe);
       mockPrismaService.projeto.upsert.mockResolvedValue({});
-      mockPrismaService.projeto.deleteMany.mockResolvedValue({ count: 0 });
-      mockPrismaService.projeto.findMany.mockResolvedValue(mockProjetosRpe);
 
       // Mocks para sincronização de alocações
-      mockPrismaService.alocacaoColaboradorProjeto.deleteMany.mockResolvedValue({ count: 0 });
+      mockPrismaService.projeto.findMany.mockResolvedValue(mockProjetosRpe);
       mockPrismaService.alocacaoColaboradorProjeto.createMany.mockResolvedValue({ count: 2 });
 
       // Act
@@ -189,7 +192,7 @@ describe('SincronizacaoService', () => {
       expect(mockHttpService.get).toHaveBeenCalledWith('http://localhost:3001/projetos');
       expect(mockHttpService.get).toHaveBeenCalledWith('http://localhost:3001/alocacoes');
 
-      expect(loggerSpy).toHaveBeenCalledWith('🚀 Iniciando rotina de sincronização completa com o ERP...');
+      expect(loggerSpy).toHaveBeenCalledWith('🚀 Iniciando rotina de sincronização completa com o ERP (automática)...');
       expect(loggerSpy).toHaveBeenCalledWith('🔍 Encontrados no ERP: 2 colaboradores, 2 projetos, 2 alocações.');
       expect(loggerSpy).toHaveBeenCalledWith('✅ Sincronização completa com o ERP concluída com sucesso!');
     });
@@ -197,19 +200,20 @@ describe('SincronizacaoService', () => {
     it('deve tratar erro na comunicação com ERP', async () => {
       // Arrange
       const httpError = new Error('Connection timeout');
+      httpError.stack = 'Error stack trace';
       mockHttpService.get.mockReturnValue(throwError(() => httpError));
 
-      // Act
-      await service.handleCronSincronizacao();
-
-      // Assert
+      // Act & Assert
+      await expect(service.handleCronSincronizacao()).rejects.toThrow(httpError);
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         '❌ Falha na sincronização com o ERP.',
-        httpError.stack
+        'Error stack trace'
       );
     });
+  });
 
-    it('deve tratar erro em uma das sincronizações', async () => {
+  describe('dispararSincronizacaoManual', () => {
+    it('deve executar sincronização manual e retornar resultado', async () => {
       // Arrange
       const mockResponses = [
         { data: mockColaboradoresErp },
@@ -222,124 +226,117 @@ describe('SincronizacaoService', () => {
         .mockReturnValueOnce(of(mockResponses[1]))
         .mockReturnValueOnce(of(mockResponses[2]));
 
-      const dbError = new Error('Database error');
-      mockPrismaService.colaborador.upsert.mockRejectedValue(dbError);
-
-      // Act
-      await service.handleCronSincronizacao();
-
-      // Assert
-      expect(Logger.prototype.error).toHaveBeenCalledWith(
-        '❌ Falha na sincronização com o ERP.',
-        dbError.stack
-      );
-    });
-
-    it('deve executar requisições HTTP em paralelo', async () => {
-      // Arrange
-      const mockResponses = [
-        { data: mockColaboradoresErp },
-        { data: mockProjetosErp },
-        { data: mockAlocacoesErp },
-      ];
-
-      mockHttpService.get
-        .mockReturnValueOnce(of(mockResponses[0]))
-        .mockReturnValueOnce(of(mockResponses[1]))
-        .mockReturnValueOnce(of(mockResponses[2]));
-
-      // Mocks básicos para não quebrar
-      mockPrismaService.colaborador.upsert.mockResolvedValue({});
-      mockPrismaService.colaborador.deleteMany.mockResolvedValue({ count: 0 });
+      // Mocks básicos
+      mockPrismaService.colaborador.upsert.mockResolvedValue({ idColaborador: 'test' });
+      mockPrismaService.colaboradorPerfil.createMany.mockResolvedValue({ count: 2 });
       mockPrismaService.colaborador.findMany.mockResolvedValue(mockColaboradoresRpe);
       mockPrismaService.projeto.upsert.mockResolvedValue({});
-      mockPrismaService.projeto.deleteMany.mockResolvedValue({ count: 0 });
       mockPrismaService.projeto.findMany.mockResolvedValue(mockProjetosRpe);
-      mockPrismaService.alocacaoColaboradorProjeto.deleteMany.mockResolvedValue({ count: 0 });
       mockPrismaService.alocacaoColaboradorProjeto.createMany.mockResolvedValue({ count: 2 });
 
       // Act
-      await service.handleCronSincronizacao();
+      const resultado = await service.dispararSincronizacaoManual();
 
-      // Assert - Verifica que as 3 chamadas HTTP foram feitas
-      expect(mockHttpService.get).toHaveBeenCalledTimes(3);
+      // Assert
+      expect(resultado).toEqual({
+        message: 'Sincronização completa com o ERP concluída com sucesso!',
+        colaboradores: 2,
+        projetos: 2,
+        alocacoes: 2,
+      });
+
+      expect(loggerSpy).toHaveBeenCalledWith('🚀 Iniciando rotina de sincronização completa com o ERP (manual)...');
     });
   });
 
   describe('sincronizarColaboradores', () => {
-    it('deve criar e atualizar colaboradores do ERP', async () => {
+    it('deve sincronizar colaboradores com perfis', async () => {
       // Arrange
-      mockPrismaService.colaborador.upsert.mockResolvedValue({});
-      mockPrismaService.colaborador.deleteMany.mockResolvedValue({ count: 0 });
+      mockPrismaService.colaborador.upsert
+        .mockResolvedValueOnce({ idColaborador: 'uuid-1' })
+        .mockResolvedValueOnce({ idColaborador: 'uuid-2' });
+      mockPrismaService.colaboradorPerfil.createMany.mockResolvedValue({ count: 2 });
 
       // Act
       await (service as any).sincronizarColaboradores(mockColaboradoresErp);
 
       // Assert
       expect(mockPrismaService.colaborador.upsert).toHaveBeenCalledTimes(2);
+      
+      // Verifica primeiro colaborador
       expect(mockPrismaService.colaborador.upsert).toHaveBeenCalledWith({
         where: { email: 'joao@empresa.com' },
         update: {
           nomeCompleto: 'João Silva',
-          cargo: 'Desenvolvedor',
+          cargo: 'Desenvolvedor Senior',
           unidade: 'TI',
           trilhaCarreira: 'Técnica',
         },
         create: {
           email: 'joao@empresa.com',
           nomeCompleto: 'João Silva',
-          cargo: 'Desenvolvedor',
+          cargo: 'Desenvolvedor Senior',
           unidade: 'TI',
           trilhaCarreira: 'Técnica',
           senha: 'senha_padrao_para_novos_usuarios_do_erp',
         },
       });
 
-      expect(mockPrismaService.colaborador.deleteMany).toHaveBeenCalledWith({
-        where: {
-          email: {
-            notIn: ['joao@empresa.com', 'maria@empresa.com'],
-          },
-        },
+      // Verifica que perfis foram criados para ambos colaboradores
+      expect(mockPrismaService.colaboradorPerfil.createMany).toHaveBeenCalledTimes(2);
+      expect(mockPrismaService.colaboradorPerfil.createMany).toHaveBeenCalledWith({
+        data: [
+          { idColaborador: 'uuid-1', tipoPerfil: 'COLABORADOR' },
+          { idColaborador: 'uuid-1', tipoPerfil: 'TECH_LEAD' },
+        ],
+        skipDuplicates: true,
       });
+
+      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 colaboradores sincronizados (criados/atualizados e perfis preenchidos).');
     });
 
-    it('deve remover colaboradores órfãos', async () => {
+    it('deve sincronizar colaborador sem perfis', async () => {
       // Arrange
-      mockPrismaService.colaborador.upsert.mockResolvedValue({});
-      mockPrismaService.colaborador.deleteMany.mockResolvedValue({ count: 3 });
+      const colaboradorSemPerfis = [{
+        id: 'erp-col-3',
+        nomeCompleto: 'Pedro Santos',
+        email: 'pedro@empresa.com',
+        cargo: 'Estagiário',
+        unidade: 'TI',
+        trilhaCarreira: 'Técnica',
+        perfis: [], // Array vazio
+      }];
+
+      mockPrismaService.colaborador.upsert.mockResolvedValue({ idColaborador: 'uuid-3' });
 
       // Act
-      await (service as any).sincronizarColaboradores(mockColaboradoresErp);
+      await (service as any).sincronizarColaboradores(colaboradorSemPerfis);
 
       // Assert
-      expect(mockPrismaService.colaborador.deleteMany).toHaveBeenCalledWith({
-        where: {
-          email: {
-            notIn: ['joao@empresa.com', 'maria@empresa.com'],
-          },
-        },
-      });
-
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 3 colaboradores órfãos removidos.');
+      expect(mockPrismaService.colaborador.upsert).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.colaboradorPerfil.createMany).not.toHaveBeenCalled();
     });
 
-    it('deve tratar lista vazia de colaboradores', async () => {
+    it('deve tratar colaborador com perfis undefined', async () => {
       // Arrange
-      mockPrismaService.colaborador.deleteMany.mockResolvedValue({ count: 0 });
+      const colaboradorComPerfisUndefined = [{
+        id: 'erp-col-4',
+        nomeCompleto: 'Ana Costa',
+        email: 'ana@empresa.com',
+        cargo: 'Analista',
+        unidade: 'Financeiro',
+        trilhaCarreira: 'Gestão',
+        // perfis não definido
+      }];
+
+      mockPrismaService.colaborador.upsert.mockResolvedValue({ idColaborador: 'uuid-4' });
 
       // Act
-      await (service as any).sincronizarColaboradores([]);
+      await (service as any).sincronizarColaboradores(colaboradorComPerfisUndefined);
 
       // Assert
-      expect(mockPrismaService.colaborador.upsert).not.toHaveBeenCalled();
-      expect(mockPrismaService.colaborador.deleteMany).toHaveBeenCalledWith({
-        where: {
-          email: {
-            notIn: [],
-          },
-        },
-      });
+      expect(mockPrismaService.colaborador.upsert).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.colaboradorPerfil.createMany).not.toHaveBeenCalled();
     });
 
     it('deve propagar erro do Prisma', async () => {
@@ -348,7 +345,8 @@ describe('SincronizacaoService', () => {
       mockPrismaService.colaborador.upsert.mockRejectedValue(prismaError);
 
       // Act & Assert
-      await expect((service as any).sincronizarColaboradores(mockColaboradoresErp)).rejects.toThrow(prismaError);
+      await expect((service as any).sincronizarColaboradores(mockColaboradoresErp))
+        .rejects.toThrow(prismaError);
     });
   });
 
@@ -357,76 +355,50 @@ describe('SincronizacaoService', () => {
       mockPrismaService.colaborador.findMany.mockResolvedValue(mockColaboradoresRpe);
     });
 
-    it('deve criar e atualizar projetos do ERP', async () => {
+    it('deve sincronizar projetos com líder', async () => {
       // Arrange
       mockPrismaService.projeto.upsert.mockResolvedValue({});
-      mockPrismaService.projeto.deleteMany.mockResolvedValue({ count: 0 });
 
       // Act
       await (service as any).sincronizarProjetos(mockProjetosErp, mockColaboradoresErp);
 
       // Assert
       expect(mockPrismaService.projeto.upsert).toHaveBeenCalledTimes(2);
+      
+      // Verifica projeto com líder
       expect(mockPrismaService.projeto.upsert).toHaveBeenCalledWith({
-        where: { nomeProjeto: 'Projeto Alpha' },
-        update: { status: projetoStatus.EM_ANDAMENTO, idLider: 'rpe-1' },
-        create: { nomeProjeto: 'Projeto Alpha', status: projetoStatus.EM_ANDAMENTO, idLider: 'rpe-1' },
-      });
-
-      expect(mockPrismaService.projeto.upsert).toHaveBeenCalledWith({
-        where: { nomeProjeto: 'Projeto Beta' },
-        update: { status: projetoStatus.PLANEJADO, idLider: undefined },
-        create: { nomeProjeto: 'Projeto Beta', status: projetoStatus.PLANEJADO, idLider: undefined },
-      });
-    });
-
-    it('deve sincronizar projeto sem líder', async () => {
-      // Arrange
-      const projetoSemLider = [{
-        id: 'proj-3',
-        nomeProjeto: 'Projeto Sem Líder',
-        status: projetoStatus.PLANEJADO,
-        idLider: null,
-      }];
-
-      mockPrismaService.projeto.upsert.mockResolvedValue({});
-      mockPrismaService.projeto.deleteMany.mockResolvedValue({ count: 0 });
-
-      // Act
-      await (service as any).sincronizarProjetos(projetoSemLider, mockColaboradoresErp);
-
-      // Assert
-      expect(mockPrismaService.projeto.upsert).toHaveBeenCalledWith({
-        where: { nomeProjeto: 'Projeto Sem Líder' },
-        update: { status: projetoStatus.PLANEJADO, idLider: undefined },
-        create: { nomeProjeto: 'Projeto Sem Líder', status: projetoStatus.PLANEJADO, idLider: undefined },
-      });
-    });
-
-    it('deve remover projetos órfãos', async () => {
-      // Arrange
-      mockPrismaService.projeto.upsert.mockResolvedValue({});
-      mockPrismaService.projeto.deleteMany.mockResolvedValue({ count: 2 });
-
-      // Act
-      await (service as any).sincronizarProjetos(mockProjetosErp, mockColaboradoresErp);
-
-      // Assert
-      expect(mockPrismaService.projeto.deleteMany).toHaveBeenCalledWith({
-        where: {
-          nomeProjeto: {
-            notIn: ['Projeto Alpha', 'Projeto Beta'],
-          },
+        where: { nomeProjeto: 'Sistema de Vendas' },
+        update: { 
+          status: projetoStatus.EM_ANDAMENTO, 
+          idLider: 'uuid-colaborador-1' // Mapeado do ERP para RPE
+        },
+        create: { 
+          nomeProjeto: 'Sistema de Vendas', 
+          status: projetoStatus.EM_ANDAMENTO, 
+          idLider: 'uuid-colaborador-1'
         },
       });
 
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 projetos órfãos removidos.');
+      // Verifica projeto sem líder
+      expect(mockPrismaService.projeto.upsert).toHaveBeenCalledWith({
+        where: { nomeProjeto: 'Migração de Dados' },
+        update: { 
+          status: projetoStatus.PLANEJADO, 
+          idLider: undefined
+        },
+        create: { 
+          nomeProjeto: 'Migração de Dados', 
+          status: projetoStatus.PLANEJADO, 
+          idLider: undefined
+        },
+      });
+
+      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 projetos sincronizados (criados/atualizados).');
     });
 
     it('deve funcionar sem colaboradores fornecidos', async () => {
       // Arrange
       mockPrismaService.projeto.upsert.mockResolvedValue({});
-      mockPrismaService.projeto.deleteMany.mockResolvedValue({ count: 0 });
 
       // Act
       await (service as any).sincronizarProjetos(mockProjetosErp);
@@ -436,13 +408,33 @@ describe('SincronizacaoService', () => {
       expect(mockPrismaService.projeto.upsert).toHaveBeenCalledTimes(2);
     });
 
-    it('deve propagar erro do Prisma', async () => {
+    it('deve tratar líder inexistente no mapeamento', async () => {
       // Arrange
-      const prismaError = new Error('Constraint violation');
-      mockPrismaService.projeto.upsert.mockRejectedValue(prismaError);
+      const projetoComLiderInexistente = [{
+        id: 'erp-proj-3',
+        nomeProjeto: 'Projeto Teste',
+        status: projetoStatus.PLANEJADO,
+        idLider: 'erp-col-inexistente',
+      }];
 
-      // Act & Assert
-      await expect((service as any).sincronizarProjetos(mockProjetosErp, mockColaboradoresErp)).rejects.toThrow(prismaError);
+      mockPrismaService.projeto.upsert.mockResolvedValue({});
+
+      // Act
+      await (service as any).sincronizarProjetos(projetoComLiderInexistente, mockColaboradoresErp);
+
+      // Assert
+      expect(mockPrismaService.projeto.upsert).toHaveBeenCalledWith({
+        where: { nomeProjeto: 'Projeto Teste' },
+        update: { 
+          status: projetoStatus.PLANEJADO, 
+          idLider: undefined // Líder não encontrado
+        },
+        create: { 
+          nomeProjeto: 'Projeto Teste', 
+          status: projetoStatus.PLANEJADO, 
+          idLider: undefined
+        },
+      });
     });
   });
 
@@ -454,29 +446,25 @@ describe('SincronizacaoService', () => {
 
     it('deve sincronizar alocações com sucesso', async () => {
       // Arrange
-      mockPrismaService.alocacaoColaboradorProjeto.deleteMany.mockResolvedValue({ count: 5 });
       mockPrismaService.alocacaoColaboradorProjeto.createMany.mockResolvedValue({ count: 2 });
 
       // Act
       await (service as any).sincronizarAlocacoes(mockAlocacoesErp, mockColaboradoresErp, mockProjetosErp);
 
       // Assert
-      expect(mockPrismaService.alocacaoColaboradorProjeto.deleteMany).toHaveBeenCalledWith({});
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 5 alocações antigas removidas.');
-
       expect(mockPrismaService.alocacaoColaboradorProjeto.createMany).toHaveBeenCalledWith({
         data: [
           {
-            idColaborador: 'rpe-1',
-            idProjeto: 'rpe-proj-1',
-            dataEntrada: new Date('2026-01-01'),
+            idColaborador: 'uuid-colaborador-1',
+            idProjeto: 'uuid-projeto-1',
+            dataEntrada: new Date('2025-01-15'),
             dataSaida: null,
           },
           {
-            idColaborador: 'rpe-2',
-            idProjeto: 'rpe-proj-2',
-            dataEntrada: new Date('2026-02-01'),
-            dataSaida: new Date('2026-06-30'),
+            idColaborador: 'uuid-colaborador-2',
+            idProjeto: 'uuid-projeto-2',
+            dataEntrada: new Date('2025-02-01'),
+            dataSaida: new Date('2025-06-30'),
           },
         ],
       });
@@ -484,52 +472,70 @@ describe('SincronizacaoService', () => {
       expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 novas alocações inseridas.');
     });
 
-    it('deve tratar alocação com colaborador ou projeto inexistente', async () => {
+    it('deve ignorar alocações com colaborador inexistente', async () => {
       // Arrange
-      const alocacoesComDadosInvalidos = [
+      const alocacoesComColaboradorInexistente = [
         {
-          id: 'aloc-invalid',
-          idColaborador: 'erp-inexistente',
-          idProjeto: 'proj-1',
-          dataEntrada: '2026-01-01',
+          id: 'erp-aloc-3',
+          idColaborador: 'erp-col-inexistente',
+          idProjeto: 'erp-proj-1',
+          dataEntrada: '2025-03-01',
           dataSaida: null,
         },
       ];
 
-      mockPrismaService.alocacaoColaboradorProjeto.deleteMany.mockResolvedValue({ count: 0 });
-
       // Act
-      await (service as any).sincronizarAlocacoes(alocacoesComDadosInvalidos, mockColaboradoresErp, mockProjetosErp);
+      await (service as any).sincronizarAlocacoes(
+        alocacoesComColaboradorInexistente, 
+        mockColaboradoresErp, 
+        mockProjetosErp
+      );
 
       // Assert
-      expect(mockPrismaService.alocacaoColaboradorProjeto.deleteMany).toHaveBeenCalledWith({});
-      // Como não conseguiu mapear os IDs, não chama createMany
+      expect(mockPrismaService.alocacaoColaboradorProjeto.createMany).not.toHaveBeenCalled();
+    });
+
+    it('deve ignorar alocações com projeto inexistente', async () => {
+      // Arrange
+      const alocacoesComProjetoInexistente = [
+        {
+          id: 'erp-aloc-4',
+          idColaborador: 'erp-col-1',
+          idProjeto: 'erp-proj-inexistente',
+          dataEntrada: '2025-03-01',
+          dataSaida: null,
+        },
+      ];
+
+      // Act
+      await (service as any).sincronizarAlocacoes(
+        alocacoesComProjetoInexistente, 
+        mockColaboradoresErp, 
+        mockProjetosErp
+      );
+
+      // Assert
       expect(mockPrismaService.alocacaoColaboradorProjeto.createMany).not.toHaveBeenCalled();
     });
 
     it('deve funcionar com lista vazia de alocações', async () => {
-      // Arrange
-      mockPrismaService.alocacaoColaboradorProjeto.deleteMany.mockResolvedValue({ count: 0 });
-
       // Act
       await (service as any).sincronizarAlocacoes([], mockColaboradoresErp, mockProjetosErp);
 
       // Assert
-      expect(mockPrismaService.alocacaoColaboradorProjeto.deleteMany).toHaveBeenCalledWith({});
       expect(mockPrismaService.alocacaoColaboradorProjeto.createMany).not.toHaveBeenCalled();
     });
 
     it('deve converter datas corretamente', async () => {
       // Arrange
       const alocacaoComDatas = [{
-        id: 'aloc-test',
-        idColaborador: 'erp-1',
-        idProjeto: 'proj-1',
-        dataEntrada: '2026-03-15',
-        dataSaida: '2026-09-30',
+        id: 'erp-aloc-5',
+        idColaborador: 'erp-col-1',
+        idProjeto: 'erp-proj-1',
+        dataEntrada: '2025-12-25',
+        dataSaida: '2026-03-15',
       }];
 
-      mockPrismaService.alocacaoColaboradorProjeto.deleteMany.mockResolvedValue({ count: 0 });
       mockPrismaService.alocacaoColaboradorProjeto.createMany.mockResolvedValue({ count: 1 });
 
       // Act
@@ -538,89 +544,17 @@ describe('SincronizacaoService', () => {
       // Assert
       expect(mockPrismaService.alocacaoColaboradorProjeto.createMany).toHaveBeenCalledWith({
         data: [{
-          idColaborador: 'rpe-1',
-          idProjeto: 'rpe-proj-1',
-          dataEntrada: new Date('2026-03-15'),
-          dataSaida: new Date('2026-09-30'),
+          idColaborador: 'uuid-colaborador-1',
+          idProjeto: 'uuid-projeto-1',
+          dataEntrada: new Date('2025-12-25'),
+          dataSaida: new Date('2026-03-15'),
         }],
       });
-    });
-
-    it('deve propagar erro do Prisma', async () => {
-      // Arrange
-      const prismaError = new Error('Foreign key constraint');
-      mockPrismaService.alocacaoColaboradorProjeto.deleteMany.mockRejectedValue(prismaError);
-
-      // Act & Assert
-      await expect((service as any).sincronizarAlocacoes(mockAlocacoesErp, mockColaboradoresErp, mockProjetosErp)).rejects.toThrow(prismaError);
     });
   });
 
   describe('Testes de integração e mapeamento', () => {
-    it('deve mapear IDs do ERP para IDs do RPE corretamente', async () => {
-      // Arrange
-      mockPrismaService.colaborador.findMany.mockResolvedValue([
-        { idColaborador: 'uuid-1', email: 'joao@empresa.com' },
-        { idColaborador: 'uuid-2', email: 'maria@empresa.com' },
-      ]);
-
-      mockPrismaService.projeto.findMany.mockResolvedValue([
-        { idProjeto: 'proj-uuid-1', nomeProjeto: 'Projeto Alpha' },
-      ]);
-
-      mockPrismaService.alocacaoColaboradorProjeto.deleteMany.mockResolvedValue({ count: 0 });
-      mockPrismaService.alocacaoColaboradorProjeto.createMany.mockResolvedValue({ count: 1 });
-
-      const alocacao = [{
-        id: 'aloc-1',
-        idColaborador: 'erp-1', // João
-        idProjeto: 'proj-1', // Projeto Alpha
-        dataEntrada: '2026-01-01',
-        dataSaida: null,
-      }];
-
-      // Act
-      await (service as any).sincronizarAlocacoes(alocacao, mockColaboradoresErp, mockProjetosErp);
-
-      // Assert
-      expect(mockPrismaService.alocacaoColaboradorProjeto.createMany).toHaveBeenCalledWith({
-        data: [{
-          idColaborador: 'uuid-1', // Mapeado para UUID do RPE
-          idProjeto: 'proj-uuid-1', // Mapeado para UUID do RPE
-          dataEntrada: new Date('2026-01-01'),
-          dataSaida: null,
-        }],
-      });
-    });
-
-    it('deve funcionar com diferentes status de projeto', async () => {
-      // Arrange
-      const projetosComDiferentesStatus = [
-        { id: 'p1', nomeProjeto: 'Projeto Planejado', status: projetoStatus.PLANEJADO },
-        { id: 'p2', nomeProjeto: 'Projeto Em Andamento', status: projetoStatus.EM_ANDAMENTO },
-        { id: 'p3', nomeProjeto: 'Projeto Concluído', status: projetoStatus.CONCLUIDO },
-        { id: 'p4', nomeProjeto: 'Projeto Cancelado', status: projetoStatus.CANCELADO },
-      ];
-
-      mockPrismaService.colaborador.findMany.mockResolvedValue([]);
-      mockPrismaService.projeto.upsert.mockResolvedValue({});
-      mockPrismaService.projeto.deleteMany.mockResolvedValue({ count: 0 });
-
-      // Act
-      await (service as any).sincronizarProjetos(projetosComDiferentesStatus, []);
-
-      // Assert
-      expect(mockPrismaService.projeto.upsert).toHaveBeenCalledTimes(4);
-      projetosComDiferentesStatus.forEach(projeto => {
-        expect(mockPrismaService.projeto.upsert).toHaveBeenCalledWith({
-          where: { nomeProjeto: projeto.nomeProjeto },
-          update: { status: projeto.status, idLider: undefined },
-          create: { nomeProjeto: projeto.nomeProjeto, status: projeto.status, idLider: undefined },
-        });
-      });
-    });
-
-    it('deve executar sincronização na ordem correta', async () => {
+    it('deve executar sincronização completa na ordem correta', async () => {
       // Arrange
       const mockResponses = [
         { data: mockColaboradoresErp },
@@ -638,7 +572,7 @@ describe('SincronizacaoService', () => {
       // Mock com rastreamento de ordem
       mockPrismaService.colaborador.upsert.mockImplementation(() => {
         callOrder.push('colaborador.upsert');
-        return Promise.resolve({});
+        return Promise.resolve({ idColaborador: 'test' });
       });
 
       mockPrismaService.projeto.upsert.mockImplementation(() => {
@@ -652,22 +586,156 @@ describe('SincronizacaoService', () => {
       });
 
       // Outros mocks necessários
-      mockPrismaService.colaborador.deleteMany.mockResolvedValue({ count: 0 });
+      mockPrismaService.colaboradorPerfil.createMany.mockResolvedValue({ count: 0 });
       mockPrismaService.colaborador.findMany.mockResolvedValue(mockColaboradoresRpe);
-      mockPrismaService.projeto.deleteMany.mockResolvedValue({ count: 0 });
       mockPrismaService.projeto.findMany.mockResolvedValue(mockProjetosRpe);
-      mockPrismaService.alocacaoColaboradorProjeto.deleteMany.mockResolvedValue({ count: 0 });
 
       // Act
       await service.handleCronSincronizacao();
 
-      // Assert - Verifica que colaboradores foram processados antes de projetos e alocações
+      // Assert - Verifica ordem de execução
       const colaboradorIndex = callOrder.findIndex(call => call === 'colaborador.upsert');
       const projetoIndex = callOrder.findIndex(call => call === 'projeto.upsert');
       const alocacaoIndex = callOrder.findIndex(call => call === 'alocacao.createMany');
 
       expect(colaboradorIndex).toBeLessThan(projetoIndex);
       expect(projetoIndex).toBeLessThan(alocacaoIndex);
+    });
+
+    it('deve mapear IDs corretamente entre ERP e RPE', async () => {
+      // Arrange
+      const colaboradorEspecifico = [{
+        id: 'erp-especial',
+        nomeCompleto: 'Usuário Especial',
+        email: 'especial@empresa.com',
+        cargo: 'Gerente',
+        unidade: 'Administração',
+        trilhaCarreira: 'Gestão',
+        perfis: ['COLABORADOR', 'GESTOR'],
+      }];
+
+      const projetoEspecifico = [{
+        id: 'erp-proj-especial',
+        nomeProjeto: 'Projeto Especial',
+        status: projetoStatus.EM_ANDAMENTO,
+        idLider: 'erp-especial',
+      }];
+
+      const alocacaoEspecifica = [{
+        id: 'erp-aloc-especial',
+        idColaborador: 'erp-especial',
+        idProjeto: 'erp-proj-especial',
+        dataEntrada: '2025-01-01',
+        dataSaida: null,
+      }];
+
+      // Mocks para RPE
+      const colaboradorRpeEspecifico = [{ 
+        idColaborador: 'uuid-especial', 
+        email: 'especial@empresa.com' 
+      }];
+      const projetoRpeEspecifico = [{ 
+        idProjeto: 'uuid-proj-especial', 
+        nomeProjeto: 'Projeto Especial' 
+      }];
+
+      mockPrismaService.colaborador.findMany.mockResolvedValue(colaboradorRpeEspecifico);
+      mockPrismaService.projeto.findMany.mockResolvedValue(projetoRpeEspecifico);
+      mockPrismaService.alocacaoColaboradorProjeto.createMany.mockResolvedValue({ count: 1 });
+
+      // Act
+      await (service as any).sincronizarAlocacoes(
+        alocacaoEspecifica, 
+        colaboradorEspecifico, 
+        projetoEspecifico
+      );
+
+      // Assert
+      expect(mockPrismaService.alocacaoColaboradorProjeto.createMany).toHaveBeenCalledWith({
+        data: [{
+          idColaborador: 'uuid-especial',
+          idProjeto: 'uuid-proj-especial',
+          dataEntrada: new Date('2025-01-01'),
+          dataSaida: null,
+        }],
+      });
+    });
+  });
+
+  describe('Casos edge e validações', () => {
+    it('deve funcionar com dados vazios do ERP', async () => {
+      // Arrange
+      const mockResponses = [
+        { data: [] },
+        { data: [] },
+        { data: [] },
+      ];
+
+      mockHttpService.get
+        .mockReturnValueOnce(of(mockResponses[0]))
+        .mockReturnValueOnce(of(mockResponses[1]))
+        .mockReturnValueOnce(of(mockResponses[2]));
+
+      mockPrismaService.colaborador.findMany.mockResolvedValue([]);
+      mockPrismaService.projeto.findMany.mockResolvedValue([]);
+
+      // Act
+      await service.handleCronSincronizacao();
+
+      // Assert
+      expect(loggerSpy).toHaveBeenCalledWith('🔍 Encontrados no ERP: 0 colaboradores, 0 projetos, 0 alocações.');
+      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 0 colaboradores sincronizados (criados/atualizados e perfis preenchidos).');
+      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 0 projetos sincronizados (criados/atualizados).');
+    });
+
+    it('deve tratar resposta HTTP com estrutura inesperada', async () => {
+      // Arrange
+      const mockResponses = [
+        { data: null }, // Estrutura inesperada
+        { data: mockProjetosErp },
+        { data: mockAlocacoesErp },
+      ];
+
+      mockHttpService.get
+        .mockReturnValueOnce(of(mockResponses[0]))
+        .mockReturnValueOnce(of(mockResponses[1]))
+        .mockReturnValueOnce(of(mockResponses[2]));
+
+      // Act & Assert
+      await expect(service.handleCronSincronizacao()).rejects.toThrow();
+      expect(Logger.prototype.error).toHaveBeenCalled();
+    });
+
+    it('deve executar requisições HTTP em paralelo', async () => {
+      // Arrange
+      const mockResponses = [
+        { data: mockColaboradoresErp },
+        { data: mockProjetosErp },
+        { data: mockAlocacoesErp },
+      ];
+
+      mockHttpService.get
+        .mockReturnValueOnce(of(mockResponses[0]))
+        .mockReturnValueOnce(of(mockResponses[1]))
+        .mockReturnValueOnce(of(mockResponses[2]));
+
+      // Mocks básicos
+      mockPrismaService.colaborador.upsert.mockResolvedValue({ idColaborador: 'test' });
+      mockPrismaService.colaboradorPerfil.createMany.mockResolvedValue({ count: 0 });
+      mockPrismaService.colaborador.findMany.mockResolvedValue(mockColaboradoresRpe);
+      mockPrismaService.projeto.upsert.mockResolvedValue({});
+      mockPrismaService.projeto.findMany.mockResolvedValue(mockProjetosRpe);
+      mockPrismaService.alocacaoColaboradorProjeto.createMany.mockResolvedValue({ count: 0 });
+
+      // Act
+      await service.handleCronSincronizacao();
+
+      // Assert
+      expect(mockHttpService.get).toHaveBeenCalledTimes(3);
+      // Verifica que as chamadas foram feitas para os endpoints corretos
+      expect(mockHttpService.get).toHaveBeenCalledWith('http://localhost:3001/colaboradores');
+      expect(mockHttpService.get).toHaveBeenCalledWith('http://localhost:3001/projetos');
+      expect(mockHttpService.get).toHaveBeenCalledWith('http://localhost:3001/alocacoes');
     });
   });
 
@@ -686,26 +754,21 @@ describe('SincronizacaoService', () => {
         .mockReturnValueOnce(of(mockResponses[2]));
 
       // Mocks básicos
-      mockPrismaService.colaborador.upsert.mockResolvedValue({});
-      mockPrismaService.colaborador.deleteMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.colaborador.upsert.mockResolvedValue({ idColaborador: 'test' });
+      mockPrismaService.colaboradorPerfil.createMany.mockResolvedValue({ count: 4 });
       mockPrismaService.colaborador.findMany.mockResolvedValue(mockColaboradoresRpe);
       mockPrismaService.projeto.upsert.mockResolvedValue({});
-      mockPrismaService.projeto.deleteMany.mockResolvedValue({ count: 2 });
       mockPrismaService.projeto.findMany.mockResolvedValue(mockProjetosRpe);
-      mockPrismaService.alocacaoColaboradorProjeto.deleteMany.mockResolvedValue({ count: 3 });
       mockPrismaService.alocacaoColaboradorProjeto.createMany.mockResolvedValue({ count: 2 });
 
       // Act
       await service.handleCronSincronizacao();
 
       // Assert
-      expect(loggerSpy).toHaveBeenCalledWith('🚀 Iniciando rotina de sincronização completa com o ERP...');
+      expect(loggerSpy).toHaveBeenCalledWith('🚀 Iniciando rotina de sincronização completa com o ERP (automática)...');
       expect(loggerSpy).toHaveBeenCalledWith('🔍 Encontrados no ERP: 2 colaboradores, 2 projetos, 2 alocações.');
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 colaboradores sincronizados (criados/atualizados).');
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 1 colaboradores órfãos removidos.');
+      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 colaboradores sincronizados (criados/atualizados e perfis preenchidos).');
       expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 projetos sincronizados (criados/atualizados).');
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 projetos órfãos removidos.');
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 3 alocações antigas removidas.');
       expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 novas alocações inseridas.');
       expect(loggerSpy).toHaveBeenCalledWith('✅ Sincronização completa com o ERP concluída com sucesso!');
     });
@@ -716,65 +779,11 @@ describe('SincronizacaoService', () => {
       httpError.stack = 'Error stack trace';
       mockHttpService.get.mockReturnValue(throwError(() => httpError));
 
-      // Act
-      await service.handleCronSincronizacao();
-
-      // Assert
+      // Act & Assert
+      await expect(service.handleCronSincronizacao()).rejects.toThrow();
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         '❌ Falha na sincronização com o ERP.',
         'Error stack trace'
-      );
-    });
-  });
-
-  describe('Casos edge e validações', () => {
-    it('deve funcionar com dados vazios do ERP', async () => {
-      // Arrange
-      const mockResponses = [
-        { data: [] },
-        { data: [] },
-        { data: [] },
-      ];
-
-      mockHttpService.get
-        .mockReturnValueOnce(of(mockResponses[0]))
-        .mockReturnValueOnce(of(mockResponses[1]))
-        .mockReturnValueOnce(of(mockResponses[2]));
-
-      mockPrismaService.colaborador.deleteMany.mockResolvedValue({ count: 0 });
-      mockPrismaService.colaborador.findMany.mockResolvedValue([]);
-      mockPrismaService.projeto.deleteMany.mockResolvedValue({ count: 0 });
-      mockPrismaService.projeto.findMany.mockResolvedValue([]);
-      mockPrismaService.alocacaoColaboradorProjeto.deleteMany.mockResolvedValue({ count: 0 });
-
-      // Act
-      await service.handleCronSincronizacao();
-
-      // Assert
-      expect(loggerSpy).toHaveBeenCalledWith('🔍 Encontrados no ERP: 0 colaboradores, 0 projetos, 0 alocações.');
-      expect(mockPrismaService.alocacaoColaboradorProjeto.createMany).not.toHaveBeenCalled();
-    });
-
-    it('deve tratar resposta HTTP com estrutura inesperada', async () => {
-      // Arrange
-      const mockResponses = [
-        { data: null },
-        { data: undefined },
-        { data: 'invalid' },
-      ];
-
-      mockHttpService.get
-        .mockReturnValueOnce(of(mockResponses[0]))
-        .mockReturnValueOnce(of(mockResponses[1]))
-        .mockReturnValueOnce(of(mockResponses[2]));
-
-      // Act
-      await service.handleCronSincronizacao();
-
-      // Assert - Deve logar erro ao tentar processar dados inválidos
-      expect(Logger.prototype.error).toHaveBeenCalledWith(
-        '❌ Falha na sincronização com o ERP.',
-        expect.any(String)
       );
     });
   });

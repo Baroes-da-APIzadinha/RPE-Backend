@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { PrismaService } from '../database/prismaService';
 import * as xlsx from 'xlsx';
 
@@ -299,5 +300,33 @@ export class ImportacaoService {
         },
       });
     }
+  }
+
+  // Novo método para gerar e baixar o template de importação
+  async baixarTemplateImportacao(@Res() res: Response) {
+    // Define o esquema das abas e colunas
+    const sheets = {
+      'Perfil': [
+        ['Email', 'Nome ( nome.sobrenome )', 'Unidade', 'Ciclo (ano.semestre)']
+      ],
+      'Autoavaliação': [
+        ['CRITÉRIO', 'AUTO-AVALIAÇÃO', 'DADOS E FATOS DA AUTO-AVALIAÇÃO']
+      ],
+      'Avaliação 360': [
+        ['EMAIL DO AVALIADO ( nome.sobrenome )', 'PROJETO EM QUE ATUARAM JUNTOS - OBRIGATÓRIO TEREM ATUADOS JUNTOS', 'DÊ UMA NOTA GERAL PARA O COLABORADOR', 'PONTOS QUE DEVE MELHORAR', 'PONTOS QUE FAZ BEM E DEVE EXPLORAR', 'VOCÊ FICARIA MOTIVADO EM TRABALHAR NOVAMENTE COM ESTE COLABORADOR']
+      ],
+      'Pesquisa de Referências': [
+        ['EMAIL DA REFERÊNCIA', 'JUSTIFICATIVA']
+      ]
+    };
+    const wb = xlsx.utils.book_new();
+    for (const nomeAba in sheets) {
+      const ws = xlsx.utils.aoa_to_sheet(sheets[nomeAba]);
+      xlsx.utils.book_append_sheet(wb, ws, nomeAba);
+    }
+    const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Disposition', 'attachment; filename="template-importacao.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
   }
 }

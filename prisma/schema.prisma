@@ -39,6 +39,7 @@ enum avaliacaoTipo {
 
 enum preenchimentoStatus {
   PENDENTE
+  EM_RASCUNHO
   CONCLUIDA
 }
 
