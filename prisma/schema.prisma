@@ -60,6 +60,7 @@ enum projetoStatus {
 /// =========== MODELS ===========
 
 model Colaborador {
+  ativo               Boolean              @default(true)
   idColaborador       String               @id @default(uuid()) @db.Uuid
   nomeCompleto        String               @db.VarChar(255)
   email               String               @unique @db.VarChar(255)

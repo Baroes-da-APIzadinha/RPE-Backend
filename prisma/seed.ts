@@ -48,13 +48,13 @@ async function processarPlanilha(filePath: string) {
     return;
   }
 
-  // Cria ou atualiza o colaborador pelo email (único)
   const colaboradorExistente = await prisma.colaborador.findUnique({ where: { email: perfil.Email } });
   let colaborador;
   if (colaboradorExistente) {
     colaborador = await prisma.colaborador.update({
       where: { email: perfil.Email },
       data: {
+        ativo: false,
         nomeCompleto: perfil['Nome ( nome.sobrenome )'],
         unidade: perfil['Unidade'],
       },
@@ -62,6 +62,7 @@ async function processarPlanilha(filePath: string) {
   } else {
     colaborador = await prisma.colaborador.create({
       data: {
+        ativo: false,
         nomeCompleto: perfil['Nome ( nome.sobrenome )'],
         email: perfil.Email,
         unidade: perfil['Unidade'],
@@ -127,6 +128,7 @@ async function processarPlanilha(filePath: string) {
         where: { email: `${emailAvaliado}@empresa.com` },
         update: {},
         create: {
+          ativo: false,
           nomeCompleto: emailAvaliado,
           email: `${emailAvaliado}@empresa.com`,
           unidade: perfil['Unidade'],
@@ -189,6 +191,7 @@ async function processarPlanilha(filePath: string) {
           where: { email: `${emailIndicado}@empresa.com` },
           update: {},
           create: {
+            ativo: false,
             nomeCompleto: emailIndicado,
             email: `${emailIndicado}@empresa.com`,
             unidade: perfil['Unidade'],
