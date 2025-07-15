@@ -35,4 +35,31 @@ export class AuditoriaService {
       orderBy: { timestamp: 'desc' },
     });
   }
+
+  async getLogsPaginacao(inicio: number, fim?: number) {
+    const skip = inicio;
+    const take = fim ? fim - inicio : undefined;
+
+    const logs = await this.prisma.auditLog.findMany({
+      skip,
+      take,
+      orderBy: { timestamp: 'desc' },
+      include: {
+        user: {
+          select: {
+            email: true,
+          },
+        },
+      },
+    });
+
+    return {
+      logs: logs.map(log => ({
+        dataHora: log.timestamp,
+        usuario: log.user?.email || 'Sistema',
+        acao: log.action,
+        endpoint: log.resource,
+      })),
+    };
+  }
 }
