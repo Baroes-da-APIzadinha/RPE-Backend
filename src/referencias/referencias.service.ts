@@ -77,13 +77,17 @@ export class ReferenciasService {
 
   async getAllReferencias() {
     try {
-      return await this.prisma.indicacaoReferencia.findMany({
+      const referencias = await this.prisma.indicacaoReferencia.findMany({
         include: {
           ciclo: true,
           indicador: true,
           indicado: true,
         },
       });
+      return referencias.map(ref => ({
+        ...ref,
+        justificativa: ref.justificativa ? this.hashService.decrypt(ref.justificativa) : null,
+      }));
     } catch (error) {
       throw new BadRequestException('Erro ao listar referências: ' + error.message);
     }
@@ -103,7 +107,10 @@ export class ReferenciasService {
         throw new NotFoundException('Nenhuma referência encontrada para este indicador');
       }
 
-      return referencias;
+      return referencias.map(ref => ({
+        ...ref,
+        justificativa: ref.justificativa ? this.hashService.decrypt(ref.justificativa) : null,
+      }));
     } catch (error) {
       throw new BadRequestException('Erro ao buscar referências por indicador: ' + error.message);
     }
@@ -123,7 +130,10 @@ export class ReferenciasService {
         throw new NotFoundException('Nenhuma referência encontrada para este indicado');
       }
 
-      return referencias;
+      return referencias.map(ref => ({
+        ...ref,
+        justificativa: ref.justificativa ? this.hashService.decrypt(ref.justificativa) : null,
+      }));
     } catch (error) {
       throw new BadRequestException('Erro ao buscar referências por indicado: ' + error.message);
     }
@@ -144,7 +154,10 @@ export class ReferenciasService {
         throw new NotFoundException('Referência não encontrada');
       }
 
-      return referencia;
+      return {
+        ...referencia,
+        justificativa: referencia.justificativa ? this.hashService.decrypt(referencia.justificativa) : null,
+      };
     } catch (error) {
       throw new BadRequestException('Erro ao buscar referência: ' + error.message);
     }

@@ -1,52 +1,54 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsEnum, IsNotEmpty, IsString } from "class-validator";
 import { IsNumber } from "class-validator";
-import { Motivacao } from "./avaliacoes.contants";
+import { Motivacao, Status } from "./avaliacoes.constants";
 import { IsArray, ValidateNested, IsOptional, Min, Max, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class AvaliacaoParesDto {
+
     @IsNotEmpty()
     @IsString()
     @IsUUID()
     idAvaliacao: string;
 
     @IsNotEmpty()
+    @IsEnum(Status)
+    status : Status;
+
+    @IsOptional()
     @IsNumber()
-    nota: number;
+    nota?: number;
 
-    @IsNotEmpty()
-    @IsString()
-    motivacao: Motivacao;
+    @IsOptional()
+    @IsEnum(Motivacao)
+    motivacao?: Motivacao;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
-    pontosFortes: string;
+    pontosFortes?: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
-    pontosFracos: string;
+    pontosFracos?: string;
     
 }
 
 export class AvaliacaoColaboradorMentorDto {
     @IsNotEmpty()
     @IsString()
-    @IsUUID()
     idAvaliacao: string;
 
     @IsNotEmpty()
+    @IsEnum(Status)
+    status : Status
+
+    @IsOptional()
     @IsNumber()
-    nota: number;
+    nota?: number;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
-    justificativa: string;
-    
-    
-}
-
-export class Autoavaliação{
-
+    justificativa?: string;
     
 }
 

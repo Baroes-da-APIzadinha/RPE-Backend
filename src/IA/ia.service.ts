@@ -1,14 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/database/prismaService';
 import ai from './init';
 import { generationConfig, MiniConfig } from './config';
 import { AvaliacoesService } from '../avaliacoes/avaliacoes.service';
+import { HashService } from 'src/common/hash.service';
+import { ConflictException, BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class IaService {
     constructor(
         private readonly prisma: PrismaService,
-        private readonly avaliacoesService: AvaliacoesService
+        private readonly avaliacoesService: AvaliacoesService,
+        private readonly hashService : HashService
     ) { }
 
     async avaliarColaborador(idColaborador: string, idCiclo: string): Promise<string> {
@@ -73,7 +76,72 @@ export class IaService {
                 avaliacaoLiderColaborador: { include: { cardAvaliacaoLiderColaborador: true } }
             }
         });
-        return avaliacoes;
+
+        // Descriptografar justificativas das avaliações
+        const avaliacoesDescriptografadas = avaliacoes.map(avaliacao => {
+            // Autoavaliação
+            if (avaliacao.autoAvaliacao?.cardAutoAvaliacoes) {
+                avaliacao.autoAvaliacao.cardAutoAvaliacoes = avaliacao.autoAvaliacao.cardAutoAvaliacoes.map(card => ({
+                    ...card,
+                    justificativa: card.justificativa ? this.hashService.decrypt(card.justificativa) : null
+                }));
+            }
+            // Avaliação líder-colaborador
+            if (avaliacao.avaliacaoLiderColaborador?.cardAvaliacaoLiderColaborador) {
+                avaliacao.avaliacaoLiderColaborador.cardAvaliacaoLiderColaborador = avaliacao.avaliacaoLiderColaborador.cardAvaliacaoLiderColaborador.map(card => ({
+                    ...card,
+                    justificativa: card.justificativa ? this.hashService.decrypt(card.justificativa) : null
+                }));
+            }
+            // Avaliação de pares
+            if (avaliacao.avaliacaoPares) {
+                if (avaliacao.avaliacaoPares.pontosFortes) {
+                    avaliacao.avaliacaoPares.pontosFortes = this.hashService.decrypt(avaliacao.avaliacaoPares.pontosFortes);
+                }
+                if (avaliacao.avaliacaoPares.pontosFracos) {
+                    avaliacao.avaliacaoPares.pontosFracos = this.hashService.decrypt(avaliacao.avaliacaoPares.pontosFracos);
+                }
+            }
+            return avaliacao;
+        });
+        return avaliacoesDescriptografadas;
+    }
+
+    async getAll_Infos_Colaborador(idColaborador: string, idCiclo: string) {
+        const avaliacoes = await this.getAvaliacoesIA(idColaborador, idCiclo);
+        const equalizacao = await this.prisma.equalizacao.findFirst({
+            where: {
+                idAvaliado: idColaborador,
+                idCiclo: idCiclo
+            }
+        });
+
+        const referencias = await this.prisma.indicacaoReferencia.findMany({
+            where : {
+                idIndicado : idColaborador,
+                idCiclo : idCiclo
+            }
+        })
+        // Descriptografar justificativa da equalização
+        let equalizacaoDescriptografada = equalizacao;
+        if (equalizacaoDescriptografada && equalizacaoDescriptografada.justificativa) {
+            equalizacaoDescriptografada = {
+                ...equalizacaoDescriptografada,
+                justificativa: this.hashService.decrypt(equalizacaoDescriptografada.justificativa)
+            };
+        }
+
+        // Descriptografar justificativas das referências
+        const referenciasDescriptografadas = referencias.map(ref => ({
+            ...ref,
+            justificativa: ref.justificativa ? this.hashService.decrypt(ref.justificativa) : null
+        }));
+
+        return {
+            avaliacoes,
+            equalizacao: equalizacaoDescriptografada,
+            referencias: referenciasDescriptografadas
+        };
     }
 
     private processarAvaliacoes(avaliacoes: any[]) {
@@ -342,5 +410,147 @@ export class IaService {
             console.error('Erro ao avaliar colaborador:', error);
             throw error;
         }
+    }
+
+    async gerarBrutalFacts(idColaborador: string, idCiclo: string): Promise<string> {
+        const logger = new Logger('IaService');
+        logger.log(`Iniciando geração do Brutal Facts para idColaborador=${idColaborador}, idCiclo=${idCiclo}`);
+        // Busca avaliações, equalização e referências
+        const { avaliacoes, equalizacao, referencias } = await this.getAll_Infos_Colaborador(idColaborador, idCiclo);
+        logger.log(`Avaliações encontradas: ${avaliacoes ? avaliacoes.length : 0}`);
+        logger.log(`Equalização encontrada: ${!!equalizacao}`);
+        logger.log(`Referências encontradas: ${referencias ? referencias.length : 0}`);
+        if (!avaliacoes || avaliacoes.length === 0) {
+            logger.warn('Nenhuma avaliação encontrada para este colaborador neste ciclo');
+            throw new Error('Nenhuma avaliação encontrada para este colaborador neste ciclo');
+        }
+        // Processa avaliações para formato detalhado
+        const dadosProcessados = this.processarAvaliacoes(avaliacoes);
+        logger.debug(`Dados processados para prompt: ${JSON.stringify(dadosProcessados)}`);
+        // Monta prompt para brutal facts, agora incluindo referências
+        let prompt = this.criarPromptBrutalFacts(dadosProcessados, equalizacao, referencias);
+        logger.debug(`Prompt gerado para IA:\n${prompt}`);
+        // Chama IA
+        try {
+            const { brutalFactsConfig } = await import('./config');
+            logger.log('Enviando prompt para IA...');
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    systemInstruction: brutalFactsConfig.systemInstruction,
+                    temperature: brutalFactsConfig.temperature,
+                    topP: brutalFactsConfig.topP,
+                    maxOutputTokens: brutalFactsConfig.maxOutputTokens,
+                    responseMimeType: brutalFactsConfig.responseMimeType,
+                    thinkingConfig : brutalFactsConfig.thinkingConfig
+                }
+            });
+            logger.debug(`Resposta completa da IA: ${JSON.stringify(response)}`);
+            // Tenta acessar o texto em diferentes campos conhecidos
+            let texto = response.text;
+            if (!texto && typeof response === 'object') {
+                if ('candidates' in response && Array.isArray(response.candidates) && response.candidates[0]?.content?.parts) {
+                    texto = response.candidates[0].content.parts.map((p: any) => p.text).join('\n');
+                }
+            }
+            logger.debug(`Texto da IA: ${texto}`);
+            // Só salva se houver texto válido
+            if (!texto || texto.includes('Erro na geração de resposta pela IA')) {
+                logger.error('Erro na geração de resposta pela IA. Nada será salvo no banco.');
+                throw new BadRequestException('Erro na geração de resposta pela IA. Veja o log para detalhes da resposta.');
+            }
+            try {
+                await this.prisma.brutalFacts.create({
+                    data: {
+                        idColaborador,
+                        idCiclo,
+                        brutalFact: texto
+                    }
+                });
+            } catch (error) {
+                if (error.code === 'P2002') {
+                    // Registro já existe
+                    throw new ConflictException('Brutal Fact já cadastrado para este colaborador e ciclo.');
+                }
+                throw error;
+            }
+            return texto;
+        } catch (error) {
+            logger.error('Erro ao gerar Brutal Facts', error.stack || error.message || error);
+            throw error;
+        }
+    }
+
+    
+    async getBrutalFacts(idColaborador: string, idCiclo: string): Promise<string | null> {
+        try {
+            const brutalFactsRecord = await this.prisma.brutalFacts.findUnique({
+                where: {
+                    idColaborador_idCiclo: {
+                        idColaborador,
+                        idCiclo
+                    }
+                }
+            });
+
+            return brutalFactsRecord?.brutalFact || null;
+        } catch (error) {
+            console.error(`Erro ao buscar Brutal Facts para colaborador ${idColaborador} no ciclo ${idCiclo}`, error);
+            throw error;
+        }
+    }
+
+    // Função auxiliar para montar prompt específico do brutal facts
+    private criarPromptBrutalFacts(dados: any, equalizacao: any, referencias?: any[]): string {
+        let prompt = `=== DADOS PARA BRUTAL FACTS ===\n`;
+        // Autoavaliação
+        if (dados.autoAvaliacao) {
+            prompt += `\n=== AUTOAVALIAÇÃO ===\nNota Final: ${dados.autoAvaliacao.notaFinal || 'Não informada'}/5\nAvaliador: ${dados.autoAvaliacao.avaliador?.nomeCompleto || 'Não informado'}\nCritérios Avaliados:`;
+            dados.autoAvaliacao.criterios.forEach((criterio: any) => {
+                prompt += `\n• ${criterio.nomeCriterio}: ${criterio.nota || 'N/A'}/5\nJustificativa: \"${criterio.justificativa || 'Não informada'}\"`;
+            });
+        } else {
+            prompt += `\n=== AUTOAVALIAÇÃO ===\n❌ Autoavaliação não realizada`;
+        }
+        // Avaliações dos líderes
+        if (dados.avaliacoesLider && dados.avaliacoesLider.length > 0) {
+            prompt += `\n=== AVALIAÇÕES DOS LÍDERES (${dados.avaliacoesLider.length} avaliações) ===`;
+            dados.avaliacoesLider.forEach((lider: any, index: number) => {
+                prompt += `\n--- Avaliação do Líder ${index + 1} ---\nNota Final: ${lider.notaFinal || 'Não informada'}/5\nAvaliador: ${lider.avaliador?.nomeCompleto || 'Não informado'} (${lider.avaliador?.cargo || 'Cargo não informado'})\nCritérios Avaliados:`;
+                lider.criterios.forEach((criterio: any) => {
+                    prompt += `\n• ${criterio.nomeCriterio}: ${criterio.nota || 'N/A'}/5\nJustificativa: \"${criterio.justificativa || 'Não informada'}\"`;
+                });
+            });
+        } else {
+            prompt += `\n=== AVALIAÇÕES DOS LÍDERES ===\n❌ Nenhuma avaliação de líder realizada`;
+        }
+        // Avaliações dos pares
+        if (dados.avaliacoesPares.length > 0) {
+            prompt += `\n=== AVALIAÇÕES DOS PARES (${dados.avaliacoesPares.length} avaliações) ===`;
+            dados.avaliacoesPares.forEach((par: any, index: number) => {
+                prompt += `\nAvaliação ${index + 1} - Por: ${par.avaliador?.nomeCompleto || 'Não informado'}\n• Nota Geral: ${par.nota || 'N/A'}/5\n• Motivado a trabalhar novamente: ${par.motivadoTrabalharNovamente || 'Não informado'}\n• Pontos Fortes: \"${par.pontosFortes || 'Não informado'}\"\n• Pontos Fracos: \"${par.pontosFracos || 'Não informado'}\"`;
+            });
+        } else {
+            prompt += `\n=== AVALIAÇÕES DOS PARES ===\n❌ Nenhuma avaliação de pares realizada`;
+        }
+        // Equalização
+        if (equalizacao) {
+            prompt += `\n=== EQUALIZAÇÃO ===\nNota Final Equalizada: ${equalizacao.notaAjustada || 'Não informada'}\nJustificativa do Comitê: \"${equalizacao.justificativa || 'Não informada'}\"`;
+        } else {
+            prompt += `\n=== EQUALIZAÇÃO ===\n❌ Equalização não realizada`;
+        }
+        // Indicações de Referências
+        if (referencias && referencias.length > 0) {
+            prompt += `\n=== INDICAÇÕES DE REFERÊNCIAS (${referencias.length}) ===`;
+            referencias.forEach((ref: any, idx: number) => {
+                prompt += `\nIndicação ${idx + 1}: Tipo: ${ref.tipo || 'Não informado'} | Justificativa: \"${ref.justificativa || 'Não informada'}\"`;
+            });
+        } else {
+            prompt += `\n=== INDICAÇÕES DE REFERÊNCIAS ===\n❌ Nenhuma indicação de referência registrada para este ciclo.`;
+        }
+        // Instrução final
+        prompt += `\n\nAnalise os dados acima e siga as instruções do sistema para gerar o Brutal Facts.`;
+        return prompt;
     }
 }

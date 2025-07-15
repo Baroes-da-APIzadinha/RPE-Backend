@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Post } from '@nestjs/common';
 import { IaService } from './ia.service';
 
 @Controller('ia')
@@ -34,5 +34,42 @@ export class IaController {
             throw error;
         }
     }
+    @Get('brutalfacts/data/:idColaborador/:idCiclo')
+    async getAll_Infos_Colaborador(@Param('idColaborador') idColaborador: string, @Param('idCiclo') idCiclo: string): Promise<any> {
+        try {
+            const resultado = await this.iaService.getAll_Infos_Colaborador(idColaborador, idCiclo);
+            return resultado;
+        } catch (error) {
+            console.error('Erro ao buscar avaliações + equalização do colaborador', error);
+            throw error;
+        }
+    }
 
+    @Post('gerarbrutalfacts/:idColaborador/:idCiclo')
+    async gerarBrutalFacts(
+        @Param('idColaborador') idColaborador: string,
+        @Param('idCiclo') idCiclo: string
+    ): Promise<string> {
+        try {
+            const resultado = await this.iaService.gerarBrutalFacts(idColaborador, idCiclo);
+            return resultado;
+        } catch (error) {
+            console.error('Erro ao gerar Brutal Facts:', error);
+            throw error;
+        }
+    }
+
+    @Get('brutalfacts/:idColaborador/:idCiclo')
+    async getBrutalFacts(
+        @Param('idColaborador') idColaborador: string,
+        @Param('idCiclo') idCiclo: string
+    ): Promise<any> {
+        try {
+            const resultado = await this.iaService.getBrutalFacts(idColaborador, idCiclo);
+            return resultado;
+        } catch (error) {
+            console.error('Erro ao buscar Brutal Facts:', error);
+            throw error;
+        }
+    }
 }
