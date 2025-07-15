@@ -14,13 +14,12 @@ export class ImportacaoController {
   constructor(private readonly importacaoService: ImportacaoService, private readonly auditoriaService: AuditoriaService) {}
 
   @Post('avaliacoes')
-  @UseInterceptors(FileInterceptor('file')) // 'file' é o nome do campo no formulário
+  @UseInterceptors(FileInterceptor('file')) 
   async importarAvaliacoes(
     @UploadedFile(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // Limite de 10MB
-          // Você pode adicionar validadores de tipo de arquivo aqui
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), 
         ],
       })
     ) file: any,
