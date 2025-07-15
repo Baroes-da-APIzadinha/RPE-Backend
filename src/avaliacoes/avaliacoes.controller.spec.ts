@@ -27,7 +27,9 @@ describe('AvaliacoesController', () => {
     preencherAvaliacaoPares: jest.fn(),
     preencherAvaliacaoColaboradorMentor: jest.fn(),
     preencherAutoAvaliacao: jest.fn(),
+    preencherRascunhoAutoAvaliacao: jest.fn(),
     preencherAvaliacaoLiderColaborador: jest.fn(),
+    preencherRascunhoLiderColaborador: jest.fn(),
     lancarAutoAvaliacoes: jest.fn(),
     lancarAvaliacaoPares: jest.fn(), // ✅ Corrigido: sem acento
     lancarAvaliacaoLiderColaborador: jest.fn(),
@@ -410,6 +412,104 @@ describe('AvaliacoesController', () => {
     });
   });
 
+  describe('preencherRascunhoAutoAvaliacao (COM auditoria)', () => {
+    it('deve preencher rascunho de autoavaliação com sucesso e registrar auditoria', async () => {
+      // Arrange
+      mockAvaliacoesService.preencherRascunhoAutoAvaliacao.mockResolvedValue(undefined);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+      // Act
+      const resultado = await controller.preencherRascunhoAutoAvaliacao(mockAutoAvaliacaoDto, mockRequest);
+
+      // Assert
+      expect(resultado).toEqual({
+        message: 'Rascunho Autoavaliação preenchido com sucesso!',
+        idAvaliacao: mockAutoAvaliacaoDto.idAvaliacao,
+      });
+      expect(mockAvaliacoesService.preencherRascunhoAutoAvaliacao).toHaveBeenCalledWith(
+        mockAutoAvaliacaoDto.idAvaliacao,
+        mockAutoAvaliacaoDto.criterios
+      );
+
+      // Verifica auditoria
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'preencher_rascunho_auto_avaliacao',
+        resource: 'Avaliacao',
+        details: { ...mockAutoAvaliacaoDto },
+        ip: mockRequest.ip,
+      });
+    });
+
+    it('deve propagar erro do service sem registrar auditoria', async () => {
+      // Arrange
+      const error = new Error('Erro ao salvar rascunho de autoavaliação');
+      mockAvaliacoesService.preencherRascunhoAutoAvaliacao.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(controller.preencherRascunhoAutoAvaliacao(mockAutoAvaliacaoDto, mockRequest))
+        .rejects.toThrow(error);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('preencherRascunhoLiderColaborador (COM auditoria)', () => {
+    it('deve preencher rascunho de avaliação líder-colaborador com sucesso e registrar auditoria', async () => {
+      // Arrange
+      mockAvaliacoesService.preencherRascunhoLiderColaborador.mockResolvedValue(undefined);
+      mockAuditoriaService.log.mockResolvedValue({ id: 'audit-log-id' });
+
+      // Act
+      const resultado = await controller.preencherRascunhoLiderColaborador(mockAutoAvaliacaoDto, mockRequest);
+
+      // Assert
+      expect(resultado).toEqual({
+        message: 'Rascunho lider-colaborador preenchida com sucesso!',
+        idAvaliacao: mockAutoAvaliacaoDto.idAvaliacao,
+      });
+      expect(mockAvaliacoesService.preencherRascunhoLiderColaborador).toHaveBeenCalledWith(
+        mockAutoAvaliacaoDto.idAvaliacao,
+        mockAutoAvaliacaoDto.criterios
+      );
+
+      // Verifica auditoria
+      expect(mockAuditoriaService.log).toHaveBeenCalledWith({
+        userId: mockRequest.user.userId,
+        action: 'rascunho_lider_colaborador',
+        resource: 'Avaliacao',
+        details: { ...mockAutoAvaliacaoDto },
+        ip: mockRequest.ip,
+      });
+    });
+
+    it('deve propagar erro do service sem registrar auditoria', async () => {
+      // Arrange
+      const error = new Error('Erro ao salvar rascunho líder-colaborador');
+      mockAvaliacoesService.preencherRascunhoLiderColaborador.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(controller.preencherRascunhoLiderColaborador(mockAutoAvaliacaoDto, mockRequest))
+        .rejects.toThrow(error);
+      expect(mockAuditoriaService.log).not.toHaveBeenCalled();
+    });
+
+    it('deve falhar se auditoria falhar', async () => {
+      // Arrange
+      mockAvaliacoesService.preencherRascunhoLiderColaborador.mockResolvedValue(undefined);
+      mockAuditoriaService.log.mockRejectedValue(new Error('Erro na auditoria'));
+
+      // Act & Assert
+      await expect(controller.preencherRascunhoLiderColaborador(mockAutoAvaliacaoDto, mockRequest))
+        .rejects.toThrow('Erro na auditoria');
+      
+      // Service é chamado normalmente
+      expect(mockAvaliacoesService.preencherRascunhoLiderColaborador).toHaveBeenCalledWith(
+        mockAutoAvaliacaoDto.idAvaliacao,
+        mockAutoAvaliacaoDto.criterios
+      );
+    });
+  });
+
   describe('lancarAutoAvaliacao (COM auditoria)', () => {
     it('deve lançar autoavaliações com sucesso e registrar auditoria', async () => {
       // Arrange
@@ -771,7 +871,9 @@ describe('AvaliacoesController', () => {
       // - POST /avaliacoes/preencher-avaliacao-pares
       // - POST /avaliacoes/preencher-avaliacao-colaborador-mentor
       // - POST /avaliacoes/preencher-auto-avaliacao
+      // - POST /avaliacoes/rascunho-auto-avaliacao
       // - POST /avaliacoes/preencher-lider-colaborador
+      // - POST /avaliacoes/rascunho-lider-colaborador
       // - POST /avaliacoes/lancar-auto-avaliacoes
       // - POST /avaliacoes/lancar-pares
       // - POST /avaliacoes/lancar-lider-colaborador
@@ -791,7 +893,9 @@ describe('AvaliacoesController', () => {
       expect(controller.preencherAvaliacaoPares).toBeDefined();               // COM auditoria
       expect(controller.preencherAvaliacaoColaboradorMentor).toBeDefined();   // COM auditoria
       expect(controller.preencherAutoAvaliacao).toBeDefined();                // COM auditoria
+      expect(controller.preencherRascunhoAutoAvaliacao).toBeDefined();        // COM auditoria
       expect(controller.preencherAvaliacaoLiderColaborador).toBeDefined();    // COM auditoria
+      expect(controller.preencherRascunhoLiderColaborador).toBeDefined();     // COM auditoria
       expect(controller.lancarAutoAvaliacao).toBeDefined();                   // COM auditoria
       expect(controller.lancarAvaliacaoPares).toBeDefined();                  // COM auditoria
       expect(controller.lancarAvaliacaoLiderColaborador).toBeDefined();       // COM auditoria
