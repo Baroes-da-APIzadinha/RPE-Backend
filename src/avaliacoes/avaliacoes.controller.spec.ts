@@ -6,13 +6,13 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Logger } from '@nestjs/common';
 import { avaliacaoTipo, preenchimentoStatus } from '@prisma/client';
+import { Status } from './avaliacoes.constants';
 import { 
   AvaliacaoParesDto, 
   AvaliacaoColaboradorMentorDto, 
   PreencherAuto_ou_Lider_Dto 
 } from './avaliacoes.dto';
-import { Motivacao } from './avaliacoes.contants';
-import { RelatorioItem } from './avaliacoes.constants';
+import { RelatorioItem, Motivacao } from './avaliacoes.constants';
 
 describe('AvaliacoesController', () => {
   let controller: AvaliacoesController;
@@ -94,6 +94,7 @@ describe('AvaliacoesController', () => {
   // DTOs de teste
   const mockAvaliacaoParesDto: AvaliacaoParesDto = {
     idAvaliacao: mockIdAvaliacao,
+    status: Status.PENDENTE,
     nota: 4.5,
     motivacao: Motivacao.Concordo_Totalmente,
     pontosFortes: 'Excelente comunicação e proatividade',
@@ -102,6 +103,7 @@ describe('AvaliacoesController', () => {
 
   const mockAvaliacaoMentorDto: AvaliacaoColaboradorMentorDto = {
     idAvaliacao: mockIdAvaliacao,
+    status: Status.PENDENTE,
     nota: 4.0,
     justificativa: 'Excelente trabalho de mentoria',
   };
@@ -288,6 +290,7 @@ describe('AvaliacoesController', () => {
       });
       expect(mockAvaliacoesService.preencherAvaliacaoPares).toHaveBeenCalledWith(
         mockAvaliacaoParesDto.idAvaliacao,
+        mockAvaliacaoParesDto.status,
         mockAvaliacaoParesDto.nota,
         mockAvaliacaoParesDto.motivacao,
         mockAvaliacaoParesDto.pontosFortes,
@@ -331,6 +334,7 @@ describe('AvaliacoesController', () => {
       });
       expect(mockAvaliacoesService.preencherAvaliacaoColaboradorMentor).toHaveBeenCalledWith(
         mockAvaliacaoMentorDto.idAvaliacao,
+        mockAvaliacaoParesDto.status,
         mockAvaliacaoMentorDto.nota,
         mockAvaliacaoMentorDto.justificativa
       );

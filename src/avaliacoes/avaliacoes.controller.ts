@@ -80,7 +80,7 @@ export class AvaliacoesController {
     @UseGuards(JwtAuthGuard)
     @Post('preencher-avaliacao-pares')
     async preencherAvaliacaoPares(@Body() dto: AvaliacaoParesDto, @Req() req) {
-        await this.service.preencherAvaliacaoPares(dto.idAvaliacao, dto.nota, dto.motivacao, dto.pontosFortes, dto.pontosFracos);
+        await this.service.preencherAvaliacaoPares(dto.idAvaliacao, dto.status, dto.nota, dto.motivacao, dto.pontosFortes, dto.pontosFracos);
         await this.auditoriaService.log({
             userId: req.user?.userId,
             action: 'preencher_avaliacao_pares',
@@ -94,7 +94,7 @@ export class AvaliacoesController {
     @UseGuards(JwtAuthGuard)
     @Post('preencher-avaliacao-colaborador-mentor')
     async preencherAvaliacaoColaboradorMentor(@Body() dto: AvaliacaoColaboradorMentorDto, @Req() req) {
-        await this.service.preencherAvaliacaoColaboradorMentor(dto.idAvaliacao, dto.nota, dto.justificativa);
+        await this.service.preencherAvaliacaoColaboradorMentor(dto.idAvaliacao, dto.status, dto.nota, dto.justificativa);
         await this.auditoriaService.log({
             userId: req.user?.userId,
             action: 'preencher_avaliacao_colaborador_mentor',
@@ -121,6 +121,23 @@ export class AvaliacoesController {
             idAvaliacao: dto.idAvaliacao
         };
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('rascunho-auto-avaliacao')
+    async preencherRascunhoAutoAvaliacao(@Body() dto: PreencherAuto_ou_Lider_Dto, @Req() req): Promise<{ message: string; idAvaliacao: string }> {
+        await this.service.preencherRascunhoAutoAvaliacao(dto.idAvaliacao, dto.criterios);
+        await this.auditoriaService.log({
+            userId: req.user?.userId,
+            action: 'preencher_rascunho_auto_avaliacao',
+            resource: 'Avaliacao',
+            details: { ...dto },
+            ip: req.ip,
+        });
+        return {
+            message: 'Rascunho Autoavaliação preenchido com sucesso!',
+            idAvaliacao: dto.idAvaliacao
+        };
+    }
     
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('LIDER')
@@ -136,6 +153,24 @@ export class AvaliacoesController {
         });
         return {
             message: 'Avaliação lider-colaborador preenchida com sucesso!',
+            idAvaliacao: dto.idAvaliacao
+        };
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('LIDER')
+    @Post('rascunho-lider-colaborador')
+    async preencherRascunhoLiderColaborador(@Body() dto: PreencherAuto_ou_Lider_Dto, @Req() req): Promise<{ message: string; idAvaliacao: string }> {
+        await this.service.preencherRascunhoLiderColaborador(dto.idAvaliacao, dto.criterios);
+        await this.auditoriaService.log({
+            userId: req.user?.userId,
+            action: 'rascunho_lider_colaborador',
+            resource: 'Avaliacao',
+            details: { ...dto },
+            ip: req.ip,
+        });
+        return {
+            message: 'Rascunho lider-colaborador preenchida com sucesso!',
             idAvaliacao: dto.idAvaliacao
         };
     }
