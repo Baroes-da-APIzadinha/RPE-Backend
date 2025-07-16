@@ -194,15 +194,14 @@ describe('ExportacaoService', () => {
       // Verifica o conteúdo da aba Resumo
       const resumoSheet = workbook.Sheets['Resumo do Ciclo'];
       const resumoData = xlsx.utils.sheet_to_json(resumoSheet);
-      
-      expect(resumoData).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ Chave: 'Nome do Ciclo', Valor: 'Avaliação Q1 2025' }),
-          expect.objectContaining({ Chave: 'Status', Valor: 'EM_ANDAMENTO' }),
-          expect.objectContaining({ Chave: 'Total de Participantes', Valor: 20 }),
-          expect.objectContaining({ Chave: 'Total de Avaliações Lançadas', Valor: 100 }),
-          expect.objectContaining({ Chave: 'Total de Avaliações Concluídas', Valor: 75 }),
-        ])
+      expect(resumoData[0]).toEqual(
+        expect.objectContaining({
+          'Nome do Ciclo': 'Avaliação Q1 2025',
+          'Status': 'EM_ANDAMENTO',
+          'Total de Participantes': 20,
+          'Total de Avaliações Lançadas': 100,
+          'Total de Avaliações Concluídas': 75,
+        })
       );
 
       // Verifica o conteúdo da aba Detalhes
@@ -276,13 +275,12 @@ describe('ExportacaoService', () => {
       // Verifica aba de resumo ainda existe
       const resumoSheet = workbook.Sheets['Resumo do Ciclo'];
       const resumoData = xlsx.utils.sheet_to_json(resumoSheet);
-      
-      expect(resumoData).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ Chave: 'Total de Participantes', Valor: 0 }),
-          expect.objectContaining({ Chave: 'Total de Avaliações Lançadas', Valor: 0 }),
-          expect.objectContaining({ Chave: 'Total de Avaliações Concluídas', Valor: 0 }),
-        ])
+      expect(resumoData[0]).toEqual(
+        expect.objectContaining({
+          'Total de Participantes': 0,
+          'Total de Avaliações Lançadas': 0,
+          'Total de Avaliações Concluídas': 0,
+        })
       );
     });
 
@@ -310,11 +308,9 @@ describe('ExportacaoService', () => {
       const resumoSheet = workbook.Sheets['Resumo do Ciclo'];
       const resumoData = xlsx.utils.sheet_to_json(resumoSheet);
 
-      const dataInicio = resumoData.find((item: any) => item.Chave === 'Data de Início') as any;
-      const dataFim = resumoData.find((item: any) => item.Chave === 'Data de Fim') as any;
-
-      expect(dataInicio?.Valor).toBe('30/06/2025');
-      expect(dataFim?.Valor).toBe('29/09/2025');
+      const resumoRow = resumoData[0] as Record<string, any>;
+      expect(resumoRow['Data de Início']).toBe('30/06/2025');
+      expect(resumoRow['Data de Fim']).toBe('29/09/2025');
     });
 
     it('deve propagar erro do banco de dados', async () => {
@@ -380,8 +376,8 @@ describe('ExportacaoService', () => {
         const resumoSheet = workbook.Sheets['Resumo do Ciclo'];
         const resumoData = xlsx.utils.sheet_to_json(resumoSheet);
         
-        const statusItem = resumoData.find((item: any) => item.Chave === 'Status') as any;
-        expect(statusItem?.Valor).toBe(status);
+        const resumoRow = resumoData[0] as Record<string, any>;
+        expect(resumoRow['Status']).toBe(status);
 
         // Reset mocks for next iteration
         jest.clearAllMocks();

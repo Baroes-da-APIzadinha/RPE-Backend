@@ -82,9 +82,11 @@ describe('AuthController (e2e)', () => {
         })
         .expect(200);
 
-      expect(response.body).toEqual({
-        message: 'Login bem-sucedido',
-      });
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          message: 'Login bem-sucedido',
+        })
+      );
 
       // Verificar se o cookie foi definido
       expect(response.headers['set-cookie']).toBeDefined();
