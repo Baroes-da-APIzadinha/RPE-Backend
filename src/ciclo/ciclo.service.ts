@@ -10,7 +10,7 @@ import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
 import { cicloStatus, CicloAvaliacao, Prisma } from '@prisma/client';
 
 const TEMPO_MINIMO_DIAS = 0;
-const TEMPO_MAXIMO_DIAS = 180;
+const TEMPO_MAXIMO_DIAS = 2000;
 
 // Pega o momento atual em UTC
 const agora = new Date();
