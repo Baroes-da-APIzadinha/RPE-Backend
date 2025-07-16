@@ -4,6 +4,8 @@ import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../database/prismaService';
 import { firstValueFrom } from 'rxjs';
 import { Prisma } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
+
 
 interface ErpColaboradorDto {
   id: string;
@@ -81,6 +83,7 @@ export class SincronizacaoService {
   }
 
   private async sincronizarColaboradores(colaboradoresErp: any[]) {
+    const salt = await bcrypt.genSalt();
     for (const data of colaboradoresErp) {
       const colaborador = await this.prisma.colaborador.upsert({
         where: { email: data.email },
@@ -91,7 +94,7 @@ export class SincronizacaoService {
         create: {
           email: data.email, nomeCompleto: data.nomeCompleto,
           cargo: data.cargo, unidade: data.unidade,
-          trilhaCarreira: data.trilhaCarreira, senha: 'senha_padrao_para_novos_usuarios_do_erp',
+          trilhaCarreira: data.trilhaCarreira, senha: await bcrypt.hash('senha123', salt),
         },
       });
 
