@@ -195,6 +195,7 @@ export class CiclosStatus {
         // Atualiza as durações conforme a etapa
         let updateData: any = {};
         let fechado: boolean = false
+        let relatorio: any[] = [];
 
         if (current_status === 'AGENDADO' && next_status === 'EM_ANDAMENTO') {
             // Calcula dias faltando para o início
@@ -204,6 +205,23 @@ export class CiclosStatus {
             const diasParaSomar = diasFaltando > 0 ? diasFaltando : 0;
 
             console.log("DIAS PARA SOMAR :", diasParaSomar)
+
+            const relatorio_AutoAvaliacao = await this.avaliacoesService.lancarAutoAvaliacoes(ciclo.idCiclo);
+            const relatorio_AvaliacaoPares = await this.avaliacoesService.lancarAvaliacaoPares(ciclo.idCiclo);
+            const relatorio_AvaliacaoMentor = await this.avaliacoesService.lancarAvaliacaoColaboradorMentor(ciclo.idCiclo);
+
+            relatorio.push({
+                tipo: 'Autoavaliação',
+                resultado: relatorio_AutoAvaliacao
+            });
+            relatorio.push({
+                tipo: 'Avaliação de Pares',
+                resultado: relatorio_AvaliacaoPares
+            });
+            relatorio.push({
+                tipo: 'Avaliação Colaborador-Mentor',
+                resultado: relatorio_AvaliacaoMentor
+            });
 
             updateData = {
                 status: next_status,
@@ -227,12 +245,21 @@ export class CiclosStatus {
                 duracaoEmRevisaoDias: ciclo.duracaoEmRevisaoDias + diasParaSomar,
                 status: next_status
             };
+
+            const relatorio_AvaliacaoLider = await this.avaliacoesService.lancarAvaliacaoLiderColaborador(ciclo.idCiclo);
+
+            relatorio.push({
+                tipo: 'Avaliação Líder-Colaborador',
+                resultado: relatorio_AvaliacaoLider
+            });
+
         } else if (current_status === 'EM_REVISAO' && next_status === 'EM_EQUALIZAÇÃO') {
             const diasPassados = Math.floor((hoje.getTime() - inicioRevisao.getTime()) / (1000 * 60 * 60 * 24));
             const diasRestantes = ciclo.duracaoEmRevisaoDias - diasPassados;
             const diasParaSomar = diasRestantes > 0 ? diasRestantes : 0;
 
             console.log("DIAS PARA SOMAR :", diasParaSomar)
+            await this.equelizacoesService.create({ idCiclo: ciclo.idCiclo });
 
             updateData = {
                 duracaoEmRevisaoDias: diasPassados,
@@ -272,6 +299,7 @@ export class CiclosStatus {
             // Adicione outros casos se necessário
             const cicloAtualizado = await this.cicloService.updateCiclo(idCiclo, updateData)
             console.log('Ciclo depois da mudança:', JSON.stringify(cicloAtualizado, null, 2));
+            return relatorio
         }
         // Adicione outros casos se necessário
     }
