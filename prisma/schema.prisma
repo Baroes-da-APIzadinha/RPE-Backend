@@ -90,6 +90,8 @@ model Colaborador {
   alocacoes           AlocacaoColaboradorProjeto[]
   projetosLiderados   Projeto[]            @relation("LiderProjeto")
   brutalFacts         BrutalFacts[]
+  relacoesMentor       RelacaoMentor[]      @relation("Mentor")
+  relacoesMentorado    RelacaoMentor[]      @relation("ColaboradorMentor")
 }
 
 model ColaboradorPerfil {
@@ -306,6 +308,16 @@ model MentorColaborador {
 
   @@unique([idMentor, idColaborador, idCiclo])
 }
+
+model RelacaoMentor {
+  idMentor            String         @db.Uuid
+  idColaborador       String         @db.Uuid
+  mentor              Colaborador    @relation("Mentor", fields: [idMentor], references: [idColaborador])
+  colaborador         Colaborador    @relation("ColaboradorMentor", fields: [idColaborador], references: [idColaborador])
+
+  @@unique([idMentor, idColaborador])
+}
+
 
 model ColaboradorCiclo {
   id            String @id @default(uuid()) @db.Uuid
