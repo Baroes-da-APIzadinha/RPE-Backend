@@ -5,32 +5,55 @@ DO $$
 BEGIN
 SET CONSTRAINTS ALL DEFERRED;
     TRUNCATE TABLE "CardAvaliacaoLiderColaborador" CASCADE;
-    TRUNCATE TABLE "CardAutoAvaliacao" CASCADE;
-    TRUNCATE TABLE "AvaliacaoLiderColaborador" CASCADE;
-    TRUNCATE "AvaliacaoColaboradorMentor" CASCADE;
-    TRUNCATE TABLE "AvaliacaoPares" CASCADE;
-    TRUNCATE TABLE "AutoAvaliacao" CASCADE;
-    TRUNCATE TABLE "alocacoes_colaborador_projeto" CASCADE;
-    TRUNCATE TABLE "Equalizacao" CASCADE;
-    TRUNCATE TABLE "IndicacaoReferencia" CASCADE;
-    TRUNCATE TABLE "Avaliacao" CASCADE;
-    TRUNCATE TABLE "ColaboradorCiclo" CASCADE;
-    TRUNCATE TABLE "MentorColaborador" CASCADE;
-    TRUNCATE TABLE "LiderColaborador" CASCADE;
-    TRUNCATE TABLE "Pares" CASCADE;
-    TRUNCATE TABLE "GestorColaborador" CASCADE;
-    TRUNCATE TABLE "AssociacaoCriterioCiclo" CASCADE;
-    TRUNCATE TABLE "CriterioAvaliativo" CASCADE;
-    TRUNCATE TABLE "CicloAvaliacao" CASCADE;
-    TRUNCATE TABLE "ColaboradorPerfil" CASCADE;
-    TRUNCATE TABLE "Colaborador" CASCADE;
-    TRUNCATE TABLE "projetos" CASCADE;
-    TRUNCATE TABLE "BrutalFacts" CASCADE;
-    TRUNCATE TABLE "AuditLog" CASCADE;
+
+TRUNCATE TABLE "CardAutoAvaliacao" CASCADE;
+
+TRUNCATE TABLE "AvaliacaoLiderColaborador" CASCADE;
+
+TRUNCATE "AvaliacaoColaboradorMentor" CASCADE;
+
+TRUNCATE TABLE "AvaliacaoPares" CASCADE;
+
+TRUNCATE TABLE "AutoAvaliacao" CASCADE;
+
+TRUNCATE TABLE "alocacoes_colaborador_projeto" CASCADE;
+
+TRUNCATE TABLE "Equalizacao" CASCADE;
+
+TRUNCATE TABLE "IndicacaoReferencia" CASCADE;
+
+TRUNCATE TABLE "Avaliacao" CASCADE;
+
+TRUNCATE TABLE "ColaboradorCiclo" CASCADE;
+
+TRUNCATE TABLE "MentorColaborador" CASCADE;
+
+TRUNCATE TABLE "LiderColaborador" CASCADE;
+
+TRUNCATE TABLE "Pares" CASCADE;
+
+TRUNCATE TABLE "GestorColaborador" CASCADE;
+
+TRUNCATE TABLE "AssociacaoCriterioCiclo" CASCADE;
+
+TRUNCATE TABLE "CriterioAvaliativo" CASCADE;
+
+TRUNCATE TABLE "CicloAvaliacao" CASCADE;
+
+TRUNCATE TABLE "ColaboradorPerfil" CASCADE;
+
+TRUNCATE TABLE "Colaborador" CASCADE;
+
+TRUNCATE TABLE "projetos" CASCADE;
+
+TRUNCATE TABLE "BrutalFacts" CASCADE;
+
+TRUNCATE TABLE "AuditLog" CASCADE;
+
 SET CONSTRAINTS ALL IMMEDIATE;
 
-    -- Reabilitar as verificações de chave estrangeira
-    END $$;
+-- Reabilitar as verificações de chave estrangeira
+END $$;
 
 -- Declaração dos UUIDs para uso posterior
 DO $$
@@ -96,6 +119,7 @@ DECLARE
     avaliacao_lider_colaborador_5_id UUID := uuid_generate_v4();
     avaliacao_lider_colaborador_6_id UUID := uuid_generate_v4();
     avaliacao_lider_colaborador_7_id UUID := uuid_generate_v4();
+    avaliacao_lider_colaborador_8_id UUID := uuid_generate_v4();
     
     -- projetos
     projeto_rocket_id UUID := uuid_generate_v4();
@@ -307,7 +331,7 @@ VALUES
     (avaliacao_lider_colaborador_5_id, ciclo_2025_1_id, colaborador_gestor_id, colaborador_suporte_id, 'LIDER_COLABORADOR', 'CONCLUIDA'),
     (avaliacao_lider_colaborador_6_id, ciclo_2025_1_id, colaborador_gestor_id, colaborador_financeiro_id, 'LIDER_COLABORADOR', 'CONCLUIDA'),
     (avaliacao_lider_colaborador_7_id, ciclo_2025_1_id, colaborador_gestor_id, colaborador_comercial_id, 'LIDER_COLABORADOR', 'CONCLUIDA'),
-    (uuid_generate_v4(), ciclo_2025_1_id, colaborador_gestor_id, colaborador_comum_sem_avaliação_id, 'LIDER_COLABORADOR', 'PENDENTE'),
+    (avaliacao_lider_colaborador_8_id, ciclo_2025_1_id, colaborador_gestor_id, colaborador_comum_sem_avaliação_id, 'LIDER_COLABORADOR', 'PENDENTE'),
     
     
     -- Avaliação colaborador-mentor
@@ -393,7 +417,9 @@ VALUES
     (avaliacao_lider_colaborador_4_id, 4.2),
     (avaliacao_lider_colaborador_5_id, 3.8),
     (avaliacao_lider_colaborador_6_id, 4.0),
-    (avaliacao_lider_colaborador_7_id, 4.1);
+    (avaliacao_lider_colaborador_7_id, 4.1),
+    (avaliacao_lider_colaborador_8_id, NULL);
+
 
 -- Inserir Cards da AvaliacaoLiderColaborador
 INSERT INTO "CardAvaliacaoLiderColaborador" ("idCardAvaliacao", "idAvaliacao", "nomeCriterio", "nota", "justificativa")
@@ -432,7 +458,12 @@ VALUES
     -- Cards para Eduardo Nunes (Comercial)
     (uuid_generate_v4(), avaliacao_lider_colaborador_7_id, 'Trabalho em Equipe', 4, 'Trabalha bem com a equipe'),
     (uuid_generate_v4(), avaliacao_lider_colaborador_7_id, 'Comunicação', 4, 'Excelente comunicação com clientes'),
-    (uuid_generate_v4(), avaliacao_lider_colaborador_7_id, 'Qualidade das Entregas', 4, 'Atinge suas metas de vendas');
+    (uuid_generate_v4(), avaliacao_lider_colaborador_7_id, 'Qualidade das Entregas', 4, 'Atinge suas metas de vendas'),
+    
+    -- Cards para Eduardo Nunes (Comercial)
+    (uuid_generate_v4(), avaliacao_lider_colaborador_8_id, 'Trabalho em Equipe', NULL, ''),
+    (uuid_generate_v4(), avaliacao_lider_colaborador_8_id, 'Comunicação', NULL, ''),
+    (uuid_generate_v4(), avaliacao_lider_colaborador_8_id, 'Qualidade das Entregas', NULL, '');
 
 
 -- Inserir Equalizações para todos os colaboradores comuns
@@ -457,4 +488,3 @@ VALUES
 
 
 END $$;
-
