@@ -91,3 +91,56 @@ export class PreencherAuto_ou_Lider_Dto {
     @Type(() => CriterioAutoAvaliacaoDto)
     criterios: CriterioAutoAvaliacaoDto[];
 }
+
+export class LideradoDto {
+  @ApiProperty()
+  @IsString()
+  idAvaliacaoLider: string;
+
+  @ApiProperty()
+  @IsString()
+  idColaborador: string;
+
+  @ApiProperty()
+  @IsString()
+  nomeCompleto: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  cargo: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  notaAutoavaliacao: string | number | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  notaLider: string | number | null;
+
+  @ApiProperty({ enum: Status })
+  @IsEnum(Status)
+  statusAutoavaliacao: Status;
+
+  @ApiProperty({ enum: Status })
+  @IsEnum(Status)
+  statusAvaliacao360: Status;
+}
+
+export class AvaliadorDto {
+  @ApiProperty()
+  @IsString()
+  id: string;
+
+  @ApiProperty()
+  @IsString()
+  nomeLider: string;
+}
+
+export class LideradosPorCicloResponseDto {
+  @ApiProperty({ type: () => AvaliadorDto })
+  avaliador: AvaliadorDto;
+
+  @ApiProperty({ type: [LideradoDto] })
+  liderados: LideradoDto[];
+}
