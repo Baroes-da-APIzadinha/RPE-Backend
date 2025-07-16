@@ -84,6 +84,9 @@ export class SincronizacaoService {
 
   private async sincronizarColaboradores(colaboradoresErp: any[]) {
     const salt = await bcrypt.genSalt();
+    // Para mapear id do ERP para id do banco
+    const mapaIdErpParaIdRpe = new Map<string, string>();
+
     for (const data of colaboradoresErp) {
       const colaborador = await this.prisma.colaborador.upsert({
         where: { email: data.email },
@@ -98,6 +101,11 @@ export class SincronizacaoService {
         },
       });
 
+      // Mapeia id do ERP para id do banco
+      if (data.id) {
+        mapaIdErpParaIdRpe.set(data.id, colaborador.idColaborador);
+      }
+
       if (Array.isArray(data.perfis) && data.perfis.length > 0) {
         const perfisToInsert = data.perfis.map((tipoPerfil: string) => ({
           idColaborador: colaborador.idColaborador,
@@ -109,7 +117,69 @@ export class SincronizacaoService {
         });
       }
     }
-    this.logger.log(`  - ✔️ ${colaboradoresErp.length} colaboradores sincronizados (criados/atualizados e perfis preenchidos).`);
+
+      // Buscar ciclo ativo para usar nas relações
+    const cicloAtivo = await this.prisma.cicloAvaliacao.findFirst({
+      where: {
+        status: {
+          in: ['EM_ANDAMENTO', 'AGENDADO', 'EM_REVISAO', 'EM_EQUALIZAÇÃO']
+        }
+      },
+      orderBy: { dataInicio: 'desc' }
+    });
+    const cicloId = cicloAtivo ? cicloAtivo.idCiclo : null;
+
+    for (const data of colaboradoresErp) {
+      // Adiciona gestores
+      if (Array.isArray(data.gestores) && data.gestores.length > 0 && cicloId) {
+        for (const idGestorErp of data.gestores) {
+          const idGestorRpe = mapaIdErpParaIdRpe.get(idGestorErp);
+          const idColaboradorRpe = mapaIdErpParaIdRpe.get(data.id);
+          if (idGestorRpe && idColaboradorRpe) {
+            await this.prisma.gestorColaborador.upsert({
+              where: {
+                idGestor_idColaborador_idCiclo: {
+                  idGestor: idGestorRpe,
+                  idColaborador: idColaboradorRpe,
+                  idCiclo: cicloId
+                }
+              },
+              update: {},
+              create: {
+                idGestor: idGestorRpe,
+                idColaborador: idColaboradorRpe,
+                idCiclo: cicloId
+              }
+            });
+          }
+        }
+      }
+      // Adiciona mentores
+      if (Array.isArray(data.mentores) && data.mentores.length > 0 && cicloId) {
+        for (const idMentorErp of data.mentores) {
+          const idMentorRpe = mapaIdErpParaIdRpe.get(idMentorErp);
+          const idColaboradorRpe = mapaIdErpParaIdRpe.get(data.id);
+          if (idMentorRpe && idColaboradorRpe) {
+            await this.prisma.mentorColaborador.upsert({
+              where: {
+                idMentor_idColaborador_idCiclo: {
+                  idMentor: idMentorRpe,
+                  idColaborador: idColaboradorRpe,
+                  idCiclo: cicloId
+                }
+              },
+              update: {},
+              create: {
+                idMentor: idMentorRpe,
+                idColaborador: idColaboradorRpe,
+                idCiclo: cicloId
+              }
+            });
+          }
+        }
+      }
+    }
+    this.logger.log(`  - ✔️ ${colaboradoresErp.length} colaboradores sincronizados (criados/atualizados, perfis e relações gestor/mentor preenchidos).`);
   }
 
   private async sincronizarProjetos(projetosErp: any[], colaboradoresErp: any[] = []) {
