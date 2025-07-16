@@ -322,6 +322,9 @@ export class AvaliacoesService {
     async lancarAvaliacaoColaboradorMentor(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
         this.logger.log(`Iniciando lançamento de avaliações colaborador-mentor para ciclo ${idCiclo}`);
 
+        // Gera as relações mentor-colaborador para o ciclo antes de lançar avaliações
+        await this.gerarMentorColaboradorPorCiclo(idCiclo);
+
         // Buscar todas as relações mentor-colaborador do ciclo
         const mentoresColaboradores = await this.prisma.mentorColaborador.findMany({
             where: { idCiclo },
@@ -1445,12 +1448,69 @@ export class AvaliacoesService {
         return resultado;
     }
 
+    async gerarMentorColaboradorPorCiclo(idCiclo: string) {
+        this.logger.log(`Iniciando a geração de relações mentor-colaborador para o ciclo: ${idCiclo}`);
+
+        // Busca todos os colaboradores participantes do ciclo
+        const participantes = await this.prisma.colaboradorCiclo.findMany({
+            where: { idCiclo },
+            include: {
+                colaborador: {
+                    include: { perfis: true, mentores: true }
+                }
+            }
+        });
+
+        let relacoesCriadas = 0;
+        for (const participante of participantes) {
+            const colaborador = participante.colaborador;
+            // Verifica se o colaborador tem mentores definidos
+            if (Array.isArray(colaborador.mentores) && colaborador.mentores.length > 0) {
+                for (const mentor of colaborador.mentores) {
+                    // Evita relação consigo mesmo
+                    if (mentor.idColaborador === colaborador.idColaborador) continue;
+                    await this.prisma.mentorColaborador.upsert({
+                        where: {
+                            idMentor_idColaborador_idCiclo: {
+                                idMentor: mentor.idColaborador,
+                                idColaborador: colaborador.idColaborador,
+                                idCiclo: idCiclo
+                            }
+                        },
+                        update: {},
+                        create: {
+                            idMentor: mentor.idColaborador,
+                            idColaborador: colaborador.idColaborador,
+                            idCiclo: idCiclo
+                        }
+                    });
+                    relacoesCriadas++;
+                }
+            }
+        }
+        this.logger.log(`${relacoesCriadas} relações mentor-colaborador processadas para o ciclo ${idCiclo}.`);
+        return { message: `${relacoesCriadas} relações mentor-colaborador processadas.` };
+    }
+    
     async gerarParesPorProjetos(idCiclo: string) {
         this.logger.log(`Iniciando a geração de pares para o ciclo: ${idCiclo}`);
 
-        const todasAlocacoes = await this.prisma.alocacaoColaboradorProjeto.findMany();
+        // 1. Busca apenas alocações de colaboradores que são ATIVOS e do perfil COLABORADOR_COMUM
+        const alocacoesValidas = await this.prisma.alocacaoColaboradorProjeto.findMany({
+            where: {
+                colaborador: {
+                    ativo: true,
+                    perfis: {
+                        some: {
+                            tipoPerfil: 'COLABORADOR_COMUM',
+                        },
+                    },
+                },
+            },
+        });
 
-        const alocacoesPorProjeto = todasAlocacoes.reduce((acc, alocacao) => {
+        // 2. Agrupa as alocações filtradas por projeto
+        const alocacoesPorProjeto = alocacoesValidas.reduce((acc, alocacao) => {
             if (!acc[alocacao.idProjeto]) {
                 acc[alocacao.idProjeto] = [];
             }
@@ -1458,8 +1518,9 @@ export class AvaliacoesService {
             return acc;
         }, {});
 
-        const paresParaSalvar = new Set<string>();
+        let paresCriados = 0;
 
+        // 3. Itera sobre cada projeto para encontrar os pares
         for (const idProjeto in alocacoesPorProjeto) {
             const alocacoes = alocacoesPorProjeto[idProjeto];
             if (alocacoes.length < 2) continue;
@@ -1469,48 +1530,50 @@ export class AvaliacoesService {
                     const alocacaoA = alocacoes[i];
                     const alocacaoB = alocacoes[j];
 
+                    // 4. Calcula o período de sobreposição de trabalho
                     const inicioSobreposicao = new Date(Math.max(alocacaoA.dataEntrada.getTime(), alocacaoB.dataEntrada.getTime()));
-                    const fimA = alocacaoA.dataSaida || new Date();
+                    const fimA = alocacaoA.dataSaida || new Date(); // Considera hoje se a data de saída for nula
                     const fimB = alocacaoB.dataSaida || new Date();
                     const fimSobreposicao = new Date(Math.min(fimA.getTime(), fimB.getTime()));
 
                     if (fimSobreposicao > inicioSobreposicao) {
                         const diffMs = fimSobreposicao.getTime() - inicioSobreposicao.getTime();
-                        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+                        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
+                        // 5. Se trabalharam juntos por mais de 30 dias, salva o par
                         if (diffDays > 30) {
                             const ids = [alocacaoA.idColaborador, alocacaoB.idColaborador].sort();
-                            paresParaSalvar.add(JSON.stringify({ idColaborador1: ids[0], idColaborador2: ids[1] }));
+                            
+                            await this.prisma.pares.upsert({
+                                where: {
+                                    idColaborador1_idColaborador2_idCiclo: {
+                                        idColaborador1: ids[0],
+                                        idColaborador2: ids[1],
+                                        idCiclo: idCiclo,
+                                    },
+                                },
+                                update: {
+                                    diasTrabalhadosJuntos: diffDays,
+                                },
+                                create: {
+                                    idColaborador1: ids[0],
+                                    idColaborador2: ids[1],
+                                    idCiclo: idCiclo,
+                                    idProjeto: idProjeto,
+                                    diasTrabalhadosJuntos: diffDays,
+                                },
+                            });
+                            paresCriados++;
                         }
                     }
                 }
             }
         }
 
-        let paresCriados = 0;
-        for (const parString of paresParaSalvar) {
-            const par = JSON.parse(parString);
-            await this.prisma.pares.upsert({
-                where: {
-                    idColaborador1_idColaborador2_idCiclo: {
-                        idColaborador1: par.idColaborador1,
-                        idColaborador2: par.idColaborador2,
-                        idCiclo: idCiclo,
-                    },
-                },
-                update: {},
-                create: {
-                    idColaborador1: par.idColaborador1,
-                    idColaborador2: par.idColaborador2,
-                    idCiclo: idCiclo,
-                },
-            });
-            paresCriados++;
-        }
-
         this.logger.log(`${paresCriados} pares únicos foram processados para o ciclo ${idCiclo}.`);
         return { message: `${paresCriados} pares únicos foram processados.` };
     }
+
 
     async gerarLiderColaboradorPorProjetos(idCiclo: string) {
         this.logger.log(`Iniciando a geração de relações líder-colaborador para o ciclo: ${idCiclo}`);
