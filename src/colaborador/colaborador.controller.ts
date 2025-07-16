@@ -111,14 +111,14 @@ export class ColaboradorController {
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('RH', 'COLABORADOR_COMUM')
+    @Roles('GESTOR', 'RH', 'COLABORADOR_COMUM')
     @Get('pilar/historico/:idColaborador')
     async getHistoricoNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getHistoricoNotasPorCiclo(idColaborador);
     }
 
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('RH', 'COLABORADOR_COMUM')
+    @Roles('GESTOR', 'RH', 'COLABORADOR_COMUM')
     @Get('notas/historico/:idColaborador')
     async getHistoricoMediaNotasPorCiclo(@Param('idColaborador') idColaborador: string) {
         return this.colaboradorService.getHistoricoMediaNotasPorCiclo(idColaborador);

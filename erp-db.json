@@ -7,7 +7,7 @@
       "cargo": "DESENVOLVEDOR",
       "unidade": "RECIFE",
       "trilhaCarreira": "DESENVOLVIMENTO",
-      "perfis": ["COLABORADOR_COMUM"]
+      "perfis": ["COLABORADOR_COMUM", "LIDER", "GESTOR"]
     },
     {
       "id": "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
@@ -16,7 +16,7 @@
       "cargo": "DESENVOLVEDOR",
       "unidade": "SAO PAULO",
       "trilhaCarreira": "DESENVOLVIMENTO",
-      "perfis": ["COLABORADOR_COMUM", "GESTOR"]
+      "perfis": ["COLABORADOR_COMUM"]
     },
     {
       "id": "c3d4e5f6-a7b8-9012-3456-7890abcdef12",
@@ -25,7 +25,7 @@
       "cargo": "COMERCIAL",
       "unidade": "RECIFE",
       "trilhaCarreira": "GERENCIAMENTO",
-      "perfis": ["GESTOR", "ADMIN"]
+      "perfis": ["COLABORADOR_COMUM", "LIDER", "GESTOR"]
     },
     {
       "id": "d4e5f6a7-b8c9-0123-4567-890abcdef123",
@@ -34,7 +34,7 @@
       "cargo": "SUPORTE",
       "unidade": "FLORIANOPOLIS",
       "trilhaCarreira": "SUPORTE",
-      "perfis": ["MENTOR", "COLABORADOR_COMUM"]
+      "perfis": ["COLABORADOR_COMUM", "MENTOR"]
     },
     {
       "id": "e5f6a7b8-c9d0-1234-5678-90abcdef1234",
@@ -43,7 +43,7 @@
       "cargo": "UX",
       "unidade": "SAO PAULO",
       "trilhaCarreira": "UX",
-      "perfis": ["RH", "MENTOR"]
+      "perfis": ["COLABORADOR_COMUM", "MENTOR"]
     },
     {
       "id": "f6a7b8c9-d0e1-2345-6789-0abcdef12345",
@@ -52,7 +52,7 @@
       "cargo": "QA",
       "unidade": "RECIFE",
       "trilhaCarreira": "QA",
-      "perfis": ["ADMIN", "LIDER"]
+      "perfis": ["COLABORADOR_COMUM"]
     },
     {
       "id": "a7b8c9d0-e1f2-3456-7890-bcdef1234567",
@@ -61,7 +61,7 @@
       "cargo": "QA",
       "unidade": "FLORIANOPOLIS",
       "trilhaCarreira": "QA",
-      "perfis": ["LIDER", "MENTOR"]
+      "perfis": ["COLABORADOR_COMUM", "MENTOR"]
     },
     {
       "id": "b8c9d0e1-f2a3-4567-8901-cdef12345678",
@@ -70,7 +70,7 @@
       "cargo": "RH",
       "unidade": "RECIFE",
       "trilhaCarreira": "GERENCIAMENTO",
-      "perfis": ["GESTOR", "MEMBRO_COMITE"]
+      "perfis": ["COLABORADOR_COMUM", "LIDER", "GESTOR"]
     },
     {
       "id": "c9d0e1f2-a3b4-5678-9012-def123456789",
@@ -79,7 +79,7 @@
       "cargo": "SUPORTE",
       "unidade": "SAO PAULO",
       "trilhaCarreira": "SUPORTE",
-      "perfis": ["COLABORADOR_COMUM", "MEMBRO_COMITE"]
+      "perfis": ["MEMBRO_COMITE"]
     },
     {
       "id": "d0e1f2a3-b4c5-6789-0123-ef1234567890",
@@ -88,7 +88,7 @@
       "cargo": "DESENVOLVEDOR",
       "unidade": "FLORIANOPOLIS",
       "trilhaCarreira": "DESENVOLVIMENTO",
-      "perfis": ["MENTOR", "MEMBRO_COMITE"]
+      "perfis": ["COLABORADOR_COMUM", "LIDER", "GESTOR", "MENTOR"]
     },
     {
       "id": "e1f2a3b4-c5d6-7890-1234-f12345678901",
@@ -97,7 +97,7 @@
       "cargo": "RH",
       "unidade": "RECIFE",
       "trilhaCarreira": "RH",
-      "perfis": ["RH", "ADMIN"]
+      "perfis": ["RH"]
     },
     {
       "id": "f2a3b4c5-d6e7-8901-2345-123456789012",
@@ -106,7 +106,7 @@
       "cargo": "FINANCEIRO",
       "unidade": "SAO PAULO",
       "trilhaCarreira": "FINANCEIRO",
-      "perfis": ["GESTOR", "LIDER"]
+      "perfis": ["COLABORADOR_COMUM", "LIDER", "GESTOR"]
     },
     {
       "id": "a3b4c5d6-e7f8-9012-3456-234567890123",
@@ -115,7 +115,7 @@
       "cargo": "MARKETING",
       "unidade": "FLORIANOPOLIS",
       "trilhaCarreira": "MARKETING",
-      "perfis": ["LIDER"]
+      "perfis": ["COLABORADOR_COMUM"]
     }
   ],
   "projetos": [
