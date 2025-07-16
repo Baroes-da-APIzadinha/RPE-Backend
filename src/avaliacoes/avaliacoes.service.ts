@@ -1625,6 +1625,7 @@ export class AvaliacoesService {
 
 
             return {
+            idAvaliacaoLider: lider?.idAvaliacao,
             idColaborador: colaborador.idColaborador,
             nomeCompleto: colaborador.nomeCompleto,
             cargo: colaborador.cargo,
@@ -1632,7 +1633,6 @@ export class AvaliacoesService {
             notaLider: lider?.avaliacaoLiderColaborador?.notaFinal || null,
             statusAutoavaliacao: (auto?.status ?? 'PENDENTE') as Status,
             statusAvaliacao360: statusAvaliacao360 as Status,
-
             };
         });
 

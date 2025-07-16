@@ -57,7 +57,7 @@ importers:
         specifier: ^1.4.7
         version: 1.4.7
       dotenv:
-        specifier: ^17.0.1
+        specifier: ^17.2.0
         version: 17.2.0
       passport:
         specifier: ^0.7.0

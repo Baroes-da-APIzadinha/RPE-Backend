@@ -95,6 +95,10 @@ export class PreencherAuto_ou_Lider_Dto {
 export class LideradoDto {
   @ApiProperty()
   @IsString()
+  idAvaliacaoLider: string;
+
+  @ApiProperty()
+  @IsString()
   idColaborador: string;
 
   @ApiProperty()
