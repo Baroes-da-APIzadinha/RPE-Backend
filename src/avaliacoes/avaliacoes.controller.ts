@@ -256,11 +256,18 @@ export class AvaliacoesController {
     async getNotasAvaliacoes(@Param('idColaborador') idColaborador: string, @Param('idCiclo') idCiclo: string) {
         return this.service.discrepanciaColaborador(idColaborador, idCiclo);
     }
-
+    
     @Get('notasCiclo/:idCiclo')
     async getNotasCiclo(@Param('idCiclo') idCiclo: string): Promise<RelatorioItem[]> {
         const resultado = await this.service.discrepanciaAllcolaboradores(idCiclo);
         return resultado || []; // Return empty array if undefined
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Roles('ADMIN', 'RH')
+    @Get('notas-distribuicao/:idCiclo')
+    async getNotasDistribuicao(@Param('idCiclo') idCiclo: string, @Query('tipoAvaliacao') tipoAvaliacao?: string) {
+        return this.service.getNotasDistribuicao(idCiclo, tipoAvaliacao);
     }
 
     @UseGuards(JwtAuthGuard)
