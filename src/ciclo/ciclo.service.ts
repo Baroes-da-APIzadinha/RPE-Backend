@@ -251,7 +251,7 @@ export class CicloService {
                 'Data de início não pode ser maior que a data de fim.',
             );
         }
-        if (dataInicio.getTime() < hoje.getTime()) {
+        if (idCiclo === undefined && dataInicio.getTime() < hoje.getTime()) {
             throw new BadRequestException(
                 `Data de início ${dataInicio.toISOString()} não pode ser menor que o dia atual ${hoje.toISOString()}.`,
             );
