@@ -9,7 +9,7 @@ import { PrismaService } from 'src/database/prismaService';
 import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
 import { cicloStatus, CicloAvaliacao, Prisma } from '@prisma/client';
 
-const TEMPO_MINIMO_DIAS = 30;
+const TEMPO_MINIMO_DIAS = 0;
 const TEMPO_MAXIMO_DIAS = 180;
 
 // Pega o momento atual em UTC
@@ -32,7 +32,7 @@ const hoje = new Date(
 
 @Injectable()
 export class CicloService {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(private readonly prisma: PrismaService) { }
     private readonly logger = new Logger(CicloService.name);
 
     async createCiclo(data: CreateCicloDto): Promise<CicloAvaliacao> {
@@ -41,17 +41,12 @@ export class CicloService {
             data.dataInicioMes,
             data.dataInicioDia,
         );
-        
+
         const dataFim = this._createData(
             data.dataFimAno,
             data.dataFimMes,
             data.dataFimDia
         );
-        
-        console.log('Data de início:', dataInicio);
-        console.log('Data de fim:', dataFim);
-        console.log('Hoje (Brasília, 00:00:00):', hoje);
-        console.log('Agora em Brasília:', agoraEmBrasilia);
 
         await this._validarDatas(dataInicio, dataFim, data.duracaoEmAndamentoDias, data.duracaoEmRevisaoDias, data.duracaoEmEqualizacaoDias);
         this._validarPadraoNomeCiclo(data.nome);
@@ -82,19 +77,19 @@ export class CicloService {
         const dataInicio =
             data.dataInicioAno && data.dataInicioMes && data.dataInicioDia
                 ? this._createData(
-                      data.dataInicioAno,
-                      data.dataInicioMes,
-                      data.dataInicioDia,
-                  )
+                    data.dataInicioAno,
+                    data.dataInicioMes,
+                    data.dataInicioDia,
+                )
                 : cicloExistente.dataInicio;
 
         const dataFim =
             data.dataFimAno && data.dataFimMes && data.dataFimDia
                 ? this._createData(
-                      data.dataFimAno,
-                      data.dataFimMes,
-                      data.dataFimDia
-                  )
+                    data.dataFimAno,
+                    data.dataFimMes,
+                    data.dataFimDia
+                )
                 : cicloExistente.dataFim;
 
         // Usar valores existentes se não fornecidos no update
@@ -102,19 +97,13 @@ export class CicloService {
         const duracaoEmRevisaoDias = data.duracaoEmRevisaoDias ?? cicloExistente.duracaoEmRevisaoDias;
         const duracaoEmEqualizacaoDias = data.duracaoEmEqualizacaoDias ?? cicloExistente.duracaoEmEqualizacaoDias;
 
-        // Logs de debug (consistente com createCiclo)
-        console.log('Data de início:', dataInicio);
-        console.log('Data de fim:', dataFim);
-        console.log('Hoje (Brasília, 00:00:00):', hoje);
-        console.log('Agora em Brasília:', agoraEmBrasilia);
-
         // Validar datas apenas se foram fornecidas no update
         const datasFornecidas = data.dataInicioAno || data.dataFimAno;
         const duracoesFornecidas = data.duracaoEmAndamentoDias || data.duracaoEmRevisaoDias || data.duracaoEmEqualizacaoDias;
-        
+
         // Só validar se pelo menos uma data ou duração foi fornecida
         if (datasFornecidas || duracoesFornecidas) {
-            await this._validarDatas(dataInicio, dataFim, duracaoEmAndamentoDias, duracaoEmRevisaoDias, duracaoEmEqualizacaoDias);
+            await this._validarDatas(dataInicio, dataFim, duracaoEmAndamentoDias, duracaoEmRevisaoDias, duracaoEmEqualizacaoDias, id);
         }
 
         if (data.nome && data.nome !== cicloExistente.nomeCiclo) {
@@ -128,7 +117,7 @@ export class CicloService {
 
         // Construir objeto de dados para atualização apenas com campos fornecidos
         const updateData: any = {};
-        
+
         if (data.nome !== undefined) {
             updateData.nomeCiclo = data.nome;
         }
@@ -147,14 +136,20 @@ export class CicloService {
         if (data.duracaoEmEqualizacaoDias !== undefined) {
             updateData.duracaoEmEqualizacaoDias = data.duracaoEmEqualizacaoDias;
         }
-        
-        // Status é sempre atualizado baseado na data de início
-        updateData.status = status;
 
-        return this.prisma.cicloAvaliacao.update({
+        await this.prisma.cicloAvaliacao.update({
             where: { idCiclo: id },
             data: updateData,
         });
+
+        const statuss = await this._handleStatus(id)
+        
+        return this.prisma.cicloAvaliacao.update({
+            where: { idCiclo: id },
+            data: {status : statuss},
+        });
+
+
     }
 
     async deleteCiclo(id: string): Promise<CicloAvaliacao> {
@@ -246,6 +241,7 @@ export class CicloService {
         duracaoEmAndamentoDias: number,
         duracaoEmRevisaoDias: number,
         duracaoEmEqualizacaoDias: number,
+        idCiclo?: string
     ): Promise<void> {
         if (!dataInicio || !dataFim) {
             throw new BadRequestException('Data de início ou fim inválida.');
@@ -255,9 +251,9 @@ export class CicloService {
                 'Data de início não pode ser maior que a data de fim.',
             );
         }
-        if (dataInicio.getTime() < hoje.getTime()) {
+        if (idCiclo === undefined && dataInicio.getTime() < hoje.getTime()) {
             throw new BadRequestException(
-                `Data de início ${dataInicio} não pode ser menor que o dia atual ${hoje}.`,
+                `Data de início ${dataInicio.toISOString()} não pode ser menor que o dia atual ${hoje.toISOString()}.`,
             );
         }
 
@@ -290,14 +286,22 @@ export class CicloService {
         for (const ciclo of ciclosExistentes) {
             // Se o novo ciclo começa antes do fim de um ciclo existente
             // e termina depois do início de um ciclo existente, há sobreposição
-            if (
-                (dataInicio <= ciclo.dataFim) &&
-                (dataFim >= ciclo.dataInicio)
-            ) {
-                throw new ConflictException(
-                    `O período informado (${dataInicio.toLocaleDateString()} a ${dataFim.toLocaleDateString()}) sobrepõe o ciclo existente de ${new Date(ciclo.dataInicio).toLocaleDateString()} a ${new Date(ciclo.dataFim).toLocaleDateString()}.`
-                );
+            if (ciclo.idCiclo !== idCiclo) {
+                if (
+                    (dataInicio <= ciclo.dataFim) &&
+                    (dataFim >= ciclo.dataInicio)
+                ) {
+                    console.log(" ============")
+                    console.log("COMPARATIVO")
+                    console.log("Data inicio ", dataInicio, " e data inicio ciclo: ", ciclo.dataInicio)
+                    console.log("Data fim ", dataFim, " e data fim ciclo: ", ciclo.dataFim)
+                    throw new ConflictException(
+                        `O período informado (${dataInicio.toISOString()} a ${dataFim.toISOString()}) sobrepõe o ciclo existente de ${ciclo.dataInicio.toISOString()} a ${ciclo.dataInicio.toISOString()}.`
+                    );
+                }
+
             }
+
         }
 
         // Validação: soma das durações dos status deve ser igual ao total de dias do ci
@@ -329,6 +333,52 @@ export class CicloService {
         );
     }
 
+    private async _handleStatus(idCiclo: string): Promise<cicloStatus | undefined> {
+        const ciclo = await this.prisma.cicloAvaliacao.findFirst({
+            where: { idCiclo }
+        });
+
+        if (!ciclo) {
+            return undefined;
+        }
+
+        const inicio = new Date(ciclo.dataInicio);
+        const fim = new Date(ciclo.dataFim);
+
+        // Calcular as datas de transição baseadas nas durações
+        const fimAndamento = new Date(inicio);
+        fimAndamento.setDate(fimAndamento.getDate() + ciclo.duracaoEmAndamentoDias - 1);
+
+        const inicioRevisao = new Date(fimAndamento);
+        inicioRevisao.setDate(inicioRevisao.getDate() + 1);
+
+        const fimRevisao = new Date(inicioRevisao);
+        fimRevisao.setDate(fimRevisao.getDate() + ciclo.duracaoEmRevisaoDias - 1);
+
+        const inicioEqualizacao = new Date(fimRevisao);
+        inicioEqualizacao.setDate(inicioEqualizacao.getDate() + 1);
+
+        const fimEqualizacao = new Date(inicioEqualizacao);
+        fimEqualizacao.setDate(fimEqualizacao.getDate() + ciclo.duracaoEmEqualizacaoDias - 1);
+
+        let newStatus: cicloStatus = ciclo.status; // Mantém o status atual por padrão
+
+        // Lógica de transição de status
+        if (hoje < inicio) {
+            newStatus = cicloStatus.AGENDADO;
+        } else if (hoje >= inicio && hoje <= fimAndamento) {
+            newStatus = cicloStatus.EM_ANDAMENTO;
+        } else if (hoje >= inicioRevisao && hoje <= fimRevisao) {
+            newStatus = cicloStatus.EM_REVISAO;
+        } else if (hoje >= inicioEqualizacao && hoje <= fimEqualizacao) {
+            newStatus = cicloStatus.EM_EQUALIZAÇÃO;
+        } else if (hoje > fim) {
+            newStatus = cicloStatus.FECHADO;
+        }
+
+        return newStatus;
+    }
+
     private _isValidUUID(uuid: string): boolean {
         const uuidRegex =
             /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -353,7 +403,7 @@ export class CicloService {
             throw new BadRequestException(`Data inválida fornecida: ${dia}/${mes}/${ano}`);
         }
         // Cria a data no início do dia em Brasília (00:00:00), que é 03:00:00 em UTC
-        return new Date(Date.UTC(ano, mes -1, dia, 0, 0, 0, 0));
+        return new Date(Date.UTC(ano, mes - 1, dia, 0, 0, 0, 0));
     }
 
     private _validarPadraoNomeCiclo(nome: string): void {
