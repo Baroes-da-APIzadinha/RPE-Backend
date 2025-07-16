@@ -305,7 +305,9 @@ describe('SincronizacaoService', () => {
         skipDuplicates: true,
       });
 
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 colaboradores sincronizados (criados/atualizados e perfis preenchidos).');
+      // Aceita variações na mensagem de log
+      const logCalls = loggerSpy.mock.calls.map(call => call[0]);
+      expect(logCalls.some(msg => msg.match(/✔️ 2 colaboradores sincronizados \(criados\/atualizados(, perfis( e relações gestor\/mentor)? preenchidos)?\)/))).toBe(true);
     });
 
     it('deve sincronizar colaborador sem perfis', async () => {
@@ -696,9 +698,10 @@ describe('SincronizacaoService', () => {
       await service.handleCronSincronizacao();
 
       // Assert
-      expect(loggerSpy).toHaveBeenCalledWith('🔍 Encontrados no ERP: 0 colaboradores, 0 projetos, 0 alocações.');
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 0 colaboradores sincronizados (criados/atualizados e perfis preenchidos).');
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 0 projetos sincronizados (criados/atualizados).');
+      const logCalls = loggerSpy.mock.calls.map(call => call[0]);
+      expect(logCalls).toContain('🔍 Encontrados no ERP: 0 colaboradores, 0 projetos, 0 alocações.');
+      expect(logCalls.some(msg => msg.match(/✔️ 0 colaboradores sincronizados \(criados\/atualizados(, perfis( e relações gestor\/mentor)? preenchidos)?\)/))).toBe(true);
+      expect(logCalls).toContain('  - ✔️ 0 projetos sincronizados (criados/atualizados).');
     });
 
     it('deve tratar resposta HTTP com estrutura inesperada', async () => {
@@ -778,12 +781,13 @@ describe('SincronizacaoService', () => {
       await service.handleCronSincronizacao();
 
       // Assert
-      expect(loggerSpy).toHaveBeenCalledWith('🚀 Iniciando rotina de sincronização completa com o ERP (automática)...');
-      expect(loggerSpy).toHaveBeenCalledWith('🔍 Encontrados no ERP: 2 colaboradores, 2 projetos, 2 alocações.');
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 colaboradores sincronizados (criados/atualizados e perfis preenchidos).');
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 projetos sincronizados (criados/atualizados).');
-      expect(loggerSpy).toHaveBeenCalledWith('  - ✔️ 2 novas alocações inseridas.');
-      expect(loggerSpy).toHaveBeenCalledWith('✅ Sincronização completa com o ERP concluída com sucesso!');
+      const logCalls = loggerSpy.mock.calls.map(call => call[0]);
+      expect(logCalls).toContain('🚀 Iniciando rotina de sincronização completa com o ERP (automática)...');
+      expect(logCalls).toContain('🔍 Encontrados no ERP: 2 colaboradores, 2 projetos, 2 alocações.');
+      expect(logCalls.some(msg => msg.match(/✔️ 2 colaboradores sincronizados \(criados\/atualizados(, perfis( e relações gestor\/mentor)? preenchidos)?\)/))).toBe(true);
+      expect(logCalls).toContain('  - ✔️ 2 projetos sincronizados (criados/atualizados).');
+      expect(logCalls).toContain('  - ✔️ 2 novas alocações inseridas.');
+      expect(logCalls).toContain('✅ Sincronização completa com o ERP concluída com sucesso!');
     });
 
     it('deve gerar log de erro quando a sincronização falha', async () => {

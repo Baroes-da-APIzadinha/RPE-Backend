@@ -37,6 +37,10 @@ describe('AvaliacoesService', () => {
     },
     mentorColaborador: {
       findMany: jest.fn(),
+      upsert: jest.fn(),
+    },
+    relacaoMentor: {
+      findMany: jest.fn(),
     },
     avaliacaoPares: {
       create: jest.fn(),
@@ -603,6 +607,7 @@ describe('AvaliacoesService', () => {
     beforeEach(() => {
       mockPrismaService.mentorColaborador.findMany.mockResolvedValue(mockMentoresColaboradores);
       mockPrismaService.avaliacao.findMany.mockResolvedValue([]);
+      mockPrismaService.relacaoMentor.findMany.mockResolvedValue([]); // Garante array vazio por padrão
       mockPrismaService.$transaction.mockImplementation(async (callback) => {
         return callback({
           avaliacao: { create: jest.fn().mockResolvedValue(mockAvaliacao) },
@@ -611,6 +616,15 @@ describe('AvaliacoesService', () => {
     });
 
     it('deve lançar avaliações colaborador-mentor com sucesso', async () => {
+      // Arrange: relacaoMentor.findMany retorna array válido
+      mockPrismaService.relacaoMentor.findMany.mockResolvedValue([{
+        idMentor: mockIdMentor,
+        idColaborador: mockIdColaborador1,
+        idCiclo: mockIdCiclo,
+        mentor: { ...mockLider, idColaborador: mockIdMentor, nomeCompleto: 'Mentor Silva' },
+        colaborador: mockColaborador1,
+      }]);
+
       // Act
       const resultado = await service.lancarAvaliacaoColaboradorMentor(mockIdCiclo);
 
@@ -623,6 +637,7 @@ describe('AvaliacoesService', () => {
     it('deve retornar zero quando não há relações mentor-colaborador', async () => {
       // Arrange
       mockPrismaService.mentorColaborador.findMany.mockResolvedValue([]);
+      mockPrismaService.relacaoMentor.findMany.mockResolvedValue([]); // Garante array vazio
 
       // Act
       const resultado = await service.lancarAvaliacaoColaboradorMentor(mockIdCiclo);
