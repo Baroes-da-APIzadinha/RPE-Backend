@@ -60,17 +60,17 @@ Content-Type: application/json
     "nome": "2025.2",
     "dataInicioAno": 2025,
     "dataInicioMes": 7,
-    "dataInicioDia": 15,
+    "dataInicioDia": 16,
     "dataFimAno": 2025,
     "dataFimMes": 8,
-    "dataFimDia": 13,
+    "dataFimDia": 14,
     "duracaoEmAndamentoDias": 10,
     "duracaoEmRevisaoDias": 10,
     "duracaoEmEqualizacaoDias": 10
 }
 
 ### Remover ciclo
-DELETE http://localhost:3000/ciclo/55555555-5555-5555-5555-777777777777
+DELETE http://localhost:3000/ciclo/c59dab17-d977-4d4b-8202-6ba8a3191e79
 ### Get ciclo
 GET http://localhost:3000/ciclo/get/b55004c9-4656-42ab-8b61-ebcd701fd2d6
 
@@ -101,11 +101,20 @@ Content-Type: application/json
 }
 
 ### Atualizar ciclo (PATCH - atualização parcial)
-PATCH http://localhost:3000/ciclo/e81819cd-d018-4af9-a69f-92250e46f7e7
+PATCH http://localhost:3000/ciclo/044bbe84-d05e-496e-bdc5-8b0dc7011508
 Content-Type: application/json
 
 {
-    "duracaoEmAndamentoDias": 11
+    "nome": "2025.2",
+    "dataInicioAno": 2025,
+    "dataInicioMes": 7,
+    "dataInicioDia": 10,
+    "dataFimAno": 2025,
+    "dataFimMes": 8,
+    "dataFimDia": 18,
+    "duracaoEmAndamentoDias": 10,
+    "duracaoEmRevisaoDias": 10,
+    "duracaoEmEqualizacaoDias": 10
 }
 
 ### Trocar status do ciclo
@@ -113,9 +122,9 @@ PATCH http://localhost:3000/ciclo/status
 Content-Type: application/json
 
 {
-    "idCiclo": "7e3d7638-4cde-4d9c-98dc-4abb4b4806f2",
-    "current_status": "EM_REVISAO",
-    "next_status": "EM_EQUALIZAÇÃO"
+    "idCiclo": "044bbe84-d05e-496e-bdc5-8b0dc7011508",
+    "current_status": "EM_EQUALIZAÇÃO",
+    "next_status": "FECHADO" 
 }
 
 ### Criar criterio

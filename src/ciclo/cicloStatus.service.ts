@@ -1,10 +1,11 @@
 import { PrismaService } from 'src/database/prismaService';
 import { cicloStatus, CicloAvaliacao, Prisma } from '@prisma/client';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ConflictException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AvaliacoesService } from 'src/avaliacoes/avaliacoes.service';
 import { EqualizacaoService } from 'src/equalizacao/equalizacao.service';
 import { CreateEqualizacaoDto } from 'src/equalizacao/equalizacao.dto';
+import { CicloService } from './ciclo.service';
 
 
 
@@ -13,7 +14,8 @@ export class CiclosStatus {
     constructor(
         private prisma: PrismaService,
         private avaliacoesService: AvaliacoesService,
-        private equelizacoesService: EqualizacaoService
+        private equelizacoesService: EqualizacaoService,
+        private cicloService: CicloService
     ) { }
 
     private readonly logger = new Logger(CiclosStatus.name);
@@ -156,13 +158,18 @@ export class CiclosStatus {
             where: { idCiclo }
         });
 
-        if (!ciclo) throw new Error('Ciclo not found');
+        if (!ciclo) throw new BadRequestException('Ciclo not found');
+
+        if (ciclo.status !== current_status) throw new ConflictException('Argumento current_status não condiz com o status atual do ciclo');
 
         console.log('Ciclo antes da mudança:', JSON.stringify(ciclo, null, 2));
         const now = new Date();
         const hoje = new Date(now.getFullYear(), now.getMonth(), now.getDate(), -3, 0, 0, 0);
         console.log('Data atual (hoje):', hoje.toISOString());
         const inicio = new Date(ciclo.dataInicio);
+        const fim = new Date(ciclo.dataFim);
+
+        console.log("Data inicio ciclo: ", ciclo.dataInicio)
 
         // Calcula o início de cada etapa
         const fimAndamento = new Date(inicio);
@@ -187,13 +194,33 @@ export class CiclosStatus {
 
         // Atualiza as durações conforme a etapa
         let updateData: any = {};
+        let fechado: boolean = false
 
-        if (current_status === 'EM_ANDAMENTO' && next_status === 'EM_REVISAO') {
+        if (current_status === 'AGENDADO' && next_status === 'EM_ANDAMENTO') {
+            // Calcula dias faltando para o início
+            const diasFaltando = Math.floor((inicio.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+
+            // Se já passou do início, diasFaltando será negativo ou zero
+            const diasParaSomar = diasFaltando > 0 ? diasFaltando : 0;
+
+            console.log("DIAS PARA SOMAR :", diasParaSomar)
+
+            updateData = {
+                status: next_status,
+                duracaoEmAndamentoDias: ciclo.duracaoEmAndamentoDias + diasParaSomar,
+                dataInicioAno: hoje.getFullYear(),
+                dataInicioMes: hoje.getMonth() + 1,
+                dataInicioDia: hoje.getDate() + 1
+            };
+        }
+        else if (current_status === 'EM_ANDAMENTO' && next_status === 'EM_REVISAO') {
             // Dias já passados na etapa atual
             const diasPassados = Math.floor((hoje.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
             const diasRestantes = ciclo.duracaoEmAndamentoDias - diasPassados;
             // Garante que não seja negativo
             const diasParaSomar = diasRestantes > 0 ? diasRestantes : 0;
+
+            console.log("DIAS PARA SOMAR :", diasParaSomar)
 
             updateData = {
                 duracaoEmAndamentoDias: diasPassados,
@@ -205,26 +232,48 @@ export class CiclosStatus {
             const diasRestantes = ciclo.duracaoEmRevisaoDias - diasPassados;
             const diasParaSomar = diasRestantes > 0 ? diasRestantes : 0;
 
-            console.log('Transição de EM_REVISAO para EM_EQUALIZAÇÃO');
-            console.log('Data atual (hoje):', hoje.toISOString());
-            console.log('Início da revisão:', inicioRevisao.toISOString());
-            console.log('Dias passados na revisão:', diasPassados);
-            console.log('Dias restantes na revisão:', diasRestantes);
-            console.log('Dias para somar na equalização:', diasParaSomar);
+            console.log("DIAS PARA SOMAR :", diasParaSomar)
 
             updateData = {
                 duracaoEmRevisaoDias: diasPassados,
                 duracaoEmEqualizacaoDias: ciclo.duracaoEmEqualizacaoDias + diasParaSomar,
                 status: next_status
             };
+        } else if (current_status === 'EM_EQUALIZAÇÃO' && next_status === 'FECHADO') {
+
+            const diasFaltando = Math.floor((fim.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+            const diasParaSubtrair = diasFaltando > 0 ? diasFaltando : 0;
+
+            console.log("DIAS FALTANDO :", diasParaSubtrair)
+
+            updateData = {
+                status: next_status,
+                duracaoEmEqualizacaoDias: ciclo.duracaoEmEqualizacaoDias - diasParaSubtrair,
+                dataFim: hoje
+            }
+
+            const cicloAtualizado = await this.prisma.cicloAvaliacao.update({
+                where: { idCiclo: idCiclo },
+                data: updateData // update vazio, mas obrigatório
+            });
+            console.log('Ciclo depois da mudança:', JSON.stringify(cicloAtualizado, null, 2));
+
+            fechado = true
+        }
+
+        console.log("")
+        console.log("===========")
+        console.log("UPDATED DATA:")
+        console.log(updateData)
+        console.log("===========")
+        console.log("")
+
+        if (fechado === false) {
+            // Adicione outros casos se necessário
+            const cicloAtualizado = await this.cicloService.updateCiclo(idCiclo, updateData)
+            console.log('Ciclo depois da mudança:', JSON.stringify(cicloAtualizado, null, 2));
         }
         // Adicione outros casos se necessário
-
-        // Atualiza o ciclo
-        const cicloAtualizado = await this.prisma.cicloAvaliacao.update({
-            where: { idCiclo },
-            data: updateData
-        });
-        console.log('Ciclo depois da mudança:', JSON.stringify(cicloAtualizado, null, 2));
     }
+
 }
