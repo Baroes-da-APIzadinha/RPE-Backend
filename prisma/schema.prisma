@@ -60,6 +60,7 @@ enum projetoStatus {
 /// =========== MODELS ===========
 
 model Colaborador {
+  ativo               Boolean              @default(true)
   idColaborador       String               @id @default(uuid()) @db.Uuid
   nomeCompleto        String               @db.VarChar(255)
   email               String               @unique @db.VarChar(255)
@@ -295,13 +296,13 @@ model LiderColaborador {
 }
 
 model MentorColaborador {
-  idMentorColaborador String       @id @default(uuid()) @db.Uuid
-  idMentor            String       @db.Uuid
-  idColaborador       String       @db.Uuid
-  idCiclo             String       @db.Uuid
-  mentor              Colaborador  @relation("Mentor", fields: [idMentor], references: [idColaborador])
-  colaborador         Colaborador  @relation("ColaboradorMentor", fields: [idColaborador], references: [idColaborador])
-  ciclo               CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo])
+  idMentorColaborador String         @id @default(uuid()) @db.Uuid
+  idMentor            String         @db.Uuid
+  idColaborador       String         @db.Uuid
+  idCiclo             String?        @db.Uuid
+  mentor              Colaborador    @relation("Mentor", fields: [idMentor], references: [idColaborador])
+  colaborador         Colaborador    @relation("ColaboradorMentor", fields: [idColaborador], references: [idColaborador])
+  ciclo               CicloAvaliacao? @relation(fields: [idCiclo], references: [idCiclo])
 
   @@unique([idMentor, idColaborador, idCiclo])
 }

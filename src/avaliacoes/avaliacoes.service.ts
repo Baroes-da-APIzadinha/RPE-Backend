@@ -48,36 +48,36 @@ export class AvaliacoesService {
                 }),
                 this.prisma.avaliacao.findMany({
                     where: { idCiclo, tipoAvaliacao: 'AVALIACAO_PARES' },
-                    select: { idAvaliador: true, idAvaliado: true }
+            select: { idAvaliador: true, idAvaliado: true }
                 })
             ]);
             this.logger.log(`Total de pares encontrados para o ciclo ${idCiclo}: ${pares.length}`);
 
-            const avaliacaoSet = new Set(avaliacoesExistentes.map(a => `${a.idAvaliador}-${a.idAvaliado}`));
+        const avaliacaoSet = new Set(avaliacoesExistentes.map(a => `${a.idAvaliador}-${a.idAvaliado}`));
             const novasAvaliacoesParaCriar: Prisma.AvaliacaoCreateManyInput[] = [];
 
-            for (const par of pares) {
-                if (!par.idColaborador1 || !par.idColaborador2) continue;
+        for (const par of pares) {
+            if (!par.idColaborador1 || !par.idColaborador2) continue;
 
                 if (!avaliacaoSet.has(`${par.idColaborador1}-${par.idColaborador2}`)) {
                     novasAvaliacoesParaCriar.push({
                         idCiclo,
-                        idAvaliador: par.idColaborador1,
-                        idAvaliado: par.idColaborador2,
-                        status: 'PENDENTE',
-                        tipoAvaliacao: 'AVALIACAO_PARES',
-                    });
-                }
+                    idAvaliador: par.idColaborador1,
+                    idAvaliado: par.idColaborador2,
+                    status: 'PENDENTE',
+                    tipoAvaliacao: 'AVALIACAO_PARES',
+                });
+            }
                 if (!avaliacaoSet.has(`${par.idColaborador2}-${par.idColaborador1}`)) {
                     novasAvaliacoesParaCriar.push({
                         idCiclo,
-                        idAvaliador: par.idColaborador2,
-                        idAvaliado: par.idColaborador1,
-                        status: 'PENDENTE',
-                        tipoAvaliacao: 'AVALIACAO_PARES',
-                    });
-                }
+                    idAvaliador: par.idColaborador2,
+                    idAvaliado: par.idColaborador1,
+                    status: 'PENDENTE',
+                    tipoAvaliacao: 'AVALIACAO_PARES',
+                });
             }
+        }
 
             const existentes = (pares.length * 2) - novasAvaliacoesParaCriar.length;
             if (novasAvaliacoesParaCriar.length === 0) {
@@ -111,10 +111,10 @@ export class AvaliacoesService {
             this.logger.log(`${novasAvaliacoesParaCriar.length} avaliações de pares lançadas com sucesso.`);
             return { lancadas: novasAvaliacoesParaCriar.length, existentes, erros: 0 };
 
-        } catch (error) {
+                } catch (error) {
             this.logger.error(`Falha catastrófica ao lançar avaliações de pares para o ciclo ${idCiclo}`, error.stack);
             return { lancadas: 0, existentes: 0, erros: 1 };
-        }
+                }
     }
 
     async lancarAutoAvaliacoes(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
@@ -321,6 +321,9 @@ export class AvaliacoesService {
 
     async lancarAvaliacaoColaboradorMentor(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
         this.logger.log(`Iniciando lançamento de avaliações colaborador-mentor para ciclo ${idCiclo}`);
+
+        // Gera as relações mentor-colaborador para o ciclo antes de lançar avaliações
+        await this.gerarMentorColaboradorPorCiclo(idCiclo);
 
         // Buscar todas as relações mentor-colaborador do ciclo
         const mentoresColaboradores = await this.prisma.mentorColaborador.findMany({
@@ -593,7 +596,7 @@ export class AvaliacoesService {
         
         const data: any = {};
         if (nota !== undefined) {
-            this.verificarNota(nota);
+        this.verificarNota(nota);
             data.nota = nota;
         }
         if (motivacao !== undefined){
@@ -634,13 +637,13 @@ export class AvaliacoesService {
 
         const data: any = {};
         if (nota !== undefined) {
-            this.verificarNota(nota);
+        this.verificarNota(nota);
             data.nota = nota;
         }
         if (justificativa !== undefined) {
             data.justificativa = this.hashService.hash(justificativa);
         }
-        
+
         await this.prisma.avaliacaoColaboradorMentor.update({
             where: { idAvaliacao },
             data,
@@ -997,38 +1000,38 @@ export class AvaliacoesService {
     }
 
     async discrepanciaAllcolaboradores(idCiclo: string) {
-        try {
-            // Filtro base para colaboradores
-            const whereClause: any = {};
+    try {
+        // Filtro base para colaboradores
+        const whereClause: any = {};
+        
+        if (idCiclo && this.isValidUUID(idCiclo)) {
+            whereClause.colaboradoresCiclos = {
+                some: { idCiclo: idCiclo }
+            };
+        }
 
-            if (idCiclo && this.isValidUUID(idCiclo)) {
-                whereClause.colaboradoresCiclos = {
-                    some: { idCiclo: idCiclo }
-                };
-            }
-
-            // Buscar todos os colaboradores (sem includes pesados)
-            const colaboradores = await this.prisma.colaboradorCiclo.findMany({
-                where: { idCiclo: idCiclo },
-                include: {
-                    colaborador: {
-                        select: {
-                            idColaborador: true,
-                            nomeCompleto: true,
-                            cargo: true,
-                            trilhaCarreira: true,
-                            unidade: true
-                        }
+        // Buscar todos os colaboradores (sem includes pesados)
+        const colaboradores = await this.prisma.colaboradorCiclo.findMany({
+            where: { idCiclo: idCiclo },
+            include: {
+                colaborador: {
+                    select: {
+                        idColaborador: true,
+                        nomeCompleto: true,
+                        cargo: true,
+                        trilhaCarreira: true,
+                        unidade: true
                     }
                 }
-            });
+            }
+        });
 
-            // Processar cada colaborador usando a função existente
-            const relatorio: RelatorioItem[] = [];
-
+        // Processar cada colaborador usando a função existente
+        const relatorio: RelatorioItem[] = [];
+        
             for (const colaborador of colaboradores) {
                 const resultadoDiscrepancia = await this.discrepanciaColaborador(
-                    colaborador.idColaborador,
+                    colaborador.idColaborador, 
                     idCiclo
                 );
 
@@ -1043,19 +1046,19 @@ export class AvaliacoesService {
                 const discrepancia = resultadoDiscrepancia.discrepancia;
 
                 if (avaliacoes && discrepancia) {
-                    relatorio.push({
-                        idColaborador: colaborador.idColaborador,
-                        nomeColaborador: colaborador.colaborador.nomeCompleto,
-                        cargoColaborador: colaborador.colaborador.cargo || 'Não informado',
-                        trilhaColaborador: colaborador.colaborador.trilhaCarreira || null,
-                        equipeColaborador: colaborador.colaborador.unidade || null,
-                        notas: {
-                            notaAuto: avaliacoes.autoAvaliacao?.media || null,
-                            nota360media: avaliacoes.avaliacaoPares?.media || null,
-                            notaGestor: avaliacoes.avaliacaoLider?.media || null,
-                            discrepancia: discrepancia.calculada ? discrepancia.desvioPadrao : null
-                        }
-                    });
+                        relatorio.push({
+                            idColaborador: colaborador.idColaborador,
+                            nomeColaborador: colaborador.colaborador.nomeCompleto,
+                            cargoColaborador: colaborador.colaborador.cargo || 'Não informado',
+                            trilhaColaborador: colaborador.colaborador.trilhaCarreira || null,
+                            equipeColaborador: colaborador.colaborador.unidade || null,
+                            notas: {
+                                notaAuto: avaliacoes.autoAvaliacao?.media || null,
+                                nota360media: avaliacoes.avaliacaoPares?.media || null,
+                                notaGestor: avaliacoes.avaliacaoLider?.media || null,
+                                discrepancia: discrepancia.calculada ? discrepancia.desvioPadrao : null
+                            }
+                        });
                 }
             }
             return relatorio;
@@ -1064,6 +1067,61 @@ export class AvaliacoesService {
             this.logger.error('Erro ao gerar relatório de discrepância de todos os colaboradores:', error);
             throw new HttpException('Erro ao gerar relatório de discrepância: ' + error.message, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    async getNotasDistribuicao(idCiclo: string, tipoAvaliacao?: string) {
+        // Se tipoAvaliacao for passado, converta para enum se possível
+        let tipoAvaliacaoEnum: avaliacaoTipo | undefined = undefined;
+        if (tipoAvaliacao && Object.values(avaliacaoTipo).includes(tipoAvaliacao as avaliacaoTipo)) {
+            tipoAvaliacaoEnum = tipoAvaliacao as avaliacaoTipo;
+        }
+        // Busca todas as avaliações do ciclo, incluindo os dados necessários
+        const avaliacoes = await this.prisma.avaliacao.findMany({
+            where: {
+                idCiclo,
+                ...(tipoAvaliacaoEnum ? { tipoAvaliacao: tipoAvaliacaoEnum } : {})
+            },
+            include: {
+                autoAvaliacao: true,
+                avaliacaoPares: true,
+                avaliacaoLiderColaborador: true,
+                avaliacaoColaboradorMentor: true,
+            },
+        });
+
+        // Array para armazenar todas as notas
+        const todasNotas: number[] = [];
+
+        for (const av of avaliacoes) {
+            if (av.tipoAvaliacao === 'AUTOAVALIACAO' && av.autoAvaliacao?.notaFinal != null) {
+                todasNotas.push(Number(av.autoAvaliacao.notaFinal));
+            }
+            if (av.tipoAvaliacao === 'AVALIACAO_PARES' && av.avaliacaoPares?.nota != null) {
+                todasNotas.push(Number(av.avaliacaoPares.nota));
+            }
+            if (av.tipoAvaliacao === 'LIDER_COLABORADOR' && av.avaliacaoLiderColaborador?.notaFinal != null) {
+                todasNotas.push(Number(av.avaliacaoLiderColaborador.notaFinal));
+            }
+            if (av.tipoAvaliacao === 'COLABORADOR_MENTOR' && av.avaliacaoColaboradorMentor?.nota != null) {
+                todasNotas.push(Number(av.avaliacaoColaboradorMentor.nota));
+            }
+        }
+
+        // Inicializa o objeto de contagem
+        const contagemNotas: Record<string, number> = {};
+        for (let nota = 0.5; nota <= 5.0; nota += 0.5) {
+            contagemNotas[nota.toFixed(1)] = 0;
+        }
+
+        // Conta as ocorrências de cada nota
+        for (const nota of todasNotas) {
+            const chave = nota.toFixed(1);
+            if (contagemNotas.hasOwnProperty(chave)) {
+                contagemNotas[chave]++;
+            }
+        }
+
+        return contagemNotas;
     }
 
 
@@ -1228,7 +1286,7 @@ export class AvaliacoesService {
 
     private desvioPadrao(nota1: number, nota2: number, nota3: number): number {
         const media = (nota1 + nota2 + nota3) / 3;
-        const variancia = (Math.pow(nota1 - media, 2) + Math.pow(nota2 - media, 2) + Math.pow(nota3 - media, 2)) / 3;
+        const variancia = (Math.pow(nota1 - media, 2) + Math.pow(nota2 - media, 2) + Math.pow(nota3 - media, 2)) / 3; 
         return Math.sqrt(variancia);
     }
 
@@ -1249,7 +1307,7 @@ export class AvaliacoesService {
         return soma / notasValidas.length;
     }
 
-
+ 
     private calcularMediaAvaliacaoPares(avaliacoes: any[]): number | null {
         if (!avaliacoes || avaliacoes.length === 0) {
             return null;
@@ -1341,7 +1399,7 @@ export class AvaliacoesService {
         // Retorna como array
         return Object.values(agrupado);
     }
-
+    
     /**
      * Busca o histórico de avaliações em que o usuário é líder
      */
@@ -1445,12 +1503,69 @@ export class AvaliacoesService {
         return resultado;
     }
 
+    async gerarMentorColaboradorPorCiclo(idCiclo: string) {
+        this.logger.log(`Iniciando a geração de relações mentor-colaborador para o ciclo: ${idCiclo}`);
+
+        // Busca todos os colaboradores participantes do ciclo
+        const participantes = await this.prisma.colaboradorCiclo.findMany({
+            where: { idCiclo },
+            include: {
+                colaborador: {
+                    include: { perfis: true, mentores: true }
+                }
+            }
+        });
+
+        let relacoesCriadas = 0;
+        for (const participante of participantes) {
+            const colaborador = participante.colaborador;
+            // Verifica se o colaborador tem mentores definidos
+            if (Array.isArray(colaborador.mentores) && colaborador.mentores.length > 0) {
+                for (const mentor of colaborador.mentores) {
+                    // Evita relação consigo mesmo
+                    if (mentor.idColaborador === colaborador.idColaborador) continue;
+                    await this.prisma.mentorColaborador.upsert({
+                        where: {
+                            idMentor_idColaborador_idCiclo: {
+                                idMentor: mentor.idColaborador,
+                                idColaborador: colaborador.idColaborador,
+                                idCiclo: idCiclo
+                            }
+                        },
+                        update: {},
+                        create: {
+                            idMentor: mentor.idColaborador,
+                            idColaborador: colaborador.idColaborador,
+                            idCiclo: idCiclo
+                        }
+                    });
+                    relacoesCriadas++;
+                }
+            }
+        }
+        this.logger.log(`${relacoesCriadas} relações mentor-colaborador processadas para o ciclo ${idCiclo}.`);
+        return { message: `${relacoesCriadas} relações mentor-colaborador processadas.` };
+    }
+    
     async gerarParesPorProjetos(idCiclo: string) {
         this.logger.log(`Iniciando a geração de pares para o ciclo: ${idCiclo}`);
 
-        const todasAlocacoes = await this.prisma.alocacaoColaboradorProjeto.findMany();
+        // 1. Busca apenas alocações de colaboradores que são ATIVOS e do perfil COLABORADOR_COMUM
+        const alocacoesValidas = await this.prisma.alocacaoColaboradorProjeto.findMany({
+            where: {
+                colaborador: {
+                    ativo: true,
+                    perfis: {
+                        some: {
+                            tipoPerfil: 'COLABORADOR_COMUM',
+                        },
+                    },
+                },
+            },
+        });
 
-        const alocacoesPorProjeto = todasAlocacoes.reduce((acc, alocacao) => {
+        // 2. Agrupa as alocações filtradas por projeto
+        const alocacoesPorProjeto = alocacoesValidas.reduce((acc, alocacao) => {
             if (!acc[alocacao.idProjeto]) {
                 acc[alocacao.idProjeto] = [];
             }
@@ -1458,8 +1573,9 @@ export class AvaliacoesService {
             return acc;
         }, {});
 
-        const paresParaSalvar = new Set<string>();
+        let paresCriados = 0;
 
+        // 3. Itera sobre cada projeto para encontrar os pares
         for (const idProjeto in alocacoesPorProjeto) {
             const alocacoes = alocacoesPorProjeto[idProjeto];
             if (alocacoes.length < 2) continue;
@@ -1469,48 +1585,50 @@ export class AvaliacoesService {
                     const alocacaoA = alocacoes[i];
                     const alocacaoB = alocacoes[j];
 
+                    // 4. Calcula o período de sobreposição de trabalho
                     const inicioSobreposicao = new Date(Math.max(alocacaoA.dataEntrada.getTime(), alocacaoB.dataEntrada.getTime()));
-                    const fimA = alocacaoA.dataSaida || new Date();
+                    const fimA = alocacaoA.dataSaida || new Date(); // Considera hoje se a data de saída for nula
                     const fimB = alocacaoB.dataSaida || new Date();
                     const fimSobreposicao = new Date(Math.min(fimA.getTime(), fimB.getTime()));
 
                     if (fimSobreposicao > inicioSobreposicao) {
                         const diffMs = fimSobreposicao.getTime() - inicioSobreposicao.getTime();
-                        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+                        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
+                        // 5. Se trabalharam juntos por mais de 30 dias, salva o par
                         if (diffDays > 30) {
                             const ids = [alocacaoA.idColaborador, alocacaoB.idColaborador].sort();
-                            paresParaSalvar.add(JSON.stringify({ idColaborador1: ids[0], idColaborador2: ids[1] }));
+                            
+                            await this.prisma.pares.upsert({
+                                where: {
+                                    idColaborador1_idColaborador2_idCiclo: {
+                                        idColaborador1: ids[0],
+                                        idColaborador2: ids[1],
+                                        idCiclo: idCiclo,
+                                    },
+                                },
+                                update: {
+                                    diasTrabalhadosJuntos: diffDays,
+                                },
+                                create: {
+                                    idColaborador1: ids[0],
+                                    idColaborador2: ids[1],
+                                    idCiclo: idCiclo,
+                                    idProjeto: idProjeto,
+                                    diasTrabalhadosJuntos: diffDays,
+                                },
+                            });
+                            paresCriados++;
                         }
                     }
                 }
             }
         }
 
-        let paresCriados = 0;
-        for (const parString of paresParaSalvar) {
-            const par = JSON.parse(parString);
-            await this.prisma.pares.upsert({
-                where: {
-                    idColaborador1_idColaborador2_idCiclo: {
-                        idColaborador1: par.idColaborador1,
-                        idColaborador2: par.idColaborador2,
-                        idCiclo: idCiclo,
-                    },
-                },
-                update: {},
-                create: {
-                    idColaborador1: par.idColaborador1,
-                    idColaborador2: par.idColaborador2,
-                    idCiclo: idCiclo,
-                },
-            });
-            paresCriados++;
-        }
-
         this.logger.log(`${paresCriados} pares únicos foram processados para o ciclo ${idCiclo}.`);
         return { message: `${paresCriados} pares únicos foram processados.` };
     }
+
 
     async gerarLiderColaboradorPorProjetos(idCiclo: string) {
         this.logger.log(`Iniciando a geração de relações líder-colaborador para o ciclo: ${idCiclo}`);

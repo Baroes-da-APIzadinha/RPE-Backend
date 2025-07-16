@@ -10,7 +10,7 @@ import { CreateCicloDto, UpdateCicloDto } from './ciclo.dto';
 import { cicloStatus, CicloAvaliacao, Prisma } from '@prisma/client';
 
 const TEMPO_MINIMO_DIAS = 0;
-const TEMPO_MAXIMO_DIAS = 180;
+const TEMPO_MAXIMO_DIAS = 2000;
 
 // Pega o momento atual em UTC
 const agora = new Date();
@@ -55,7 +55,8 @@ export class CicloService {
             ? cicloStatus.EM_ANDAMENTO
             : cicloStatus.AGENDADO;
 
-        return this.prisma.cicloAvaliacao.create({
+        // Cria o ciclo
+        const ciclo = await this.prisma.cicloAvaliacao.create({
             data: {
                 nomeCiclo: data.nome,
                 dataInicio,
@@ -65,6 +66,26 @@ export class CicloService {
                 duracaoEmRevisaoDias: data.duracaoEmRevisaoDias,
                 duracaoEmEqualizacaoDias: data.duracaoEmEqualizacaoDias,
             },
+        });
+
+        await this._associarColaboradoresAtivosAoCiclo(ciclo.idCiclo);
+
+        return ciclo;
+    }
+
+    private async _associarColaboradoresAtivosAoCiclo(idCiclo: string) {
+        // Busca apenas colaboradores ativos (campo ativo === true)
+        const colaboradores = await this.prisma.colaborador.findMany({
+            where: { ativo: true }
+        });
+        if (!colaboradores.length) return;
+        const dadosParaCriar = colaboradores.map(colab => ({
+            idColaborador: colab.idColaborador,
+            idCiclo,
+        }));
+        await this.prisma.colaboradorCiclo.createMany({
+            data: dadosParaCriar,
+            skipDuplicates: true,
         });
     }
 
