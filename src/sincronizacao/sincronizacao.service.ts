@@ -34,23 +34,23 @@ interface ErpAlocacaoDto {
 export class SincronizacaoService {
   private readonly logger = new Logger(SincronizacaoService.name);
   private readonly ERP_URL = 'http://localhost:3001';
-
+  
   constructor(
     private readonly httpService: HttpService,
     private readonly prisma: PrismaService,
   ) {}
-
+  
   @Cron(CronExpression.EVERY_DAY_AT_10PM)
   async handleCronSincronizacao() {
     this.logger.log('🚀 Iniciando rotina de sincronização completa com o ERP (automática)...');
     await this.executarSincronizacaoCompleta();
   }
-
+  
   async dispararSincronizacaoManual() {
     this.logger.log('🚀 Iniciando rotina de sincronização completa com o ERP (manual)...');
     return await this.executarSincronizacaoCompleta();
   }
-
+  
   private async executarSincronizacaoCompleta() {
     try {
       const [colaboradoresResponse, projetosResponse, alocacoesResponse] = await Promise.all([
@@ -58,17 +58,17 @@ export class SincronizacaoService {
         firstValueFrom(this.httpService.get<any[]>(`${this.ERP_URL}/projetos`)),
         firstValueFrom(this.httpService.get<any[]>(`${this.ERP_URL}/alocacoes`)),
       ]);
-
+      
       const colaboradoresErp = colaboradoresResponse.data;
       const projetosErp = projetosResponse.data;
       const alocacoesErp = alocacoesResponse.data;
-
+      
       this.logger.log(`🔍 Encontrados no ERP: ${colaboradoresErp.length} colaboradores, ${projetosErp.length} projetos, ${alocacoesErp.length} alocações.`);
-
+      
       await this.sincronizarColaboradores(colaboradoresErp);
       await this.sincronizarProjetos(projetosErp, colaboradoresErp);
       await this.sincronizarAlocacoes(alocacoesErp, colaboradoresErp, projetosErp);
-
+      
       this.logger.log('✅ Sincronização completa com o ERP concluída com sucesso!');
       return {
         message: 'Sincronização completa com o ERP concluída com sucesso!',
@@ -81,12 +81,12 @@ export class SincronizacaoService {
       throw error;
     }
   }
-
+  
   private async sincronizarColaboradores(colaboradoresErp: any[]) {
     const salt = await bcrypt.genSalt();
     // Para mapear id do ERP para id do banco
     const mapaIdErpParaIdRpe = new Map<string, string>();
-
+    
     for (const data of colaboradoresErp) {
       const colaborador = await this.prisma.colaborador.upsert({
         where: { email: data.email },
@@ -100,12 +100,12 @@ export class SincronizacaoService {
           trilhaCarreira: data.trilhaCarreira, senha: await bcrypt.hash('senha123', salt),
         },
       });
-
+      
       // Mapeia id do ERP para id do banco
       if (data.id) {
         mapaIdErpParaIdRpe.set(data.id, colaborador.idColaborador);
       }
-
+      
       if (Array.isArray(data.perfis) && data.perfis.length > 0) {
         const perfisToInsert = data.perfis.map((tipoPerfil: string) => ({
           idColaborador: colaborador.idColaborador,
@@ -117,62 +117,42 @@ export class SincronizacaoService {
         });
       }
     }
-
-      // Buscar ciclo ativo para usar nas relações
-    const cicloAtivo = await this.prisma.cicloAvaliacao.findFirst({
-      where: {
-        status: {
-          in: ['EM_ANDAMENTO', 'AGENDADO', 'EM_REVISAO', 'EM_EQUALIZAÇÃO']
-        }
-      },
-      orderBy: { dataInicio: 'desc' }
-    });
-    const cicloId = cicloAtivo ? cicloAtivo.idCiclo : null;
-
-    for (const data of colaboradoresErp) {
-      // Adiciona gestores
-      if (Array.isArray(data.gestores) && data.gestores.length > 0 && cicloId) {
-        for (const idGestorErp of data.gestores) {
-          const idGestorRpe = mapaIdErpParaIdRpe.get(idGestorErp);
-          const idColaboradorRpe = mapaIdErpParaIdRpe.get(data.id);
-          if (idGestorRpe && idColaboradorRpe) {
-            await this.prisma.gestorColaborador.upsert({
-              where: {
-                idGestor_idColaborador_idCiclo: {
-                  idGestor: idGestorRpe,
-                  idColaborador: idColaboradorRpe,
-                  idCiclo: cicloId
-                }
-              },
-              update: {},
-              create: {
-                idGestor: idGestorRpe,
-                idColaborador: idColaboradorRpe,
-                idCiclo: cicloId
-              }
-            });
-          }
-        }
+    
+    // Usar ciclo base para todas as relações mentorColaborador
+    // Cria ciclo base se não existir
+    const cicloBaseId = '00000000-0000-0000-0000-000000000000';
+    await this.prisma.cicloAvaliacao.upsert({
+      where: { idCiclo: cicloBaseId },
+      update: {},
+      create: {
+        idCiclo: cicloBaseId,
+        nomeCiclo: 'Ciclo Base',
+        dataInicio: new Date('2000-01-01'),
+        dataFim: new Date('2001-12-31'),
+        status: 'FECHADO',
       }
-      // Adiciona mentores
-      if (Array.isArray(data.mentores) && data.mentores.length > 0 && cicloId) {
+    });
+    
+    for (const data of colaboradoresErp) {
+      // Adiciona mentores a partir do campo 'mentores' do ERP
+      if (Array.isArray(data.mentores) && data.mentores.length > 0) {
+        const idColaboradorRpe = mapaIdErpParaIdRpe.get(data.id);
         for (const idMentorErp of data.mentores) {
           const idMentorRpe = mapaIdErpParaIdRpe.get(idMentorErp);
-          const idColaboradorRpe = mapaIdErpParaIdRpe.get(data.id);
-          if (idMentorRpe && idColaboradorRpe) {
+          if (idMentorRpe && idColaboradorRpe && idMentorRpe !== idColaboradorRpe) {
             await this.prisma.mentorColaborador.upsert({
               where: {
                 idMentor_idColaborador_idCiclo: {
                   idMentor: idMentorRpe,
                   idColaborador: idColaboradorRpe,
-                  idCiclo: cicloId
+                  idCiclo: cicloBaseId
                 }
               },
               update: {},
               create: {
                 idMentor: idMentorRpe,
                 idColaborador: idColaboradorRpe,
-                idCiclo: cicloId
+                idCiclo: cicloBaseId
               }
             });
           }
@@ -181,12 +161,12 @@ export class SincronizacaoService {
     }
     this.logger.log(`  - ✔️ ${colaboradoresErp.length} colaboradores sincronizados (criados/atualizados, perfis e relações gestor/mentor preenchidos).`);
   }
-
+  
   private async sincronizarProjetos(projetosErp: any[], colaboradoresErp: any[] = []) {
     const mapaErpColaboradorIdParaEmail = new Map(colaboradoresErp.map(c => [c.id, c.email]));
     const colaboradoresRpe = await this.prisma.colaborador.findMany({ select: { idColaborador: true, email: true } });
     const mapaEmailParaIdRpe = new Map(colaboradoresRpe.map(c => [c.email, c.idColaborador]));
-
+    
     for (const data of projetosErp) {
       let idLiderRpe: string | undefined = undefined;
       if (data.idLider) {

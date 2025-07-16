@@ -43,16 +43,31 @@ export class ExportacaoService {
     const workbook = xlsx.utils.book_new();
 
     // --- Criação da Aba 1: Resumo do Ciclo ---
-    const dadosResumo = [
-      { Chave: 'Nome do Ciclo', Valor: ciclo.nomeCiclo },
-      { Chave: 'Data de Início', Valor: ciclo.dataInicio.toLocaleDateString('pt-BR') },
-      { Chave: 'Data de Fim', Valor: ciclo.dataFim.toLocaleDateString('pt-BR') },
-      { Chave: 'Status', Valor: ciclo.status },
-      { Chave: 'Total de Participantes', Valor: totalParticipantes },
-      { Chave: 'Total de Avaliações Lançadas', Valor: totalAvaliacoes },
-      { Chave: 'Total de Avaliações Concluídas', Valor: totalConcluidas },
+     const titulosResumo = [
+      'Nome do Ciclo',
+      'Data de Início',
+      'Data de Fim',
+      'Status',
+      'Total de Participantes',
+      'Total de Avaliações Lançadas',
+      'Total de Avaliações Concluídas',
+      'Duração Em Andamento (dias)',
+      'Duração Em Revisão (dias)',
+      'Duração Em Equalização (dias)',
     ];
-    const worksheetResumo = xlsx.utils.json_to_sheet(dadosResumo);
+    const valoresResumo = [
+      ciclo.nomeCiclo,
+      ciclo.dataInicio.toLocaleDateString('pt-BR'),
+      ciclo.dataFim.toLocaleDateString('pt-BR'),
+      ciclo.status,
+      totalParticipantes,
+      totalAvaliacoes,
+      totalConcluidas,
+      ciclo.duracaoEmAndamentoDias,
+      ciclo.duracaoEmRevisaoDias,
+      ciclo.duracaoEmEqualizacaoDias,
+    ];
+    const worksheetResumo = xlsx.utils.aoa_to_sheet([titulosResumo, valoresResumo]);
     xlsx.utils.book_append_sheet(workbook, worksheetResumo, 'Resumo do Ciclo');
 
     // --- Criação da Aba 2: Detalhes por Colaborador ---
