@@ -68,7 +68,13 @@ describe('CicloController', () => {
     duracaoEmEqualizacaoDias: 13,
   };
 
+  // Mock do CiclosStatus
+  const mockCiclosStatus = {
+    changeStatus: jest.fn(),
+  };
+
   beforeEach(async () => {
+    const { CiclosStatus } = require('./cicloStatus.service');
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CicloController],
       providers: [
@@ -79,6 +85,10 @@ describe('CicloController', () => {
         {
           provide: AuditoriaService,
           useValue: mockAuditoriaService,
+        },
+        {
+          provide: CiclosStatus,
+          useValue: mockCiclosStatus,
         },
       ],
     }).compile();
