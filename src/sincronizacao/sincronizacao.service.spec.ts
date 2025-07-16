@@ -264,23 +264,36 @@ describe('SincronizacaoService', () => {
       expect(mockPrismaService.colaborador.upsert).toHaveBeenCalledTimes(2);
       
       // Verifica primeiro colaborador
-      expect(mockPrismaService.colaborador.upsert).toHaveBeenCalledWith({
-        where: { email: 'joao@empresa.com' },
-        update: {
-          nomeCompleto: 'João Silva',
-          cargo: 'Desenvolvedor Senior',
-          unidade: 'TI',
-          trilhaCarreira: 'Técnica',
-        },
-        create: {
-          email: 'joao@empresa.com',
-          nomeCompleto: 'João Silva',
-          cargo: 'Desenvolvedor Senior',
-          unidade: 'TI',
-          trilhaCarreira: 'Técnica',
-          senha: 'senha_padrao_para_novos_usuarios_do_erp',
-        },
+      const primeiraCall = mockPrismaService.colaborador.upsert.mock.calls[0][0];
+      expect(primeiraCall.where).toEqual({ email: 'joao@empresa.com' });
+      expect(primeiraCall.update).toEqual({
+        nomeCompleto: 'João Silva',
+        cargo: 'Desenvolvedor Senior',
+        unidade: 'TI',
+        trilhaCarreira: 'Técnica',
       });
+      expect(primeiraCall.create.email).toBe('joao@empresa.com');
+      expect(primeiraCall.create.nomeCompleto).toBe('João Silva');
+      expect(primeiraCall.create.cargo).toBe('Desenvolvedor Senior');
+      expect(primeiraCall.create.unidade).toBe('TI');
+      expect(primeiraCall.create.trilhaCarreira).toBe('Técnica');
+      expect(primeiraCall.create.senha).toMatch(/^\$2b\$10\$/); // Verifica que é um hash bcrypt
+
+      // Verifica segundo colaborador
+      const segundaCall = mockPrismaService.colaborador.upsert.mock.calls[1][0];
+      expect(segundaCall.where).toEqual({ email: 'maria@empresa.com' });
+      expect(segundaCall.update).toEqual({
+        nomeCompleto: 'Maria Santos',
+        cargo: 'Analista de RH',
+        unidade: 'Recursos Humanos',
+        trilhaCarreira: 'Gestão',
+      });
+      expect(segundaCall.create.email).toBe('maria@empresa.com');
+      expect(segundaCall.create.nomeCompleto).toBe('Maria Santos');
+      expect(segundaCall.create.cargo).toBe('Analista de RH');
+      expect(segundaCall.create.unidade).toBe('Recursos Humanos');
+      expect(segundaCall.create.trilhaCarreira).toBe('Gestão');
+      expect(segundaCall.create.senha).toMatch(/^\$2b\$10\$/); // Verifica que é um hash bcrypt
 
       // Verifica que perfis foram criados para ambos colaboradores
       expect(mockPrismaService.colaboradorPerfil.createMany).toHaveBeenCalledTimes(2);

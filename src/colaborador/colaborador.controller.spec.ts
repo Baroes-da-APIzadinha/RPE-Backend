@@ -977,7 +977,7 @@ describe('ColaboradorController', () => {
       const metodosRhColaborador = ['getHistoricoNotasPorCiclo', 'getHistoricoMediaNotasPorCiclo'];
       metodosRhColaborador.forEach(metodo => {
         const roles = Reflect.getMetadata('roles', ColaboradorController.prototype[metodo]);
-        expect(roles).toEqual(['RH', 'COLABORADOR_COMUM']);
+        expect(roles).toEqual(['GESTOR', 'RH', 'COLABORADOR_COMUM']);
       });
 
       const metodosMentor = ['getInfoMentorados'];

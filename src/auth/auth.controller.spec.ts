@@ -4,6 +4,7 @@ import { Response } from 'express';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuditoriaService } from '../auditoria/auditoria.service';
+import { RemindersService } from '../reminders/reminders.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';
 import 'reflect-metadata';
@@ -22,6 +23,16 @@ describe('AuthController', () => {
   const mockAuditoriaService = {
     log: jest.fn(),
     getLogs: jest.fn(),
+  };
+
+  // Mock do RemindersService
+  const mockRemindersService = {
+    getGlobalReminder: jest.fn(),
+    setGlobalReminder: jest.fn(),
+    clearGlobalReminder: jest.fn(),
+    getReminderColaborador: jest.fn(),
+    setReminderColaborador: jest.fn(),
+    testCache: jest.fn(),
   };
 
   // Mock do JwtAuthGuard
@@ -67,6 +78,10 @@ describe('AuthController', () => {
         {
           provide: AuditoriaService,
           useValue: mockAuditoriaService,
+        },
+        {
+          provide: RemindersService,
+          useValue: mockRemindersService,
         },
       ],
     })
