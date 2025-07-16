@@ -41,7 +41,7 @@ describe('Ciclos de Avaliação (e2e)', () => {
     const admin = await prisma.colaborador.create({
       data: {
         nomeCompleto: 'Admin Ciclos',
-        email: 'admin@ciclos.com',
+        email: 'admin@ciclos2.com',
         senha: '$2b$10$bZ2TmebxzLlsiMlrLZQ2Xu5tvGFNAhLIt8EgqmTIGDMW1VbEX0ydG', // senha: 'senha123'
       },
     });
@@ -57,7 +57,7 @@ describe('Ciclos de Avaliação (e2e)', () => {
     const rh = await prisma.colaborador.create({
       data: {
         nomeCompleto: 'RH Manager',
-        email: 'rh@empresa.com',
+        email: 'rh@empresa2.com',
         senha: '$2b$10$bZ2TmebxzLlsiMlrLZQ2Xu5tvGFNAhLIt8EgqmTIGDMW1VbEX0ydG', // senha: 'senha123'
       },
     });
@@ -72,7 +72,7 @@ describe('Ciclos de Avaliação (e2e)', () => {
     // Fazer login
     const adminLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@ciclos.com', senha: 'senha123' })
+      .send({ email: 'admin@ciclos2.com', senha: 'senha123' })
       .expect(200);
 
     adminToken = Array.isArray(adminLogin.headers['set-cookie']) 
@@ -81,7 +81,7 @@ describe('Ciclos de Avaliação (e2e)', () => {
 
     const rhLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'rh@empresa.com', senha: 'senha123' })
+      .send({ email: 'rh@empresa2.com', senha: 'senha123' })
       .expect(200);
 
     rhToken = Array.isArray(rhLogin.headers['set-cookie']) 
@@ -342,7 +342,7 @@ describe('Ciclos de Avaliação (e2e)', () => {
       const colaborador = await prisma.colaborador.create({
         data: {
           nomeCompleto: 'Colaborador Comum',
-          email: 'comum@empresa.com',
+          email: 'comum@empresa2.com',
           senha: hashedPassword,
         },
       });
@@ -356,7 +356,7 @@ describe('Ciclos de Avaliação (e2e)', () => {
 
       const colaboradorLogin = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: 'comum@empresa.com', senha: 'senha123' })
+        .send({ email: 'comum@empresa2.com', senha: 'senha123' })
         .expect(200);
 
       const colaboradorToken = colaboradorLogin.headers['set-cookie'];

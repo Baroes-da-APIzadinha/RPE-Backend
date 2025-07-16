@@ -32,7 +32,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
     // Criar admin para testes
     const adminData = {
       nomeCompleto: 'Admin E2E',
-      email: 'admin@e2e.com',
+      email: 'admin@e2e3.com',
       senha: '$2b$10$bZ2TmebxzLlsiMlrLZQ2Xu5tvGFNAhLIt8EgqmTIGDMW1VbEX0ydG', // senha: 'senha123'
     };
 
@@ -53,7 +53,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        email: 'admin@e2e.com',
+        email: 'admin@e2e3.com',
         senha: 'senha123',
       })
       .expect(200);
@@ -69,7 +69,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
       where: {
         colaborador: {
           email: {
-            not: 'admin@e2e.com',
+            not: 'admin@e2e3.com',
           },
         },
       },
@@ -77,7 +77,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
     await prisma.colaborador.deleteMany({
       where: {
         email: {
-          not: 'admin@e2e.com',
+          not: 'admin@e2e3.com',
         },
       },
     });
@@ -93,7 +93,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
     it('deve criar um novo colaborador com perfis', async () => {
       const novoColaborador = {
         nomeCompleto: 'João da Silva',
-        email: 'joao@empresa.com',
+        email: 'joao@empresa3.com',
         senha: 'senha123',
         colaboradorComum: true,
         gestor: false,
@@ -126,7 +126,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
       const colaborador1 = await prisma.colaborador.create({
         data: {
           nomeCompleto: 'Colaborador 1',
-          email: 'colab1@empresa.com',
+          email: 'colab1@empresa3.com',
           senha: 'senha123',
         },
       });
@@ -134,7 +134,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
       const colaborador2 = await prisma.colaborador.create({
         data: {
           nomeCompleto: 'Colaborador 2',
-          email: 'colab2@empresa.com',
+          email: 'colab2@empresa3.com',
           senha: 'senha123',
         },
       });
@@ -167,7 +167,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
       const colaborador = await prisma.colaborador.create({
         data: {
           nomeCompleto: 'Colaborador Teste',
-          email: 'teste@empresa.com',
+          email: 'teste@empresa3.com',
           senha: 'senha123',
         },
       });
@@ -185,7 +185,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
       const colaborador = await prisma.colaborador.create({
         data: {
           nomeCompleto: 'Colaborador Original',
-          email: 'original@empresa.com',
+          email: 'original@empresa3.com',
           senha: 'senha123',
         },
       });
@@ -213,7 +213,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
       const colaborador = await prisma.colaborador.create({
         data: {
           nomeCompleto: 'Colaborador Para Deletar',
-          email: 'deletar@empresa.com',
+          email: 'deletar@empresa3.com',
           senha: 'senha123',
         },
       });
@@ -237,7 +237,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
       const colaborador = await prisma.colaborador.create({
         data: {
           nomeCompleto: 'Colaborador Perfil',
-          email: 'perfil@empresa.com',
+          email: 'perfil@empresa3.com',
           senha: 'senha123',
         },
       });
@@ -273,7 +273,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
 
   describe('Validações de Negócio', () => {
     it('deve impedir criação de colaborador com email duplicado', async () => {
-      const emailDuplicado = 'duplicado@empresa.com';
+      const emailDuplicado = 'duplicado@empresa3.com';
 
       // Criar primeiro colaborador
       await prisma.colaborador.create({
@@ -297,7 +297,7 @@ describe('Colaborador E2E Flow (e2e)', () => {
         .expect(201); // TODO: Implementar validação de email único (deveria ser 409)
 
       // Se chegou aqui, o sistema não está validando unicidade de email
-      console.warn('AVISO: Sistema permite emails duplicados - implementar validação');
+      //console.warn('AVISO: Sistema permite emails duplicados - implementar validação');
     });
 
     it('deve validar campos obrigatórios na criação', async () => {

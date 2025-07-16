@@ -124,31 +124,12 @@ graph TB
 
 ## 🚀 **Como Executar os Testes**
 
-### **Pré-requisitos:**
-```bash
-# Instalar dependências
-npm install
-
-# Configurar banco de teste
-DATABASE_URL="postgresql://user:pass@localhost:5432/rpe_test"
-
-# Aplicar migrações
-npx prisma migrate deploy
-```
-
-### **Execução:**
 ```bash
 # Todos os testes e2e
-npm run test:e2e
+pnpm run test:e2e
 
 # Teste específico
-npm run test:e2e -- auth.e2e-spec.ts
-
-# Com coverage
-npm run test:e2e -- --coverage
-
-# Watch mode
-npm run test:e2e -- --watch
+pnpm run test:e2e -- auth.e2e-spec.ts
 ```
 
 ## 📋 **Dados de Teste**
@@ -165,38 +146,6 @@ npm run test:e2e -- --watch
 - **Avaliações:** Geradas automaticamente via endpoints
 - **Projetos:** Criados dinamicamente nos testes
 
-## 🔧 **Configuração de CI/CD**
-
-### **Pipeline Sugerido:**
-```yaml
-# .github/workflows/e2e-tests.yml
-name: E2E Tests
-on: [push, pull_request]
-
-jobs:
-  e2e:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:13
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: rpe_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - run: npm ci
-      - run: npm run test:e2e
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rpe_test
-```
-
 ## 📊 **Relatórios e Monitoramento**
 
 ### **Métricas Coletadas:**
@@ -211,30 +160,10 @@ jobs:
 - 🚨 Violação de segurança
 - 🚨 Timeout excessivo
 
-## 🎯 **Próximos Passos Recomendados**
-
-### **Curto Prazo (1-2 semanas):**
-1. ✅ Implementar testes criados
-2. ✅ Configurar pipeline CI/CD
-3. ✅ Documentar casos de edge
-4. ✅ Treinar equipe nos testes
-
-### **Médio Prazo (1 mês):**
-1. 📈 Adicionar testes de performance
-2. 📈 Implementar testes de carga
-3. 📈 Criar testes de integração com ERP
-4. 📈 Automatizar limpeza de dados
-
-### **Longo Prazo (3 meses):**
-1. 🚀 Testes de API contract
-2. 🚀 Testes visuais (UI)
-3. 🚀 Testes de acessibilidade
-4. 🚀 Chaos engineering
-
 ## ⚡ **Benefícios Esperados**
 
 ### **Qualidade:**
-- 🎯 Redução de 80% em bugs em produção
+- 🎯 Redução de bugs em produção
 - 🎯 Detecção precoce de regressões
 - 🎯 Validação automática de features
 

@@ -14,5 +14,6 @@
   ],
   "coverageDirectory": "../coverage",
   "testTimeout": 30000,
-  "setupFilesAfterEnv": ["<rootDir>/setup-e2e.ts"]
+  "setupFilesAfterEnv": ["<rootDir>/setup-e2e.ts"],
+  "maxWorkers": 1
 }

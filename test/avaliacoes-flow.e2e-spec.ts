@@ -59,7 +59,7 @@ describe('Fluxo Completo de Avaliações (e2e)', () => {
     const admin = await prisma.colaborador.create({
       data: {
         nomeCompleto: 'Admin Sistema',
-        email: 'admin@sistema.com',
+        email: 'admin@sistema1.com',
         senha: '$2b$10$bZ2TmebxzLlsiMlrLZQ2Xu5tvGFNAhLIt8EgqmTIGDMW1VbEX0ydG', // senha: 'senha123'
       },
     });
@@ -75,7 +75,7 @@ describe('Fluxo Completo de Avaliações (e2e)', () => {
     const lider = await prisma.colaborador.create({
       data: {
         nomeCompleto: 'Líder Equipe',
-        email: 'lider@empresa.com',
+        email: 'lider@empresa1.com',
         senha: '$2b$10$bZ2TmebxzLlsiMlrLZQ2Xu5tvGFNAhLIt8EgqmTIGDMW1VbEX0ydG', // senha: 'senha123'
       },
     });
@@ -93,7 +93,7 @@ describe('Fluxo Completo de Avaliações (e2e)', () => {
     const colaborador = await prisma.colaborador.create({
       data: {
         nomeCompleto: 'Colaborador Teste',
-        email: 'colaborador@empresa.com',
+        email: 'colaborador@empresa1.com',
         senha: '$2b$10$bZ2TmebxzLlsiMlrLZQ2Xu5tvGFNAhLIt8EgqmTIGDMW1VbEX0ydG', // senha: 'senha123'
       },
     });
@@ -113,7 +113,7 @@ describe('Fluxo Completo de Avaliações (e2e)', () => {
     // Fazer login com cada usuário
     const adminLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@sistema.com', senha: 'senha123' })
+      .send({ email: 'admin@sistema1.com', senha: 'senha123' })
       .expect(200);
       
     adminToken = Array.isArray(adminLogin.headers['set-cookie']) 
@@ -122,7 +122,7 @@ describe('Fluxo Completo de Avaliações (e2e)', () => {
 
     const liderLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'lider@empresa.com', senha: 'senha123' })
+      .send({ email: 'lider@empresa1.com', senha: 'senha123' })
       .expect(200);
       
     liderToken = Array.isArray(liderLogin.headers['set-cookie']) 
@@ -131,7 +131,7 @@ describe('Fluxo Completo de Avaliações (e2e)', () => {
 
     const colaboradorLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'colaborador@empresa.com', senha: 'senha123' })
+      .send({ email: 'colaborador@empresa1.com', senha: 'senha123' })
       .expect(200);
       
     colaboradorToken = Array.isArray(colaboradorLogin.headers['set-cookie']) 
