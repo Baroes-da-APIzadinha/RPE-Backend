@@ -291,7 +291,7 @@ model LiderColaborador {
 
   lider              Colaborador  @relation("Lider", fields: [idLider], references: [idColaborador])
   colaborador        Colaborador  @relation("ColaboradorLider", fields: [idColaborador], references: [idColaborador])
-  ciclo              CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo])
+  ciclo              CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
   projeto            Projeto?     @relation(fields: [idProjeto], references: [idProjeto])
 
   @@unique([idLider, idColaborador, idCiclo])
@@ -304,7 +304,7 @@ model MentorColaborador {
   idCiclo             String?        @db.Uuid
   mentor              Colaborador    @relation("Mentor", fields: [idMentor], references: [idColaborador])
   colaborador         Colaborador    @relation("ColaboradorMentor", fields: [idColaborador], references: [idColaborador])
-  ciclo               CicloAvaliacao? @relation(fields: [idCiclo], references: [idCiclo])
+  ciclo               CicloAvaliacao? @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
 
   @@unique([idMentor, idColaborador, idCiclo])
 }
@@ -325,7 +325,7 @@ model ColaboradorCiclo {
   idCiclo       String @db.Uuid
 
   colaborador   Colaborador  @relation(fields: [idColaborador], references: [idColaborador])
-  ciclo         CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo])
+  ciclo         CicloAvaliacao @relation(fields: [idCiclo], references: [idCiclo], onDelete: Cascade)
 
   @@unique([idColaborador, idCiclo])
 }

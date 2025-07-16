@@ -54,8 +54,10 @@ export class CicloController {
 
     @Patch('status')
     async changeStatus(@Body() body: { idCiclo: string, current_status: string; next_status: string }) {
-        await this.ciclosStatus.changeStatus(body.idCiclo, body.current_status, body.next_status);
-        return { message: 'Status atualizado com sucesso' };
+        const relatorio = await this.ciclosStatus.changeStatus(body.idCiclo, body.current_status, body.next_status);
+        return { message: 'Status atualizado com sucesso',
+            relatorio
+         };
     }
 
     @Patch(':id')
