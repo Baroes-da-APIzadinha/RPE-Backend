@@ -112,16 +112,16 @@ VALUES
     (colaborador_admin_id,'Administrador Sistema', 'admin@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'DESENVOLVEDOR', 'GERENCIAMENTO', 'RECIFE', CURRENT_TIMESTAMP, false),
     (colaborador_rh_id, 'Maria Silva', 'maria.silva@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'RH', 'RH', 'RECIFE', CURRENT_TIMESTAMP, false),
     (colaborador_gestor_id, 'João Santos', 'joao.santos@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'DESENVOLVEDOR', 'DESENVOLVIMENTO', 'RECIFE', CURRENT_TIMESTAMP, false),
-    (colaborador_comum_id, 'Ana Costa', 'ana.costa@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'DESENVOLVEDOR', 'DESENVOLVIMENTO', 'SAO PAULO', CURRENT_TIMESTAMP, true),
+    (colaborador_comum_id, 'Ana Costa', 'ana.costa@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'DESENVOLVEDOR', 'DESENVOLVIMENTO', 'SAO PAULO', CURRENT_TIMESTAMP, false),
     (colaborador_mentor_id, 'Carlos Oliveira', 'carlos.oliveira@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'DESENVOLVEDOR', 'DESENVOLVIMENTO', 'RECIFE', CURRENT_TIMESTAMP, false),
-    (colaborador_qa_id, 'Fernanda Lima', 'fernanda.lima@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'QA', 'QA', 'FLORIANOPOLIS', CURRENT_TIMESTAMP, true),
+    (colaborador_qa_id, 'Fernanda Lima', 'fernanda.lima@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'QA', 'QA', 'FLORIANOPOLIS', CURRENT_TIMESTAMP, false),
     (colaborador_ux_id, 'Rafael Martins', 'rafael.martins@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'UX', 'UX', 'SAO PAULO', CURRENT_TIMESTAMP, false),
-    (colaborador_marketing_id, 'Juliana Rocha', 'juliana.rocha@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'MARKETING', 'MARKETING', 'RECIFE', CURRENT_TIMESTAMP, true),
-    (colaborador_suporte_id, 'Lucas Ferreira', 'lucas.ferreira@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'SUPORTE', 'SUPORTE', 'FLORIANOPOLIS', CURRENT_TIMESTAMP, true),
+    (colaborador_marketing_id, 'Juliana Rocha', 'juliana.rocha@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'MARKETING', 'MARKETING', 'RECIFE', CURRENT_TIMESTAMP, false),
+    (colaborador_suporte_id, 'Lucas Ferreira', 'lucas.ferreira@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'SUPORTE', 'SUPORTE', 'FLORIANOPOLIS', CURRENT_TIMESTAMP, false),
     (colaborador_financeiro_id, 'Patricia Alves', 'patricia.alves@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'FINANCEIRO', 'FINANCEIRO', 'RECIFE', CURRENT_TIMESTAMP, false),
-    (colaborador_comercial_id, 'Eduardo Nunes', 'eduardo.nunes@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'COMERCIAL', 'COMERCIAL', 'SAO PAULO', CURRENT_TIMESTAMP, true),
+    (colaborador_comercial_id, 'Eduardo Nunes', 'eduardo.nunes@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'COMERCIAL', 'COMERCIAL', 'SAO PAULO', CURRENT_TIMESTAMP, false),
     (colaborador_comite_id, 'Comitê Equalização', 'comite@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'RH', 'RH', 'RECIFE', CURRENT_TIMESTAMP, false),
-    (colaborador_comum_sem_avaliação_id, 'João Souza', 'joao.souza@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'DESENVOLVEDOR', 'DESENVOLVIMENTO', 'RECIFE', CURRENT_TIMESTAMP, true);
+    (colaborador_comum_sem_avaliação_id, 'João Souza', 'joao.souza@empresa.com', '$2b$10$HEWRRVLJThBKJptgYrvswe1aWq8nLQ6Y/R8xjLvIAkE/KvR7iJyeu', 'DESENVOLVEDOR', 'DESENVOLVIMENTO', 'RECIFE', CURRENT_TIMESTAMP, false);
 -- Inserir Perfis dos Colaboradores
 INSERT INTO "ColaboradorPerfil" ("idColaborador", "tipoPerfil")
 VALUES
