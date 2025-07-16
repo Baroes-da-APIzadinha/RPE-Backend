@@ -30,7 +30,12 @@ describe('CiclosStatus', () => {
     create: jest.fn(),
   };
 
+  const mockCicloService = {
+    updateCiclo: jest.fn(),
+  };
+
   beforeEach(async () => {
+    const { CicloService } = require('./ciclo.service');
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CiclosStatus,
@@ -45,6 +50,10 @@ describe('CiclosStatus', () => {
         {
           provide: EqualizacaoService,
           useValue: mockEqualizacaoService,
+        },
+        {
+          provide: CicloService,
+          useValue: mockCicloService,
         },
       ],
     }).compile();
