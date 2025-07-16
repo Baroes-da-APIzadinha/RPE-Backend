@@ -44,7 +44,7 @@ describe('Funcionalidades Avançadas E2E (e2e)', () => {
     const admin = await prisma.colaborador.create({
       data: {
         nomeCompleto: 'Admin Sistema',
-        email: 'admin@sistema.com',
+        email: 'admin@sistema4.com',
         senha: '$2b$10$bZ2TmebxzLlsiMlrLZQ2Xu5tvGFNAhLIt8EgqmTIGDMW1VbEX0ydG', // senha: 'senha123'
       },
     });
@@ -59,7 +59,7 @@ describe('Funcionalidades Avançadas E2E (e2e)', () => {
     const rh = await prisma.colaborador.create({
       data: {
         nomeCompleto: 'RH Manager',
-        email: 'rh@empresa.com',
+        email: 'rh@empresa4.com',
         senha: '$2b$10$bZ2TmebxzLlsiMlrLZQ2Xu5tvGFNAhLIt8EgqmTIGDMW1VbEX0ydG', // senha: 'senha123'
       },
     });
@@ -74,7 +74,7 @@ describe('Funcionalidades Avançadas E2E (e2e)', () => {
     const colaborador = await prisma.colaborador.create({
       data: {
         nomeCompleto: 'Colaborador Teste',
-        email: 'colaborador@empresa.com',
+        email: 'colaborador@empresa4.com',
         senha: '$2b$10$bZ2TmebxzLlsiMlrLZQ2Xu5tvGFNAhLIt8EgqmTIGDMW1VbEX0ydG', // senha: 'senha123'
       },
     });
@@ -103,7 +103,7 @@ describe('Funcionalidades Avançadas E2E (e2e)', () => {
     // Fazer login
     const adminLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@sistema.com', senha: 'senha123' })
+      .send({ email: 'admin@sistema4.com', senha: 'senha123' })
       .expect(200);
       
     adminToken = Array.isArray(adminLogin.headers['set-cookie']) 
@@ -112,7 +112,7 @@ describe('Funcionalidades Avançadas E2E (e2e)', () => {
 
     const rhLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'rh@empresa.com', senha: 'senha123' })
+      .send({ email: 'rh@empresa4.com', senha: 'senha123' })
       .expect(200);
       
     rhToken = Array.isArray(rhLogin.headers['set-cookie']) 
@@ -375,7 +375,7 @@ describe('Funcionalidades Avançadas E2E (e2e)', () => {
     it('deve impedir acesso a endpoints administrativos sem permissão', async () => {
       const colaboradorLogin = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: 'colaborador@empresa.com', senha: 'senha123' })
+        .send({ email: 'colaborador@empresa4.com', senha: 'senha123' })
         .expect(200);
 
       const colaboradorToken = Array.isArray(colaboradorLogin.headers['set-cookie']) 
@@ -392,7 +392,7 @@ describe('Funcionalidades Avançadas E2E (e2e)', () => {
     it('deve impedir acesso a auditoria sem permissão', async () => {
       const colaboradorLogin = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: 'colaborador@empresa.com', senha: 'senha123' })
+        .send({ email: 'colaborador@empresa4.com', senha: 'senha123' })
         .expect(200);
 
       const colaboradorToken = Array.isArray(colaboradorLogin.headers['set-cookie']) 
