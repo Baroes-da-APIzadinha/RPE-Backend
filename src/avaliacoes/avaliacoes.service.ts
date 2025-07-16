@@ -1509,40 +1509,45 @@ export class AvaliacoesService {
         // Busca todos os colaboradores participantes do ciclo
         const participantes = await this.prisma.colaboradorCiclo.findMany({
             where: { idCiclo },
-            include: {
-                colaborador: {
-                    include: { perfis: true, mentores: true }
-                }
+            select: { idColaborador: true }
+        });
+
+        const idsColaboradoresCiclo = participantes.map(p => p.idColaborador);
+
+        // Busca todas as relações mentor-colaborador da tabela RelacaoMentor
+        // onde tanto o mentor quanto o colaborador fazem parte do ciclo
+        const relacoesMentor = await this.prisma.relacaoMentor.findMany({
+            where: {
+                AND: [
+                    { idMentor: { in: idsColaboradoresCiclo } },
+                    { idColaborador: { in: idsColaboradoresCiclo } }
+                ]
             }
         });
 
         let relacoesCriadas = 0;
-        for (const participante of participantes) {
-            const colaborador = participante.colaborador;
-            // Verifica se o colaborador tem mentores definidos
-            if (Array.isArray(colaborador.mentores) && colaborador.mentores.length > 0) {
-                for (const mentor of colaborador.mentores) {
-                    // Evita relação consigo mesmo
-                    if (mentor.idColaborador === colaborador.idColaborador) continue;
-                    await this.prisma.mentorColaborador.upsert({
-                        where: {
-                            idMentor_idColaborador_idCiclo: {
-                                idMentor: mentor.idColaborador,
-                                idColaborador: colaborador.idColaborador,
-                                idCiclo: idCiclo
-                            }
-                        },
-                        update: {},
-                        create: {
-                            idMentor: mentor.idColaborador,
-                            idColaborador: colaborador.idColaborador,
-                            idCiclo: idCiclo
-                        }
-                    });
-                    relacoesCriadas++;
+        for (const relacao of relacoesMentor) {
+            // Evita relação consigo mesmo (caso exista por algum motivo)
+            if (relacao.idMentor === relacao.idColaborador) continue;
+            
+            await this.prisma.mentorColaborador.upsert({
+                where: {
+                    idMentor_idColaborador_idCiclo: {
+                        idMentor: relacao.idMentor,
+                        idColaborador: relacao.idColaborador,
+                        idCiclo: idCiclo
+                    }
+                },
+                update: {},
+                create: {
+                    idMentor: relacao.idMentor,
+                    idColaborador: relacao.idColaborador,
+                    idCiclo: idCiclo
                 }
-            }
+            });
+            relacoesCriadas++;
         }
+        
         this.logger.log(`${relacoesCriadas} relações mentor-colaborador processadas para o ciclo ${idCiclo}.`);
         return { message: `${relacoesCriadas} relações mentor-colaborador processadas.` };
     }

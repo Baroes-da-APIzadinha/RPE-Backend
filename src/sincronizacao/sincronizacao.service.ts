@@ -118,21 +118,6 @@ export class SincronizacaoService {
       }
     }
     
-    // Usar ciclo base para todas as relações mentorColaborador
-    // Cria ciclo base se não existir
-    const cicloBaseId = '00000000-0000-0000-0000-000000000000';
-    await this.prisma.cicloAvaliacao.upsert({
-      where: { idCiclo: cicloBaseId },
-      update: {},
-      create: {
-        idCiclo: cicloBaseId,
-        nomeCiclo: 'Ciclo Base',
-        dataInicio: new Date('2000-01-01'),
-        dataFim: new Date('2001-12-31'),
-        status: 'FECHADO',
-      }
-    });
-    
     for (const data of colaboradoresErp) {
       // Adiciona mentores a partir do campo 'mentores' do ERP
       if (Array.isArray(data.mentores) && data.mentores.length > 0) {
@@ -140,19 +125,17 @@ export class SincronizacaoService {
         for (const idMentorErp of data.mentores) {
           const idMentorRpe = mapaIdErpParaIdRpe.get(idMentorErp);
           if (idMentorRpe && idColaboradorRpe && idMentorRpe !== idColaboradorRpe) {
-            await this.prisma.mentorColaborador.upsert({
+            await this.prisma.relacaoMentor.upsert({
               where: {
-                idMentor_idColaborador_idCiclo: {
+                idMentor_idColaborador: {
                   idMentor: idMentorRpe,
                   idColaborador: idColaboradorRpe,
-                  idCiclo: cicloBaseId
                 }
               },
               update: {},
               create: {
                 idMentor: idMentorRpe,
                 idColaborador: idColaboradorRpe,
-                idCiclo: cicloBaseId
               }
             });
           }
