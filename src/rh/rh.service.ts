@@ -66,6 +66,8 @@ export class RhService {
         resultado.quantConcluidas = grupo._count.status;
       } else if (grupo.status === preenchimentoStatus.PENDENTE) {
         resultado.quantPendentes = grupo._count.status;
+      } else if (grupo.status === preenchimentoStatus.EM_RASCUNHO) {
+        resultado.quantEmAndamento = grupo._count.status;
       }
       // Adicione outros status se necessário
     }
