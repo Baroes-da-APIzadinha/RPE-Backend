@@ -1107,17 +1107,26 @@ export class AvaliacoesService {
             }
         }
 
-        // Inicializa o objeto de contagem
+        // Inicializa o objeto de contagem para intervalos: 0-1, 1-2, 2-3, 3-4, 4-5
+        const intervalos = [
+            { label: '0-1', min: 0, max: 1 },
+            { label: '1-2', min: 1, max: 2 },
+            { label: '2-3', min: 2, max: 3 },
+            { label: '3-4', min: 3, max: 4 },
+            { label: '4-5', min: 4, max: 5.00001 }, // Inclui 5
+        ];
         const contagemNotas: Record<string, number> = {};
-        for (let nota = 0.5; nota <= 5.0; nota += 0.5) {
-            contagemNotas[nota.toFixed(1)] = 0;
+        for (const intervalo of intervalos) {
+            contagemNotas[intervalo.label] = 0;
         }
 
-        // Conta as ocorrências de cada nota
+        // Conta as ocorrências de cada nota no intervalo correto
         for (const nota of todasNotas) {
-            const chave = nota.toFixed(1);
-            if (contagemNotas.hasOwnProperty(chave)) {
-                contagemNotas[chave]++;
+            for (const intervalo of intervalos) {
+                if (nota >= intervalo.min && nota < intervalo.max) {
+                    contagemNotas[intervalo.label]++;
+                    break;
+                }
             }
         }
 

@@ -70,7 +70,7 @@ Content-Type: application/json
 }
 
 ### Remover ciclo
-DELETE http://localhost:3000/ciclo/5c07f454-a673-4333-89e6-37349b5750fd
+DELETE http://localhost:3000/ciclo/5260846e-945a-44aa-bd47-11be54080ddf
 ### Get ciclo
 GET http://localhost:3000/ciclo/get/b55004c9-4656-42ab-8b61-ebcd701fd2d6
 
@@ -101,7 +101,7 @@ Content-Type: application/json
 }
 
 ### Atualizar ciclo (PATCH - atualização parcial)
-PATCH http://localhost:3000/ciclo/df784fd6-a66d-4c6e-bcda-6fbc1422734c
+PATCH http://localhost:3000/ciclo/5260846e-945a-44aa-bd47-11be54080ddf
 Content-Type: application/json
 
 {
