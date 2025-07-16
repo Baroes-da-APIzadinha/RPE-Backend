@@ -903,13 +903,13 @@ describe('AvaliacoesService', () => {
       expect(mockPrismaService.avaliacao.update).toHaveBeenCalledWith({
         where: { idAvaliacao: mockIdAvaliacao },
         data: { status: 'CONCLUIDA' },
-      });
     });
+  });
 
     it('deve falhar quando tipo de avaliação está incorreto', async () => {
       // Arrange
       mockPrismaService.avaliacao.findUnique.mockResolvedValue({
-        ...mockAvaliacao,
+          ...mockAvaliacao,
         tipoAvaliacao: 'AUTOAVALIACAO',
       });
 
@@ -958,8 +958,8 @@ describe('AvaliacoesService', () => {
       expect(mockPrismaService.avaliacao.update).toHaveBeenCalledWith({
         where: { idAvaliacao: mockIdAvaliacao },
         data: { status: 'EM_RASCUNHO' },
-      });
     });
+  });
 
     it('deve permitir rascunho com critérios parciais', async () => {
       // Arrange
@@ -975,8 +975,8 @@ describe('AvaliacoesService', () => {
       expect(mockPrismaService.avaliacao.update).toHaveBeenCalledWith({
         where: { idAvaliacao: mockIdAvaliacao },
         data: { status: 'EM_RASCUNHO' },
-      });
     });
+  });
 
     it('deve falhar quando avaliação não existe', async () => {
       // Arrange
@@ -1061,7 +1061,7 @@ describe('AvaliacoesService', () => {
     it('deve permitir sobrescrever rascunho existente', async () => {
       // Arrange
       mockPrismaService.avaliacao.findUnique.mockResolvedValue({
-        ...mockAvaliacao,
+          ...mockAvaliacao,
         tipoAvaliacao: 'AUTOAVALIACAO',
         status: 'EM_RASCUNHO', // Já em rascunho
         autoAvaliacao: {},
@@ -1076,8 +1076,8 @@ describe('AvaliacoesService', () => {
         where: { idAvaliacao: mockIdAvaliacao },
         data: { status: 'EM_RASCUNHO' },
       });
+      });
     });
-  });
 
   describe('preencherRascunhoLiderColaborador', () => {
     beforeEach(() => {
@@ -1117,8 +1117,8 @@ describe('AvaliacoesService', () => {
       expect(mockPrismaService.avaliacao.update).toHaveBeenCalledWith({
         where: { idAvaliacao: mockIdAvaliacao },
         data: { status: 'EM_RASCUNHO' },
-      });
     });
+  });
 
     it('deve permitir rascunho com critérios parciais', async () => {
       // Arrange
@@ -1134,28 +1134,28 @@ describe('AvaliacoesService', () => {
       expect(mockPrismaService.avaliacao.update).toHaveBeenCalledWith({
         where: { idAvaliacao: mockIdAvaliacao },
         data: { status: 'EM_RASCUNHO' },
-      });
     });
+  });
 
     it('deve falhar quando avaliação não existe', async () => {
-      // Arrange
-      mockPrismaService.avaliacao.findUnique.mockResolvedValue(null);
+        // Arrange
+        mockPrismaService.avaliacao.findUnique.mockResolvedValue(null);
 
-      // Act & Assert
+        // Act & Assert
       await expect(
         service.preencherRascunhoLiderColaborador(mockIdAvaliacao, mockAutoAvaliacaoDto.criterios)
       ).rejects.toThrow(HttpException);
     });
 
     it('deve falhar quando avaliação não é do tipo LIDER_COLABORADOR', async () => {
-      // Arrange
+        // Arrange
       mockPrismaService.avaliacao.findUnique.mockResolvedValue({
         ...mockAvaliacao,
         tipoAvaliacao: 'AUTOAVALIACAO',
         autoAvaliacao: {},
       });
 
-      // Act & Assert
+        // Act & Assert
       await expect(
         service.preencherRascunhoLiderColaborador(mockIdAvaliacao, mockAutoAvaliacaoDto.criterios)
       ).rejects.toThrow(HttpException);
@@ -1165,7 +1165,7 @@ describe('AvaliacoesService', () => {
     });
 
     it('deve falhar quando avaliação já está concluída', async () => {
-      // Arrange
+        // Arrange
       mockPrismaService.avaliacao.findUnique.mockResolvedValue({
         ...mockAvaliacao,
         tipoAvaliacao: 'LIDER_COLABORADOR',
@@ -1173,7 +1173,7 @@ describe('AvaliacoesService', () => {
         autoAvaliacao: {},
       });
 
-      // Act & Assert
+        // Act & Assert
       await expect(
         service.preencherRascunhoLiderColaborador(mockIdAvaliacao, mockAutoAvaliacaoDto.criterios)
       ).rejects.toThrow(HttpException);
@@ -1183,11 +1183,11 @@ describe('AvaliacoesService', () => {
     });
 
     it('deve falhar quando card não é encontrado para critério', async () => {
-      // Arrange
+        // Arrange
       mockPrismaService.cardAvaliacaoLiderColaborador.findFirst.mockReset();
       mockPrismaService.cardAvaliacaoLiderColaborador.findFirst.mockResolvedValue(null);
 
-      // Act & Assert
+        // Act & Assert
       await expect(
         service.preencherRascunhoLiderColaborador(mockIdAvaliacao, mockAutoAvaliacaoDto.criterios)
       ).rejects.toThrow(HttpException);
@@ -1234,11 +1234,11 @@ describe('AvaliacoesService', () => {
       expect(mockPrismaService.avaliacao.update).toHaveBeenCalledWith({
         where: { idAvaliacao: mockIdAvaliacao },
         data: { status: 'EM_RASCUNHO' },
-      });
     });
+  });
 
     it('deve criptografar justificativas no rascunho', async () => {
-      // Arrange
+        // Arrange
       const criteriosComJustificativas = [
         {
           nome: 'Execução',
@@ -1249,10 +1249,10 @@ describe('AvaliacoesService', () => {
       mockPrismaService.cardAvaliacaoLiderColaborador.findFirst
         .mockResolvedValueOnce({ idCardAvaliacao: 'card1', nomeCriterio: 'Execução' });
 
-      // Act
+        // Act
       await service.preencherRascunhoLiderColaborador(mockIdAvaliacao, criteriosComJustificativas);
 
-      // Assert
+        // Assert
       expect(mockHashService.hash).toHaveBeenCalledWith('Justificativa detalhada para teste de criptografia');
       expect(mockPrismaService.cardAvaliacaoLiderColaborador.update).toHaveBeenCalledWith({
         where: { idCardAvaliacao: 'card1' },
@@ -1376,7 +1376,7 @@ describe('AvaliacoesService', () => {
 
     describe('Tratamento de erros em rascunhos', () => {
       it('deve tratar erro de transação no banco para rascunho', async () => {
-        // Arrange
+      // Arrange
         mockPrismaService.avaliacao.findUnique.mockResolvedValue({
           ...mockAvaliacao,
           tipoAvaliacao: 'AUTOAVALIACAO',
@@ -1397,7 +1397,7 @@ describe('AvaliacoesService', () => {
       });
 
       it('deve validar se HashService está funcionando para rascunhos', async () => {
-        // Arrange
+      // Arrange
         mockPrismaService.avaliacao.findUnique.mockResolvedValue({
           ...mockAvaliacao,
           tipoAvaliacao: 'AUTOAVALIACAO',
@@ -1410,10 +1410,10 @@ describe('AvaliacoesService', () => {
         mockPrismaService.avaliacao.update.mockResolvedValue({});
         mockHashService.hash.mockReturnValue('hash_criptografado');
 
-        // Act
+      // Act
         await service.preencherRascunhoAutoAvaliacao(mockIdAvaliacao, [mockAutoAvaliacaoDto.criterios[0]]);
 
-        // Assert
+      // Assert
         expect(mockHashService.hash).toHaveBeenCalledWith('Bom desempenho em execução');
         expect(mockPrismaService.cardAutoAvaliacao.update).toHaveBeenCalledWith({
           where: { idCardAvaliacao: 'card1' },

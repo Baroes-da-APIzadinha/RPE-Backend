@@ -420,6 +420,9 @@ Content-Type: application/json
 }
 
 ### Buscar forms de autoavaliação agrupados por pilar
+GET http://localhost:3000/avaliacoes/notas-distribuicao/55555555-5555-5555-5555-666666666666?tipoAvaliacao=AVALIACAO_PARES
+
+### Buscar forms de autoavaliação agrupados por pilar
 GET http://localhost:3000/avaliacoes/forms-autoavaliacao/7532e589-7d34-4026-8ea2-6b30178634ac
 
 ### Buscar forms de autoavaliação agrupados por pilar

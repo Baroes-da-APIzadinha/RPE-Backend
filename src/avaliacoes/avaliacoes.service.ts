@@ -48,36 +48,36 @@ export class AvaliacoesService {
                 }),
                 this.prisma.avaliacao.findMany({
                     where: { idCiclo, tipoAvaliacao: 'AVALIACAO_PARES' },
-                    select: { idAvaliador: true, idAvaliado: true }
+            select: { idAvaliador: true, idAvaliado: true }
                 })
             ]);
             this.logger.log(`Total de pares encontrados para o ciclo ${idCiclo}: ${pares.length}`);
 
-            const avaliacaoSet = new Set(avaliacoesExistentes.map(a => `${a.idAvaliador}-${a.idAvaliado}`));
+        const avaliacaoSet = new Set(avaliacoesExistentes.map(a => `${a.idAvaliador}-${a.idAvaliado}`));
             const novasAvaliacoesParaCriar: Prisma.AvaliacaoCreateManyInput[] = [];
 
-            for (const par of pares) {
-                if (!par.idColaborador1 || !par.idColaborador2) continue;
+        for (const par of pares) {
+            if (!par.idColaborador1 || !par.idColaborador2) continue;
 
                 if (!avaliacaoSet.has(`${par.idColaborador1}-${par.idColaborador2}`)) {
                     novasAvaliacoesParaCriar.push({
                         idCiclo,
-                        idAvaliador: par.idColaborador1,
-                        idAvaliado: par.idColaborador2,
-                        status: 'PENDENTE',
-                        tipoAvaliacao: 'AVALIACAO_PARES',
-                    });
-                }
+                    idAvaliador: par.idColaborador1,
+                    idAvaliado: par.idColaborador2,
+                    status: 'PENDENTE',
+                    tipoAvaliacao: 'AVALIACAO_PARES',
+                });
+            }
                 if (!avaliacaoSet.has(`${par.idColaborador2}-${par.idColaborador1}`)) {
                     novasAvaliacoesParaCriar.push({
                         idCiclo,
-                        idAvaliador: par.idColaborador2,
-                        idAvaliado: par.idColaborador1,
-                        status: 'PENDENTE',
-                        tipoAvaliacao: 'AVALIACAO_PARES',
-                    });
-                }
+                    idAvaliador: par.idColaborador2,
+                    idAvaliado: par.idColaborador1,
+                    status: 'PENDENTE',
+                    tipoAvaliacao: 'AVALIACAO_PARES',
+                });
             }
+        }
 
             const existentes = (pares.length * 2) - novasAvaliacoesParaCriar.length;
             if (novasAvaliacoesParaCriar.length === 0) {
@@ -111,10 +111,10 @@ export class AvaliacoesService {
             this.logger.log(`${novasAvaliacoesParaCriar.length} avaliações de pares lançadas com sucesso.`);
             return { lancadas: novasAvaliacoesParaCriar.length, existentes, erros: 0 };
 
-        } catch (error) {
+                } catch (error) {
             this.logger.error(`Falha catastrófica ao lançar avaliações de pares para o ciclo ${idCiclo}`, error.stack);
             return { lancadas: 0, existentes: 0, erros: 1 };
-        }
+                }
     }
 
     async lancarAutoAvaliacoes(idCiclo: string): Promise<{ lancadas: number, existentes: number, erros: number }> {
@@ -596,7 +596,7 @@ export class AvaliacoesService {
         
         const data: any = {};
         if (nota !== undefined) {
-            this.verificarNota(nota);
+        this.verificarNota(nota);
             data.nota = nota;
         }
         if (motivacao !== undefined){
@@ -637,13 +637,13 @@ export class AvaliacoesService {
 
         const data: any = {};
         if (nota !== undefined) {
-            this.verificarNota(nota);
+        this.verificarNota(nota);
             data.nota = nota;
         }
         if (justificativa !== undefined) {
             data.justificativa = this.hashService.hash(justificativa);
         }
-        
+
         await this.prisma.avaliacaoColaboradorMentor.update({
             where: { idAvaliacao },
             data,
@@ -1000,38 +1000,38 @@ export class AvaliacoesService {
     }
 
     async discrepanciaAllcolaboradores(idCiclo: string) {
-        try {
-            // Filtro base para colaboradores
-            const whereClause: any = {};
+    try {
+        // Filtro base para colaboradores
+        const whereClause: any = {};
+        
+        if (idCiclo && this.isValidUUID(idCiclo)) {
+            whereClause.colaboradoresCiclos = {
+                some: { idCiclo: idCiclo }
+            };
+        }
 
-            if (idCiclo && this.isValidUUID(idCiclo)) {
-                whereClause.colaboradoresCiclos = {
-                    some: { idCiclo: idCiclo }
-                };
-            }
-
-            // Buscar todos os colaboradores (sem includes pesados)
-            const colaboradores = await this.prisma.colaboradorCiclo.findMany({
-                where: { idCiclo: idCiclo },
-                include: {
-                    colaborador: {
-                        select: {
-                            idColaborador: true,
-                            nomeCompleto: true,
-                            cargo: true,
-                            trilhaCarreira: true,
-                            unidade: true
-                        }
+        // Buscar todos os colaboradores (sem includes pesados)
+        const colaboradores = await this.prisma.colaboradorCiclo.findMany({
+            where: { idCiclo: idCiclo },
+            include: {
+                colaborador: {
+                    select: {
+                        idColaborador: true,
+                        nomeCompleto: true,
+                        cargo: true,
+                        trilhaCarreira: true,
+                        unidade: true
                     }
                 }
-            });
+            }
+        });
 
-            // Processar cada colaborador usando a função existente
-            const relatorio: RelatorioItem[] = [];
-
+        // Processar cada colaborador usando a função existente
+        const relatorio: RelatorioItem[] = [];
+        
             for (const colaborador of colaboradores) {
                 const resultadoDiscrepancia = await this.discrepanciaColaborador(
-                    colaborador.idColaborador,
+                    colaborador.idColaborador, 
                     idCiclo
                 );
 
@@ -1046,19 +1046,19 @@ export class AvaliacoesService {
                 const discrepancia = resultadoDiscrepancia.discrepancia;
 
                 if (avaliacoes && discrepancia) {
-                    relatorio.push({
-                        idColaborador: colaborador.idColaborador,
-                        nomeColaborador: colaborador.colaborador.nomeCompleto,
-                        cargoColaborador: colaborador.colaborador.cargo || 'Não informado',
-                        trilhaColaborador: colaborador.colaborador.trilhaCarreira || null,
-                        equipeColaborador: colaborador.colaborador.unidade || null,
-                        notas: {
-                            notaAuto: avaliacoes.autoAvaliacao?.media || null,
-                            nota360media: avaliacoes.avaliacaoPares?.media || null,
-                            notaGestor: avaliacoes.avaliacaoLider?.media || null,
-                            discrepancia: discrepancia.calculada ? discrepancia.desvioPadrao : null
-                        }
-                    });
+                        relatorio.push({
+                            idColaborador: colaborador.idColaborador,
+                            nomeColaborador: colaborador.colaborador.nomeCompleto,
+                            cargoColaborador: colaborador.colaborador.cargo || 'Não informado',
+                            trilhaColaborador: colaborador.colaborador.trilhaCarreira || null,
+                            equipeColaborador: colaborador.colaborador.unidade || null,
+                            notas: {
+                                notaAuto: avaliacoes.autoAvaliacao?.media || null,
+                                nota360media: avaliacoes.avaliacaoPares?.media || null,
+                                notaGestor: avaliacoes.avaliacaoLider?.media || null,
+                                discrepancia: discrepancia.calculada ? discrepancia.desvioPadrao : null
+                            }
+                        });
                 }
             }
             return relatorio;
@@ -1067,6 +1067,61 @@ export class AvaliacoesService {
             this.logger.error('Erro ao gerar relatório de discrepância de todos os colaboradores:', error);
             throw new HttpException('Erro ao gerar relatório de discrepância: ' + error.message, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    async getNotasDistribuicao(idCiclo: string, tipoAvaliacao?: string) {
+        // Se tipoAvaliacao for passado, converta para enum se possível
+        let tipoAvaliacaoEnum: avaliacaoTipo | undefined = undefined;
+        if (tipoAvaliacao && Object.values(avaliacaoTipo).includes(tipoAvaliacao as avaliacaoTipo)) {
+            tipoAvaliacaoEnum = tipoAvaliacao as avaliacaoTipo;
+        }
+        // Busca todas as avaliações do ciclo, incluindo os dados necessários
+        const avaliacoes = await this.prisma.avaliacao.findMany({
+            where: {
+                idCiclo,
+                ...(tipoAvaliacaoEnum ? { tipoAvaliacao: tipoAvaliacaoEnum } : {})
+            },
+            include: {
+                autoAvaliacao: true,
+                avaliacaoPares: true,
+                avaliacaoLiderColaborador: true,
+                avaliacaoColaboradorMentor: true,
+            },
+        });
+
+        // Array para armazenar todas as notas
+        const todasNotas: number[] = [];
+
+        for (const av of avaliacoes) {
+            if (av.tipoAvaliacao === 'AUTOAVALIACAO' && av.autoAvaliacao?.notaFinal != null) {
+                todasNotas.push(Number(av.autoAvaliacao.notaFinal));
+            }
+            if (av.tipoAvaliacao === 'AVALIACAO_PARES' && av.avaliacaoPares?.nota != null) {
+                todasNotas.push(Number(av.avaliacaoPares.nota));
+            }
+            if (av.tipoAvaliacao === 'LIDER_COLABORADOR' && av.avaliacaoLiderColaborador?.notaFinal != null) {
+                todasNotas.push(Number(av.avaliacaoLiderColaborador.notaFinal));
+            }
+            if (av.tipoAvaliacao === 'COLABORADOR_MENTOR' && av.avaliacaoColaboradorMentor?.nota != null) {
+                todasNotas.push(Number(av.avaliacaoColaboradorMentor.nota));
+            }
+        }
+
+        // Inicializa o objeto de contagem
+        const contagemNotas: Record<string, number> = {};
+        for (let nota = 0.5; nota <= 5.0; nota += 0.5) {
+            contagemNotas[nota.toFixed(1)] = 0;
+        }
+
+        // Conta as ocorrências de cada nota
+        for (const nota of todasNotas) {
+            const chave = nota.toFixed(1);
+            if (contagemNotas.hasOwnProperty(chave)) {
+                contagemNotas[chave]++;
+            }
+        }
+
+        return contagemNotas;
     }
 
 
@@ -1231,7 +1286,7 @@ export class AvaliacoesService {
 
     private desvioPadrao(nota1: number, nota2: number, nota3: number): number {
         const media = (nota1 + nota2 + nota3) / 3;
-        const variancia = (Math.pow(nota1 - media, 2) + Math.pow(nota2 - media, 2) + Math.pow(nota3 - media, 2)) / 3;
+        const variancia = (Math.pow(nota1 - media, 2) + Math.pow(nota2 - media, 2) + Math.pow(nota3 - media, 2)) / 3; 
         return Math.sqrt(variancia);
     }
 
@@ -1252,7 +1307,7 @@ export class AvaliacoesService {
         return soma / notasValidas.length;
     }
 
-
+ 
     private calcularMediaAvaliacaoPares(avaliacoes: any[]): number | null {
         if (!avaliacoes || avaliacoes.length === 0) {
             return null;
@@ -1344,7 +1399,7 @@ export class AvaliacoesService {
         // Retorna como array
         return Object.values(agrupado);
     }
-
+    
     /**
      * Busca o histórico de avaliações em que o usuário é líder
      */
