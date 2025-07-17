@@ -142,26 +142,14 @@ pnpm prepare
 
 ### Desenvolvimento
 ```bash
-# Inicia o servidor de desenvolvimento
-pnpm start:dev
+# Inicia o container no docker
+docker compose up --build
 
-# Inicia o servidor mock do ERP (opcional)
+# Inicia o servidor mock do ERP dentro do container
 pnpm start:erp
-```
 
-### Produção
-```bash
-# Build do projeto
-pnpm build
-
-# Executa em produção
-pnpm start:prod
-```
-
-### Docker
-```bash
-# Executa com Docker Compose
-docker-compose up -d
+# Inicia o servidor do frontend dentro da pasta de RPE-Frontend
+pnpm run dev
 ```
 
 ## 🔐 Perfis e Permissões
@@ -174,34 +162,6 @@ docker-compose up -d
 - **RH**: Gerencia os ciclos avaliativos e tem acesso a relatórios e analytics, 
 - **MEMBRO_COMITE**: Realiza as equalizações
 - **ADMIN**: Acesso total ao sistema
-
-## 🧪 Testes
-
-```bash
-# Executar testes unitários
-pnpm test
-
-# Executar testes em modo watch
-pnpm test:watch
-
-# Executar testes com coverage
-pnpm test:cov
-
-# Executar testes e2e
-pnpm test:e2e
-```
-
-## 🐳 Docker
-
-### Build da Imagem
-```bash
-docker build -t rpe-backend .
-```
-
-### Executar com Docker Compose
-```bash
-docker-compose up -d
-```
 
 ### Variáveis de Ambiente para Docker
 ```env
@@ -239,16 +199,6 @@ src/
 └── common/        # Utilitários compartilhados
 ```
 
-### Scripts Disponíveis
-- `pnpm start`: Inicia o servidor
-- `pnpm start:dev`: Modo desenvolvimento com hot reload
-- `pnpm start:debug`: Modo debug
-- `pnpm start:prod`: Modo produção
-- `pnpm build`: Build do projeto
-- `pnpm test`: Executa testes
-- `pnpm lint`: Linting do código
-- `pnpm format`: Formatação do código
-
 ## 📊 Banco de Dados
 
 ### Migrações
@@ -261,12 +211,6 @@ pnpm prisma migrate dev
 
 # Reset do banco (desenvolvimento)
 pnpm prisma migrate reset
-```
-
-### Studio (Interface Visual)
-```bash
-# Abrir Prisma Studio
-pnpm prisma studio
 ```
 
 ### Estrutura do Banco
