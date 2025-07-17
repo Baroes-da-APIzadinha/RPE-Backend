@@ -53,8 +53,15 @@ export class CicloController {
     }
 
     @Patch('status')
-    async changeStatus(@Body() body: { idCiclo: string, current_status: string; next_status: string }) {
+    async changeStatus(@Req() req, @Body() body: { idCiclo: string, current_status: string; next_status: string }) {
         const relatorio = await this.ciclosStatus.changeStatus(body.idCiclo, body.current_status, body.next_status);
+        await this.auditoriaService.log({
+            userId: req.user?.userId,
+            action: 'Avançar etapa do ciclo',
+            resource: 'Ciclo',
+            details: { relatorio },
+            ip: req.ip,
+        });
         return { message: 'Status atualizado com sucesso',
             relatorio
          };
