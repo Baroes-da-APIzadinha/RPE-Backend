@@ -1,10 +1,39 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ColaboradorModule } from './colaborador/colaborador.module';
+import { CriteriosModule } from './criterios/criterios.module';
+import { AuthModule } from './auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
+import { PrismaService } from './database/prismaService';
+import { AssociacaoCriterioCicloModule } from './criterioCiclo/criterioCiclo.module';
+import { CicloModule } from './ciclo/ciclo.module';
+import { AvaliacoesController } from './avaliacoes/avaliacoes.controller';
+import { AvaliacoesService } from './avaliacoes/avaliacoes.service';
+import { AvaliacoesModule } from './avaliacoes/avaliacoes.module';
+import { EqualizacaoService } from './equalizacao/equalizacao.service';
+import { EqualizacaoController } from './equalizacao/equalizacao.controller';
+import { EqualizacaoModule } from './equalizacao/equalizacao.module';
+import { ReferenciasModule } from './referencias/referencias.module';
+import { ImportacaoModule } from './importacao/importacao.module';
+import { RhModule } from './rh/rh.module';
+import { IaService } from './IA/ia.service';
+import { IaController } from './IA/ia.controller';
+import { IaModule } from './IA/ia.module';
+import { AuditoriaModule } from './auditoria/auditoria.module';
+import { HashService } from 'src/common/hash.service';
+import { ProjetosModule } from './projetos/projetos.module';
+import { ScheduleModule } from '@nestjs/schedule'; 
+import { HttpModule } from '@nestjs/axios';
+import { SincronizacaoModule } from './sincronizacao/sincronizacao.module';
+import { ExportacaoModule } from './exportacao/exportacao.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { RemindersService } from './reminders/reminders.service';
+import { RemindersModule } from './reminders/reminders.module';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [ColaboradorModule, CriteriosModule, CicloModule, AssociacaoCriterioCicloModule, AuthModule, JwtModule.register({}), AvaliacoesModule, EqualizacaoModule, ReferenciasModule, ImportacaoModule, RhModule, IaModule, AuditoriaModule, ProjetosModule, HttpModule, ScheduleModule.forRoot(), SincronizacaoModule, CacheModule.register({ttl: 60 * 60 * 24, max: 100, isGlobal: true,}), RemindersModule, ExportacaoModule],
+  controllers: [AppController, AvaliacoesController, EqualizacaoController, IaController],
+  providers: [AppService, PrismaService, AvaliacoesService, EqualizacaoService, IaService, HashService, RemindersService],
 })
 export class AppModule {}

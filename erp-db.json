@@ -1,0 +1,298 @@
+{
+  "colaboradores": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      "nomeCompleto": "Ana Júlia Paiva",
+      "email": "ana.julia@empresa.com",
+      "cargo": "DESENVOLVEDOR",
+      "unidade": "RECIFE",
+      "trilhaCarreira": "DESENVOLVIMENTO",
+      "perfis": ["COLABORADOR_COMUM", "LIDER", "GESTOR"],
+      "gestores": ["c3d4e5f6-a7b8-9012-3456-7890abcdef12"],
+      "mentores": ["d0e1f2a3-b4c5-6789-0123-ef1234567890"]
+    },
+    {
+      "id": "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
+      "nomeCompleto": "Carlos Andrade",
+      "email": "carlos.andrade@empresa.com",
+      "cargo": "DESENVOLVEDOR",
+      "unidade": "SAO PAULO",
+      "trilhaCarreira": "DESENVOLVIMENTO",
+      "perfis": ["COLABORADOR_COMUM"],
+      "gestores": ["a1b2c3d4-e5f6-7890-1234-567890abcdef"],
+      "mentores": ["d4e5f6a7-b8c9-0123-4567-890abcdef123"]
+    },
+    {
+      "id": "c3d4e5f6-a7b8-9012-3456-7890abcdef12",
+      "nomeCompleto": "Mariana Costa",
+      "email": "mariana.costa@empresa.com",
+      "cargo": "COMERCIAL",
+      "unidade": "RECIFE",
+      "trilhaCarreira": "GERENCIAMENTO",
+      "perfis": ["COLABORADOR_COMUM", "LIDER", "GESTOR"],
+      "gestores": ["a1b2c3d4-e5f6-7890-1234-567890abcdef"],
+      "mentores": ["d0e1f2a3-b4c5-6789-0123-ef1234567890"]
+    },
+    {
+      "id": "d4e5f6a7-b8c9-0123-4567-890abcdef123",
+      "nomeCompleto": "Lucas Oliveira",
+      "email": "lucas.oliveira@empresa.com",
+      "cargo": "SUPORTE",
+      "unidade": "FLORIANOPOLIS",
+      "trilhaCarreira": "SUPORTE",
+      "perfis": ["COLABORADOR_COMUM", "MENTOR"],
+      "gestores": ["c3d4e5f6-a7b8-9012-3456-7890abcdef12"],
+      "mentores": ["d0e1f2a3-b4c5-6789-0123-ef1234567890"]
+    },
+    {
+      "id": "e5f6a7b8-c9d0-1234-5678-90abcdef1234",
+      "nomeCompleto": "Beatriz Santos",
+      "email": "beatriz.santos@empresa.com",
+      "cargo": "UX",
+      "unidade": "SAO PAULO",
+      "trilhaCarreira": "UX",
+      "perfis": ["COLABORADOR_COMUM", "MENTOR"],
+      "gestores": ["a1b2c3d4-e5f6-7890-1234-567890abcdef"],
+      "mentores": ["d4e5f6a7-b8c9-0123-4567-890abcdef123"]
+    },
+    {
+      "id": "f6a7b8c9-d0e1-2345-6789-0abcdef12345",
+      "nomeCompleto": "Rafael Ferreira",
+      "email": "rafael.ferreira@empresa.com",
+      "cargo": "QA",
+      "unidade": "RECIFE",
+      "trilhaCarreira": "QA",
+      "perfis": ["COLABORADOR_COMUM"]
+    },
+    {
+      "id": "a7b8c9d0-e1f2-3456-7890-bcdef1234567",
+      "nomeCompleto": "Juliana Souza",
+      "email": "juliana.souza@empresa.com",
+      "cargo": "QA",
+      "unidade": "FLORIANOPOLIS",
+      "trilhaCarreira": "QA",
+      "perfis": ["COLABORADOR_COMUM", "MENTOR"]
+    },
+    {
+      "id": "b8c9d0e1-f2a3-4567-8901-cdef12345678",
+      "nomeCompleto": "Fernando Martins",
+      "email": "fernando.martins@empresa.com",
+      "cargo": "RH",
+      "unidade": "RECIFE",
+      "trilhaCarreira": "GERENCIAMENTO",
+      "perfis": ["COLABORADOR_COMUM", "LIDER", "GESTOR"]
+    },
+    {
+      "id": "c9d0e1f2-a3b4-5678-9012-def123456789",
+      "nomeCompleto": "Camila Lima",
+      "email": "camila.lima@empresa.com",
+      "cargo": "SUPORTE",
+      "unidade": "SAO PAULO",
+      "trilhaCarreira": "SUPORTE",
+      "perfis": ["MEMBRO_COMITE"]
+    },
+    {
+      "id": "d0e1f2a3-b4c5-6789-0123-ef1234567890",
+      "nomeCompleto": "Gustavo Almeida",
+      "email": "gustavo.almeida@empresa.com",
+      "cargo": "DESENVOLVEDOR",
+      "unidade": "FLORIANOPOLIS",
+      "trilhaCarreira": "DESENVOLVIMENTO",
+      "perfis": ["COLABORADOR_COMUM", "LIDER", "GESTOR", "MENTOR"]
+    },
+    {
+      "id": "e1f2a3b4-c5d6-7890-1234-f12345678901",
+      "nomeCompleto": "Larissa Barbosa",
+      "email": "larissa.barbosa@empresa.com",
+      "cargo": "RH",
+      "unidade": "RECIFE",
+      "trilhaCarreira": "RH",
+      "perfis": ["RH", "COLABORADOR_COMUM"]
+    },
+    {
+      "id": "f2a3b4c5-d6e7-8901-2345-123456789012",
+      "nomeCompleto": "Thiago Rocha",
+      "email": "thiago.rocha@empresa.com",
+      "cargo": "FINANCEIRO",
+      "unidade": "SAO PAULO",
+      "trilhaCarreira": "FINANCEIRO",
+      "perfis": ["COLABORADOR_COMUM", "LIDER", "GESTOR"]
+    },
+    {
+      "id": "a3b4c5d6-e7f8-9012-3456-234567890123",
+      "nomeCompleto": "Sofia Ribeiro",
+      "email": "sofia.ribeiro@empresa.com",
+      "cargo": "MARKETING",
+      "unidade": "FLORIANOPOLIS",
+      "trilhaCarreira": "MARKETING",
+      "perfis": ["COLABORADOR_COMUM"]
+    }
+  ],
+  "projetos": [
+    {
+      "id": "proj-001",
+      "nomeProjeto": "Projeto RPE - Módulo de Avaliações",
+      "status": "EM_ANDAMENTO",
+      "idLider": "c3d4e5f6-a7b8-9012-3456-7890abcdef12"
+    },
+    {
+      "id": "proj-002",
+      "nomeProjeto": "Novo App Mobile",
+      "status": "CONCLUIDO",
+      "idLider": "d0e1f2a3-b4c5-6789-0123-ef1234567890"
+    },
+    {
+      "id": "proj-003",
+      "nomeProjeto": "Plataforma de Dados",
+      "status": "EM_ANDAMENTO",
+      "idLider": "f2a3b4c5-d6e7-8901-2345-123456789012"
+    },
+    {
+      "id": "proj-004",
+      "nomeProjeto": "Rebranding Institucional",
+      "status": "PLANEJADO",
+      "idLider": "b8c9d0e1-f2a3-4567-8901-cdef12345678"
+    },
+    {
+      "id": "proj-005",
+      "nomeProjeto": "Sistema de Pagamentos V2",
+      "status": "EM_ANDAMENTO",
+      "idLider": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+    }
+  ],
+  "alocacoes": [
+    {
+      "id": "aloc-1",
+      "idColaborador": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      "idProjeto": "proj-001",
+      "dataEntrada": "2024-01-15",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-2",
+      "idColaborador": "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
+      "idProjeto": "proj-001",
+      "dataEntrada": "2024-02-01",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-3",
+      "idColaborador": "c3d4e5f6-a7b8-9012-3456-7890abcdef12",
+      "idProjeto": "proj-001",
+      "dataEntrada": "2024-01-10",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-4",
+      "idColaborador": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      "idProjeto": "proj-002",
+      "dataEntrada": "2023-08-01",
+      "dataSaida": "2023-12-20"
+    },
+    {
+      "id": "aloc-5",
+      "idColaborador": "e5f6a7b8-c9d0-1234-5678-90abcdef1234",
+      "idProjeto": "proj-001",
+      "dataEntrada": "2024-03-01",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-6",
+      "idColaborador": "a7b8c9d0-e1f2-3456-7890-bcdef1234567",
+      "idProjeto": "proj-001",
+      "dataEntrada": "2024-03-15",
+      "dataSaida": "2024-06-30"
+    },
+    {
+      "id": "aloc-7",
+      "idColaborador": "d0e1f2a3-b4c5-6789-0123-ef1234567890",
+      "idProjeto": "proj-002",
+      "dataEntrada": "2023-08-01",
+      "dataSaida": "2023-12-20"
+    },
+    {
+      "id": "aloc-8",
+      "idColaborador": "e1f2a3b4-c5d6-7890-1234-f12345678901",
+      "idProjeto": "proj-002",
+      "dataEntrada": "2023-08-10",
+      "dataSaida": "2023-12-20"
+    },
+    {
+      "id": "aloc-9",
+      "idColaborador": "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
+      "idProjeto": "proj-002",
+      "dataEntrada": "2023-09-01",
+      "dataSaida": "2023-11-30"
+    },
+    {
+      "id": "aloc-10",
+      "idColaborador": "d4e5f6a7-b8c9-0123-4567-890abcdef123",
+      "idProjeto": "proj-003",
+      "dataEntrada": "2024-01-02",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-11",
+      "idColaborador": "f2a3b4c5-d6e7-8901-2345-123456789012",
+      "idProjeto": "proj-003",
+      "dataEntrada": "2024-01-02",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-12",
+      "idColaborador": "f6a7b8c9-d0e1-2345-6789-0abcdef12345",
+      "idProjeto": "proj-003",
+      "dataEntrada": "2024-02-20",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-13",
+      "idColaborador": "e5f6a7b8-c9d0-1234-5678-90abcdef1234",
+      "idProjeto": "proj-004",
+      "dataEntrada": "2024-05-01",
+      "dataSaida": "2024-05-25"
+    },
+    {
+      "id": "aloc-14",
+      "idColaborador": "a3b4c5d6-e7f8-9012-3456-234567890123",
+      "idProjeto": "proj-004",
+      "dataEntrada": "2024-05-01",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-15",
+      "idColaborador": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      "idProjeto": "proj-005",
+      "dataEntrada": "2024-07-01",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-16",
+      "idColaborador": "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
+      "idProjeto": "proj-005",
+      "dataEntrada": "2024-07-01",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-17",
+      "idColaborador": "b8c9d0e1-f2a3-4567-8901-cdef12345678",
+      "idProjeto": "proj-005",
+      "dataEntrada": "2024-07-01",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-18",
+      "idColaborador": "c9d0e1f2-a3b4-5678-9012-def123456789",
+      "idProjeto": "proj-005",
+      "dataEntrada": "2024-07-01",
+      "dataSaida": null
+    },
+    {
+      "id": "aloc-19",
+      "idColaborador": "a7b8c9d0-e1f2-3456-7890-bcdef1234567",
+      "idProjeto": "proj-005",
+      "dataEntrada": "2024-07-15",
+      "dataSaida": null
+    }
+  ]
+}

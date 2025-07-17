@@ -1,0 +1,512 @@
+### Adicionar colaborador
+POST http://localhost:3000/colaborador/
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYmNmM2QxNC03NWVmLTRjNDQtYjgwYy1jYmFhM2RjYzZmYTMiLCJlbWFpbCI6ImpvYW8ucmFiZWxsb0BleGFtcGxlLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc1MDc5ODQyNywiZXhwIjoxNzUwODg0ODI3fQ.nwNhdi_egLiU64lo4QaPgIUW7PyqRNolXPfz5OqskVc
+
+{
+    "nomeCompleto": "GESTOR ",
+    "email": "gestor@example.com",
+    "senha": "senha123",
+    "colaboradorComum": true,
+    "gestor": true
+
+}
+
+### Remover colaborador
+DELETE http://localhost:3000/colaborador/565a6f76-751e-4d01-bba3-a84f313c80bf
+### Get colaborador
+
+GET http://localhost:3000/colaborador/cccccccc-3333-3333-3333-333333333333
+
+### Get all colaboradores
+GET http://localhost:3000/colaborador/get-all-colaboradores
+
+
+
+### Atualizar colaborador
+PUT http://localhost:3000/colaborador/atualizar/c3ff70b4-1096-41aa-bba4-0cec649580da
+Content-Type: application/json
+
+{
+    
+    "email": "marcos.vinicius@example.com"
+    
+}
+
+### Associar perfil
+POST http://localhost:3000/colaborador/associar-perfil
+Content-Type: application/json
+
+{
+    "tipoPerfil": "COLABORADOR_COMUM",
+    "idColaborador": "33333333-3333-3333-3333-333333333333"
+}
+
+### Login
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@empresa.com",
+    "senha": "senha123"
+}
+
+
+### Criar ciclo
+POST http://localhost:3000/ciclo
+Content-Type: application/json
+
+{
+    "nome": "2026.1",
+    "dataInicioAno": 2026,
+    "dataInicioMes": 1,
+    "dataInicioDia": 1,
+    "dataFimAno": 2026,
+    "dataFimMes": 3,
+    "dataFimDia": 31,
+    "duracaoEmAndamentoDias": 30,
+    "duracaoEmRevisaoDias": 28,
+    "duracaoEmEqualizacaoDias": 32
+}
+
+### Remover ciclo
+DELETE http://localhost:3000/ciclo/5260846e-945a-44aa-bd47-11be54080ddf
+### Get ciclo
+GET http://localhost:3000/ciclo/get/b55004c9-4656-42ab-8b61-ebcd701fd2d6
+
+### Get all ciclos
+GET http://localhost:3000/ciclo/get-all
+
+### Get ciclos ativos
+GET http://localhost:3000/ciclo/get-ativos
+
+### Get historico ciclos
+GET http://localhost:3000/ciclo/get-historico
+
+### Atualizar ciclo (PUT - atualização completa)
+PUT http://localhost:3000/ciclo/df784fd6-a66d-4c6e-bcda-6fbc1422734c
+Content-Type: application/json
+
+{
+    "nome": "2029.1",
+    "dataInicioAno": 2029,
+    "dataInicioMes": 7,
+    "dataInicioDia": 1,
+    "dataFimAno": 2029,
+    "dataFimMes": 7,
+    "dataFimDia": 31,
+    "duracaoEmAndamentoDias": 11,
+    "duracaoEmRevisaoDias": 10,
+    "duracaoEmEqualizacaoDias": 10
+}
+
+### Atualizar ciclo (PATCH - atualização parcial)
+PATCH http://localhost:3000/ciclo/5260846e-945a-44aa-bd47-11be54080ddf
+Content-Type: application/json
+
+{
+    "nome": "2025.2",
+    "dataInicioAno": 2025,
+    "dataInicioMes": 7,
+    "dataInicioDia": 17,
+    "dataFimAno": 2025,
+    "dataFimMes": 8,
+    "dataFimDia": 15,
+    "duracaoEmAndamentoDias": 10,
+    "duracaoEmRevisaoDias": 10,
+    "duracaoEmEqualizacaoDias": 10
+}
+
+### Trocar status do ciclo
+PATCH http://localhost:3000/ciclo/status
+Content-Type: application/json
+
+{
+    "idCiclo": "df784fd6-a66d-4c6e-bcda-6fbc1422734c",
+    "current_status": "EM_EQUALIZAÇÃO",
+    "next_status": "FECHADO" 
+}
+
+### Criar criterio
+POST http://localhost:3000/criterios
+Content-Type: application/json
+
+{
+  "nomeCriterio": "Teste",
+  "descricao": "Testando pesos",
+  "peso": 3.0,
+  "obrigatorio": true,
+  "pilar": "Comportamento"
+}
+
+### Associar criterio ao ciclo
+POST http://localhost:3000/associacoes-criterio-ciclo
+Content-Type: application/json
+
+{
+    "idCiclo": "55555555-5555-5555-5555-666666666666",
+    "idCriterio": "871ff8c0-f001-4faf-8e64-4ec40764d80c"
+}
+
+### Associar ciclo ao colaborador
+POST http://localhost:3000/colaborador/associar-ciclo
+Content-Type: application/json
+
+{
+    "idCiclo": "df784fd6-a66d-4c6e-bcda-6fbc1422734c",
+    "idColaborador": "07d05b12-f56d-4ab8-819f-8a36d14fb15a"
+}
+
+### Lançar avaliações de pares
+POST http://localhost:3000/avaliacoes/lancar-pares
+Content-Type: application/json
+
+{
+    "idCiclo": "4e4b287f-bddd-47c7-83ff-a663720f2ba3"
+}
+
+### Lançar auto-avaliações
+POST http://localhost:3000/avaliacoes/lancar-auto-avaliacoes
+Content-Type: application/json
+
+{
+    "idCiclo": "55555555-5555-5555-5555-666666666666"
+}
+
+### Lançar todas as avaliações
+POST http://localhost:3000/avaliacoes
+Content-Type: application/json
+
+{
+    "idCiclo": "55555555-5555-5555-5555-666666666666"
+}
+
+### Lançar avaliações de lideres
+POST http://localhost:3000/avaliacoes/lancar-lider-colaborador
+Content-Type: application/json
+
+{
+    "idCiclo": "55555555-5555-5555-5555-666666666666"
+}
+
+### Lançar avaliações mentor-colaborador
+POST http://localhost:3000/avaliacoes/lancar-colaborador-mentor
+Content-Type: application/json
+
+{
+    "idCiclo": "55555555-5555-5555-5555-666666666666"
+}
+
+
+### GET Avaliações por usuário e tipo
+GET http://localhost:3000/avaliacoes/tipo/usuario/0526ff8f-fd94-4548-a61e-b96fed2976d3?tipoAvaliacao=AVALIACAO_PARES
+
+### GET Avaliações por usuário e tipo
+GET http://localhost:3000/avaliacoes/status/4e4b287f-bddd-47c7-83ff-a663720f2ba3?status=PENDENTE
+
+### Preencher avaliação pares
+POST http://localhost:3000/avaliacoes/preencher-avaliacao-pares
+Content-Type: application/json
+
+{
+    "idAvaliacao": "c6e01aeb-df0a-4982-a5a3-e9d146d30ceb",
+    "nota": 3,
+    "status": "CONCLUIDA",
+    "motivacao": "Discordo Parcialmente",
+    "pontosFortes": "Se adapta bem a mudanças e é muito empenhado em suas tarefas",
+    "pontosFracos": "Pode melhorar a comunicação em situações de pressão e ser mais proativo em projetos coletivos."
+}
+
+### Preencher avaliação colaborador mentor
+POST http://localhost:3000/avaliacoes/preencher-avaliacao-colaborador-mentor
+Content-Type: application/json
+
+{
+    "idAvaliacao": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    "nota": 3.5,
+    "justificativa": "Foi ausente em alguns momentos",
+    "status": "CONCLUIDA"
+}
+
+### Preencher autoavaliação
+POST http://localhost:3000/avaliacoes/preencher-auto-avaliacao
+Content-Type: application/json
+
+{
+    "idAvaliacao": "c7a9351f-12fb-445e-85e9-ed2026e76911",
+    "criterios": [
+        {
+            "nome": "Comunicação",
+            "nota": 3.0,
+            "justificativa": "Me comuniquei de forma clara na maioria das situações, mas posso melhorar em reuniões grandes."
+        },
+        {
+            "nome": "Trabalho em Equipe",
+            "nota": 3.5,
+            "justificativa": "Participei das atividades em grupo e ajudei colegas, mas em alguns momentos poderia ter colaborado mais."
+        },
+        {
+            "nome": "Adaptabilidade",
+            "nota": 3.0,
+            "justificativa": "Consegui me adaptar às mudanças, embora precise ser mais proativo em situações inesperadas."
+        },
+        {
+            "nome": "Qualidade das Entregas",
+            "nota": 3.0,
+            "justificativa": "Minhas entregas atenderam aos requisitos, mas algumas poderiam ter mais atenção aos detalhes."
+        },
+        {
+            "nome": "Cumprimento de Prazos",
+            "nota": 2.5,
+            "justificativa": "Cumpri a maioria dos prazos, mas tive dificuldades em alguns momentos de maior demanda."
+        },
+        {
+            "nome": "Resolução de Problemas",
+            "nota": 3.0,
+            "justificativa": "Resolvi problemas do dia a dia, mas em casos mais complexos precisei de apoio do time."
+        },
+        {
+            "nome": "Gestão de Projetos",
+            "nota": 3.0,
+            "justificativa": "Contribuí para a organização dos projetos, mas posso evoluir no acompanhamento das tarefas."
+        },
+        {
+            "nome": "Tomada de Decisão",
+            "nota": 3.0,
+            "justificativa": "Tomei decisões adequadas na maioria das vezes, mas em algumas situações hesitei."
+        },
+        {
+            "nome": "Desenvolvimento de Equipe",
+            "nota": 3.0,
+            "justificativa": "Apoiei o desenvolvimento dos colegas, mas posso ser mais ativo em compartilhar conhecimento."
+        }
+    ]
+}
+
+### Preencher rascunho autoavaliação
+POST http://localhost:3000/avaliacoes/rascunho-auto-avaliacao
+Content-Type: application/json
+
+{
+    "idAvaliacao": "600af205-a5bc-4203-a282-7f86899f117f",
+    "criterios": [
+        {
+            "nome": "Comunicação",
+            "nota": 3.0,
+            "justificativa": "Me comuniquei de forma clara na maioria das situações, mas posso melhorar em reuniões grandes."
+        },
+        {
+            "nome": "Trabalho em Equipe",
+            "nota": 3.5,
+            "justificativa": "Participei das atividades em grupo e ajudei colegas, mas em alguns momentos poderia ter colaborado mais."
+        },
+        {
+            "nome": "Adaptabilidade",
+            "nota": 3.0,
+            "justificativa": "Consegui me adaptar às mudanças, embora precise ser mais proativo em situações inesperadas."
+        },
+        {
+            "nome": "Qualidade das Entregas",
+            "nota": 3.0,
+            "justificativa": "Minhas entregas atenderam aos requisitos, mas algumas poderiam ter mais atenção aos detalhes."
+        },
+        {
+            "nome": "Cumprimento de Prazos",
+            "nota": 2.5,
+            "justificativa": "Cumpri a maioria dos prazos, mas tive dificuldades em alguns momentos de maior demanda."
+        },
+        {
+            "nome": "Resolução de Problemas",
+            "nota": 3.0,
+            "justificativa": "Resolvi problemas do dia a dia, mas em casos mais complexos precisei de apoio do time."
+        }
+    ]
+}
+
+### Preencher lide-colaborador
+
+POST http://localhost:3000/avaliacoes/preencher-lider-colaborador
+Content-Type: application/json
+
+{
+"idAvaliacao": "6e7b5dda-9535-4e04-a662-f298dc15fd07",
+"criterios": [
+{
+"nome": "Comunicação",
+"nota": 3.0,
+"justificativa": "O colaborador se comunica de forma clara no dia a dia, porém, percebo que ainda há espaço para melhorar a proatividade e a desenvoltura em reuniões maiores, contribuindo mais ativamente."
+},
+{
+"nome": "Trabalho em Equipe",
+"nota": 3.5,
+"justificativa": "Participa bem das atividades em grupo e é solícito ao ajudar os colegas. No entanto, em algumas ocasiões, a contribuição poderia ser mais aprofundada e colaborativa."
+},
+{
+"nome": "Adaptabilidade",
+"nota": 3.0,
+"justificativa": "Demonstra capacidade de se adaptar a mudanças, mas necessita desenvolver uma postura mais proativa na antecipação e reação a situações inesperadas."
+},
+{
+"nome": "Qualidade das Entregas",
+"nota": 3.0,
+"justificativa": "As entregas geralmente atendem aos requisitos. Contudo, é preciso maior atenção aos detalhes para elevar a qualidade geral e evitar retrabalhos pontuais."
+},
+{
+"nome": "Cumprimento de Prazos",
+"nota": 2.5,
+"justificativa": "A maioria dos prazos é cumprida. No entanto, em períodos de alta demanda ou projetos mais complexos, observa-se dificuldade em gerenciar o tempo, resultando em atrasos eventuais."
+},
+{
+"nome": "Resolução de Problemas",
+"nota": 3.0,
+"justificativa": "É capaz de resolver problemas rotineiros de forma eficaz. Em cenários mais complexos ou que exigem maior análise, ainda depende de um suporte mais direto da equipe ou liderança."
+},
+{
+"nome": "Gestão de Projetos",
+"nota": 3.0,
+"justificativa": "Colabora na organização dos projetos. O próximo passo é desenvolver mais autonomia no acompanhamento e na proatividade para identificar e resolver gargalos nas tarefas."
+},
+{
+"nome": "Tomada de Decisão",
+"nota": 3.0,
+"justificativa": "Toma decisões adequadas na maioria das situações, especialmente as de menor complexidade. Em momentos cruciais ou de maior impacto, ainda há uma certa hesitação que pode atrasar o processo."
+},
+{
+"nome": "Desenvolvimento de Equipe",
+"nota": 3.0,
+"justificativa": "Apoia o desenvolvimento dos colegas quando solicitado. Seria benéfico que fosse mais ativo na disseminação de conhecimento e melhores práticas de forma espontânea."
+}
+]
+}
+
+### Preencher rascunho lider colaborador
+POST http://localhost:3000/avaliacoes/rascunho-lider-colaborador
+Content-Type: application/json
+
+{
+    "idAvaliacao": "8b60161e-7716-4267-afc1-7784cd8c7ada",
+    "criterios": [
+        {
+            "nome": "Comunicação",
+            "nota": 3.0,
+            "justificativa": "Me comuniquei de forma clara na maioria das situações, mas posso melhorar em reuniões grandes."
+        },
+        {
+            "nome": "Trabalho em Equipe",
+            "nota": 3.5,
+            "justificativa": "Participei das atividades em grupo e ajudei colegas, mas em alguns momentos poderia ter colaborado mais."
+        },
+        {
+            "nome": "Adaptabilidade",
+            "nota": 3.0,
+            "justificativa": "Consegui me adaptar às mudanças, embora precise ser mais proativo em situações inesperadas."
+        },
+        {
+            "nome": "Qualidade das Entregas",
+            "nota": 3.0,
+            "justificativa": "Minhas entregas atenderam aos requisitos, mas algumas poderiam ter mais atenção aos detalhes."
+        },
+        {
+            "nome": "Cumprimento de Prazos",
+            "nota": 2.5,
+            "justificativa": "Cumpri a maioria dos prazos, mas tive dificuldades em alguns momentos de maior demanda."
+        },
+        {
+            "nome": "Resolução de Problemas",
+            "nota": 3.0,
+            "justificativa": "Resolvi problemas do dia a dia, mas em casos mais complexos precisei de apoio do time."
+        }
+    ]
+}
+
+### Buscar forms de autoavaliação agrupados por pilar
+GET http://localhost:3000/avaliacoes/notas-distribuicao/55555555-5555-5555-5555-666666666666?tipoAvaliacao=AVALIACAO_PARES
+
+### Buscar forms de autoavaliação agrupados por pilar
+GET http://localhost:3000/avaliacoes/forms-autoavaliacao/7532e589-7d34-4026-8ea2-6b30178634ac
+
+### Buscar forms de autoavaliação agrupados por pilar
+GET http://localhost:3000/avaliacoes/forms-lider-colaborador/4ba9ef95-aecd-4da3-8d0a-e8bcc7778675
+
+### Relacionar Líder-Colaborador
+POST http://localhost:3000/colaborador/relacionar-lider-colaborador
+Content-Type: application/json
+
+{
+  "idLider": "33333333-3333-3333-3333-333333333333",
+  "idColaborador": "44444444-4444-4444-4444-444444444444",
+  "idCiclo": "55555555-5555-5555-5555-666666666666"
+}
+
+### Relacionar Mentor-Colaborador
+POST http://localhost:3000/colaborador/relacionar-mentor-colaborador
+Content-Type: application/json
+
+{
+  "idMentor": "22222222-2222-2222-2222-222222222222",
+  "idColaborador": "11111111-1111-1111-1111-111111111111",
+  "idCiclo": "55555555-5555-5555-5555-666666666666"
+}
+
+### Get constantes
+GET http://localhost:3000/colaborador/constantes
+
+### Get notas
+GET http://localhost:3000/avaliacoes/notasAvaliacoes/996e4e19-cfca-4414-ac93-0a274a417c7e/4e4b287f-bddd-47c7-83ff-a663720f2ba3
+
+### Get all notas
+GET http://localhost:3000/avaliacoes/notasCiclo/4e4b287f-bddd-47c7-83ff-a663720f2ba3
+
+### Get resumo IA
+GET http://localhost:3000/ia/avaliar/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
+
+### Get Avaliacoes completas
+GET http://localhost:3000/ia/avaliacoes/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
+
+### Get Mini-resumo IA
+GET http://localhost:3000/ia/miniavaliar/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
+
+
+### get tudo colaborador
+GET http://localhost:3000/ia/brutalfacts/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
+
+### Gerar Brutal Facts para um colaborador e ciclo
+POST http://localhost:3000/ia/gerarbrutalfacts/cccccccc-3333-3333-3333-333333333333/55555555-5555-5555-5555-666666666666
+
+
+# (Opcional: corpo vazio, pois os parâmetros estão na URL)
+
+### Buscar mentorados de um mentor em um ciclo
+GET http://localhost:3000/colaborador/mentorados/99999999-9999-9999-9999-999999999999/55555555-5555-5555-5555-666666666666
+
+### Criar referência
+POST http://localhost:3000/referencias
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYmNmM2QxNC03NWVmLTRjNDQtYjgwYy1jYmFhM2RjYzZmYTMiLCJlbWFpbCI6ImpvYW8ucmFiZWxsb0BleGFtcGxlLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc1MDc5ODQyNywiZXhwIjoxNzUwODg0ODI3fQ.nwNhdi_egLiU64lo4QaPgIUW7PyqRNolXPfz5OqskVc
+Content-Type: application/json
+
+{
+  "idCiclo": "55555555-5555-5555-5555-666666666666",
+  "idIndicador": "bbbbbbbb-2222-2222-2222-222222222222",
+  "idIndicado": "cccccccc-3333-3333-3333-333333333333",
+  "tipo": "CULTURAL",
+  "justificativa": "Indico este colaborador por seu grande sentimento de dono que tem pela empresa."
+}
+
+### Criar equalizações para um ciclo
+POST http://localhost:3000/equalizacao
+Content-Type: application/json
+
+{
+  "idCiclo": "55555555-5555-5555-5555-666666666666"
+}
+
+### Preencher equalização de um colaborador
+PATCH http://localhost:3000/equalizacao/a34475ca-329d-4fd4-b112-a1910a79d050
+Content-Type: application/json
+
+{
+  "notaAjustada": "3.5",
+  "justificativa": "O colaborador demonstra desempenho consistente, com alinhamento entre autoavaliação e feedback do líder. Há oportunidades de melhoria em comunicação, proatividade e gestão de tempo, conforme apontado por todas as fontes."
+}
+
+
