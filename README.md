@@ -12,7 +12,6 @@ O RPE-Backend é uma plataforma corporativa de avaliação de desempenho desenvo
 - Cadastro e gerenciamento de colaboradores
 - Sistema de perfis (Colaborador Comum, Gestor, Mentor, Líder, RH, Membro do Comitê, Admin)
 - Associação de colaboradores a ciclos de avaliação
-- Gestão de relacionamentos (gestor-colaborador, líder-colaborador, mentor-colaborador, pares)
 
 ### 📅 Ciclos de Avaliação
 - Criação e gerenciamento de ciclos de avaliação
