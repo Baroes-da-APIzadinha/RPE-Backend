@@ -8,8 +8,8 @@ import { AuditoriaService } from '../auditoria/auditoria.service';
 import { Response } from 'express';
 
 @Controller('importacao')
-//@UseGuards(JwtAuthGuard, RolesGuard)
-//@Roles('ADMIN', 'RH')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN', 'RH')
 export class ImportacaoController {
   constructor(private readonly importacaoService: ImportacaoService, private readonly auditoriaService: AuditoriaService) {}
 

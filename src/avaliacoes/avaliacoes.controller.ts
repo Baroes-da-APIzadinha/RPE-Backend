@@ -21,8 +21,8 @@ export class AvaliacoesController {
     constructor(private readonly service: AvaliacoesService, private readonly auditoriaService: AuditoriaService) { }
 
 
-    //@UseGuards(JwtAuthGuard, RolesGuard)
-    //@Roles('ADMIN', 'RH')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('ADMIN', 'RH')
     @Post()
     async lancarAvaliacoes(@Body('idCiclo') idCiclo: string, @Req() req) {
         const resultado = await this.service.lancarAvaliacoes(idCiclo);
