@@ -1,14 +1,16 @@
 import { Injectable, Logger, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { PrismaService } from '../database/prismaService';
+import * as bcrypt from 'bcrypt';
 import * as xlsx from 'xlsx';
+import { HashService } from 'src/common/hash.service';
 
 @Injectable()
 export class ImportacaoService {
   private readonly logger = new Logger(ImportacaoService.name);
 
-  constructor(private prisma: PrismaService) {}
-
+  constructor(private prisma: PrismaService, private hashService : HashService) {}
+  
   async iniciarProcessoDeImportacao(file: any) {
     this.logger.log(`Recebido arquivo para importação: ${file.originalname}`);
     this.processarArquivoEmBackground(file.buffer);
@@ -40,7 +42,7 @@ export class ImportacaoService {
         await this.criarAutoAvaliacaoComCards(ciclo.idCiclo, colaborador.idColaborador, respostasAuto);
         this.logger.log('Autoavaliação importada.');
       }
-
+      const salt = await bcrypt.genSalt();
       // --- 4. PROCESSAR A ABA 'Avaliação 360' ---
       const respostas360 = this.extrairDadosDaAba(workbook, 'Avaliação 360');
       if (respostas360.length > 0) {
@@ -54,7 +56,7 @@ export class ImportacaoService {
               nomeCompleto: emailAvaliado,
               email: `${emailAvaliado}@empresa.com`,
               unidade: perfil['Unidade'],
-              senha: 'senha123',
+              senha: await bcrypt.hash('senha123', salt),
             },
           });
           const dadosAvaliacao = avaliacoesPorAvaliado[emailAvaliado];
@@ -88,7 +90,7 @@ export class ImportacaoService {
                 nomeCompleto: emailIndicado,
                 email: `${emailIndicado}@empresa.com`,
                 unidade: perfil['Unidade'],
-                    senha: 'senha123',
+                    senha: await bcrypt.hash('senha123', salt),
               },
             });
             await this.prisma.indicacaoReferencia.create({
@@ -97,7 +99,7 @@ export class ImportacaoService {
                 idIndicador: colaborador.idColaborador,
                 idIndicado: indicado.idColaborador,
                 tipo: 'GERAL',
-                justificativa: justificativa || 'Nenhuma justificativa fornecida.',
+                justificativa: this.hashService.hash(justificativa) || 'Nenhuma justificativa fornecida.',
               }
             });
             refsCriadas++;
@@ -121,6 +123,7 @@ export class ImportacaoService {
 
   // Cria ou atualiza colaborador pelo email (único)
   private async upsertColaborador(perfil: any) {
+    const salt = await bcrypt.genSalt();
     const colaboradorExistente = await this.prisma.colaborador.findUnique({ where: { email: perfil.Email } });
     if (colaboradorExistente) {
       return this.prisma.colaborador.update({
@@ -136,7 +139,7 @@ export class ImportacaoService {
           nomeCompleto: perfil['Nome ( nome.sobrenome )'],
           email: perfil.Email,
           unidade: perfil['Unidade'],
-          senha: 'senha123',
+          senha: await bcrypt.hash('senha123', salt),
         },
       });
     }
@@ -144,6 +147,7 @@ export class ImportacaoService {
 
   // Cria ou busca ciclo pelo nome
   private async upsertCiclo(cicloNome: string) {
+    
     let ciclo = await this.prisma.cicloAvaliacao.findFirst({ where: { nomeCiclo: cicloNome } });
     if (!ciclo) {
       let ano = '2024';
@@ -225,7 +229,7 @@ export class ImportacaoService {
                 idAvaliacao: avaliacao.idAvaliacao,
                 nomeCriterio: criterio.nomeCriterio,
                 nota: notaNumerica,
-                justificativa: justificativa || 'xx',
+                justificativa: this.hashService.hash(justificativa) || 'xx',
               },
             });
             cardsCriados++;
@@ -259,8 +263,8 @@ export class ImportacaoService {
           idAvaliacao: avaliacao.idAvaliacao,
           nota: notaGeral,
           motivadoTrabalharNovamente: motivadoTrabalharNovamente || null,
-          pontosFortes: pontosFortes || 'Nenhum ponto forte destacado.',
-          pontosFracos: pontosMelhorar || 'Nenhum ponto a melhorar destacado.',
+          pontosFortes: this.hashService.hash(pontosFortes) || 'Nenhum ponto forte destacado.',
+          pontosFracos: this.hashService.hash(pontosMelhorar) || 'Nenhum ponto a melhorar destacado.',
         }
       });
     });

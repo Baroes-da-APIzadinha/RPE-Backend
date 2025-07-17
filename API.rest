@@ -1,15 +1,12 @@
 ### Adicionar colaborador
 POST http://localhost:3000/colaborador/
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYmNmM2QxNC03NWVmLTRjNDQtYjgwYy1jYmFhM2RjYzZmYTMiLCJlbWFpbCI6ImpvYW8ucmFiZWxsb0BleGFtcGxlLmNvbSIsInJvbGVzIjpbIkFETUlOIl0sImlhdCI6MTc1MDc5ODQyNywiZXhwIjoxNzUwODg0ODI3fQ.nwNhdi_egLiU64lo4QaPgIUW7PyqRNolXPfz5OqskVc
 
 {
-    "nomeCompleto": "GESTOR ",
-    "email": "gestor@example.com",
+    "nomeCompleto": "ADMIN ",
+    "email": "admin@empresa.com",
     "senha": "senha123",
-    "colaboradorComum": true,
-    "gestor": true
-
+    "admin": true
 }
 
 ### Remover colaborador
@@ -24,12 +21,12 @@ GET http://localhost:3000/colaborador/get-all-colaboradores
 
 
 ### Atualizar colaborador
-PUT http://localhost:3000/colaborador/atualizar/c3ff70b4-1096-41aa-bba4-0cec649580da
+PUT http://localhost:3000/colaborador/7896c25f-b44a-4977-a779-3ccea2ec5527
 Content-Type: application/json
 
 {
     
-    "email": "marcos.vinicius@example.com"
+    "email": "admin@empresa.com"
     
 }
 

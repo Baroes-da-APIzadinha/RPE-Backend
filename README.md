@@ -53,11 +53,6 @@ O RPE-Backend é uma plataforma corporativa de avaliação de desempenho desenvo
 - Sincronização automática de colaboradores, projetos e alocações
 - Rotina agendada para atualizações
 
-### 📁 Gestão de Projetos
-- Cadastro e gerenciamento de projetos
-- Alocação de colaboradores em projetos
-- Controle de status de projetos
-
 ### 🔐 Autenticação e Autorização
 - Sistema JWT para autenticação
 - Controle de acesso baseado em perfis
@@ -134,8 +129,6 @@ GOOGLE_AI_API_KEY=sua-chave-api-google-ai
 # Execute as migrações
 pnpm prisma migrate dev
 
-# Execute o seed (opcional)
-pnpm prisma db seed
 ```
 
 5. **Ative os hooks do Git**
@@ -171,293 +164,15 @@ pnpm start:prod
 docker-compose up -d
 ```
 
-## 📚 API Endpoints
-
-### 🔐 Autenticação
-
-#### Login
-```http
-POST /auth/login
-Content-Type: application/json
-
-{
-  "email": "usuario@empresa.com",
-  "senha": "senha123"
-}
-```
-
-### 👥 Colaboradores
-
-#### Criar Colaborador
-```http
-POST /colaborador/
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "nomeCompleto": "João da Silva",
-  "email": "joao.silva@empresa.com",
-  "senha": "senha123",
-  "cargo": "Desenvolvedor",
-  "trilhaCarreira": "Desenvolvimento",
-  "unidade": "São Paulo"
-}
-```
-
-#### Buscar Colaborador
-```http
-GET /colaborador/get/{id}
-Authorization: Bearer <token>
-```
-
-#### Atualizar Colaborador
-```http
-PUT /colaborador/atualizar/{id}
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "nomeCompleto": "João Silva Santos",
-  "cargo": "Desenvolvedor Senior"
-}
-```
-
-#### Remover Colaborador
-```http
-DELETE /colaborador/{id}
-Authorization: Bearer <token>
-```
-
-#### Associar Perfil
-```http
-POST /colaborador/associar-perfil
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "tipoPerfil": "GESTOR",
-  "idColaborador": "uuid-do-colaborador"
-}
-```
-
-### 📅 Ciclos de Avaliação
-
-#### Criar Ciclo
-```http
-POST /ciclo
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "nome": "Ciclo 2025.1",
-  "dataInicioAno": 2025,
-  "dataInicioMes": 7,
-  "dataInicioDia": 1,
-  "dataFimAno": 2025,
-  "dataFimMes": 7,
-  "dataFimDia": 31,
-  "duracaoEmAndamentoDias": 10,
-  "duracaoEmRevisaoDias": 5,
-  "duracaoEmEqualizacaoDias": 3
-}
-```
-
-#### Buscar Ciclos
-```http
-GET /ciclo/get-all
-Authorization: Bearer <token>
-
-GET /ciclo/get-ativos
-Authorization: Bearer <token>
-
-GET /ciclo/get-historico
-Authorization: Bearer <token>
-```
-
-#### Atualizar Ciclo
-```http
-PUT /ciclo/{id}
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "nome": "Ciclo 2025.1 Atualizado",
-  "status": "EM_ANDAMENTO"
-}
-```
-
-### 🎯 Critérios
-
-#### Criar Critério
-```http
-POST /criterios
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "nomeCriterio": "Comunicação",
-  "descricao": "Capacidade de comunicação clara e efetiva",
-  "peso": 2.5,
-  "obrigatorio": true,
-  "pilar": "Comportamento"
-}
-```
-
-#### Associar Critério ao Ciclo
-```http
-POST /associacoes-criterio-ciclo
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "idCiclo": "uuid-do-ciclo",
-  "idCriterio": "uuid-do-criterio"
-}
-```
-
-### 📊 Avaliações
-
-#### Lançar Avaliações
-```http
-POST /avaliacoes
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "idCiclo": "uuid-do-ciclo"
-}
-```
-
-#### Lançar Avaliações Específicas
-```http
-POST /avaliacoes/lancar-auto-avaliacoes
-POST /avaliacoes/lancar-pares
-POST /avaliacoes/lancar-lider-colaborador
-POST /avaliacoes/lancar-colaborador-mentor
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "idCiclo": "uuid-do-ciclo"
-}
-```
-
-#### Preencher Avaliação
-```http
-POST /avaliacoes/preencher-avaliacao-pares
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "idAvaliacao": "uuid-da-avaliacao",
-  "nota": 4,
-  "motivacao": "Concordo",
-  "pontosFortes": "Excelente comunicação",
-  "pontosFracos": "Pode melhorar gestão de tempo"
-}
-```
-
-#### Buscar Avaliações
-```http
-GET /avaliacoes/tipo/usuario/{idUsuario}?tipoAvaliacao=AVALIACAO_PARES
-GET /avaliacoes/status/{idCiclo}?status=PENDENTE
-Authorization: Bearer <token>
-```
-
-### ⚖️ Equalização
-
-#### Buscar Equalizações
-```http
-GET /equalizacao/ciclo/{idCiclo}
-Authorization: Bearer <token>
-```
-
-#### Ajustar Nota
-```http
-POST /equalizacao/ajustar-nota
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "idEqualizacao": "uuid-da-equalizacao",
-  "notaAjustada": 4.5,
-  "justificativa": "Ajuste baseado na análise do comitê"
-}
-```
-
-### 🤖 IA
-
-#### Sugestões de Equalização
-```http
-POST /ia/sugerir-equalizacao
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "idCiclo": "uuid-do-ciclo",
-  "contexto": "Contexto específico para análise"
-}
-```
-
-### 📈 Relatórios RH
-
-#### Estatísticas
-```http
-GET /RH/colaboradores/ciclo/{idCiclo}
-GET /RH/avaliacoes/concluidas/ciclo/{idCiclo}
-GET /RH/unidades
-GET /RH/avaliacoes/status/{idCiclo}
-Authorization: Bearer <token>
-```
-
-#### Progresso
-```http
-GET /RH/progresso/unidade/ciclo/{idCiclo}
-GET /RH/progresso/trilha/ciclo/{idCiclo}
-Authorization: Bearer <token>
-```
-
-### 📁 Projetos
-
-#### Gerenciar Projetos
-```http
-POST /projetos
-GET /projetos
-GET /projetos/{id}
-PATCH /projetos/{id}
-DELETE /projetos/{id}
-Authorization: Bearer <token>
-```
-
-#### Alocações
-```http
-POST /projetos/{idProjeto}/alocacoes
-GET /projetos/{idProjeto}/alocacoes
-PATCH /projetos/alocacoes/{idAlocacao}
-DELETE /projetos/alocacoes/{idAlocacao}
-Authorization: Bearer <token>
-```
-
-### 📤 Importação
-
-#### Importar Avaliações
-```http
-POST /importacao/avaliacoes
-Authorization: Bearer <token>
-Content-Type: multipart/form-data
-
-file: [arquivo-excel]
-```
-
 ## 🔐 Perfis e Permissões
 
 ### Tipos de Perfil
-- **COLABORADOR_COMUM**: Acesso básico ao sistema
+- **COLABORADOR_COMUM**: Acesso ao preenchimento de avaliações
 - **GESTOR**: Gerencia equipes e avaliações
 - **MENTOR**: Acesso a avaliações de mentoreados
-- **LIDER**: Avalia liderados
-- **RH**: Acesso a relatórios e analytics
-- **MEMBRO_COMITE**: Participa da equalização
+- **LIDER**: Avalia seus liderados
+- **RH**: Gerencia os ciclos avaliativos e tem acesso a relatórios e analytics, 
+- **MEMBRO_COMITE**: Realiza as equalizações
 - **ADMIN**: Acesso total ao sistema
 
 ## 🧪 Testes
@@ -541,20 +256,11 @@ src/
 # Criar nova migração
 pnpm prisma migrate dev --name nome-da-migracao
 
-# Aplicar migrações em produção
-pnpm prisma migrate deploy
+# Aplicar migrações em desenvolvimento
+pnpm prisma migrate dev
 
 # Reset do banco (desenvolvimento)
 pnpm prisma migrate reset
-```
-
-### Seed e População de Dados
-```bash
-# Executar seed (importa dados de planilhas Excel)
-pnpm prisma db seed
-
-# Executar script SQL de população (dados de teste)
-psql -d rpe_db -f "SQL scripts/population.sql"
 ```
 
 ### Studio (Interface Visual)
@@ -636,14 +342,5 @@ RPE-Backend/
 - **`commitlint.config.js`**: Validação de commits
 - **`.gitignore`**: Arquivos ignorados pelo Git
 
-### Scripts Disponíveis
-- **Desenvolvimento**: `pnpm start:dev`
-- **Produção**: `pnpm start:prod`
-- **Testes**: `pnpm test`, `pnpm test:watch`, `pnpm test:cov`
-- **Linting**: `pnpm lint`, `pnpm format`
-- **Banco**: `pnpm prisma studio`, `pnpm prisma migrate dev`
-- **Docker**: `docker-compose up -d`
-
----
 
 **RPE-Backend** - Sistema de Avaliação de Desempenho Corporativo

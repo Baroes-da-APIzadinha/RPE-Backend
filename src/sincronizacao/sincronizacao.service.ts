@@ -40,7 +40,7 @@ export class SincronizacaoService {
     private readonly prisma: PrismaService,
   ) {}
   
-  @Cron(CronExpression.EVERY_DAY_AT_10PM)
+  @Cron(CronExpression.EVERY_WEEK)
   async handleCronSincronizacao() {
     this.logger.log('🚀 Iniciando rotina de sincronização completa com o ERP (automática)...');
     await this.executarSincronizacaoCompleta();
